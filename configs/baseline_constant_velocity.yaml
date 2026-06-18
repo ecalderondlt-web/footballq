@@ -1,0 +1,14 @@
+model:
+  name: constant_velocity
+data:
+  windows: data/processed/synthetic_windows.pt
+  batch_size: 128
+  num_workers: 0
+split:
+  val_fraction: 0.25
+  test_fraction: 0.25
+training:
+  seed: 7
+  epochs: 1
+  device: auto
+  run_root: runs

@@ -10,6 +10,7 @@ dist/
 
 data/
 artifacts/
+runs/
 
 *.mp4
 *.gif
