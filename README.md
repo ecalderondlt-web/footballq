@@ -19,6 +19,12 @@ python -m pip install -e ".[dev]"
 
 Python 3.11 or newer is required.
 
+## Tests
+
+```powershell
+python -m pytest -q
+```
+
 ## Phase 1 Synthetic Benchmark
 
 This end-to-end path does not require real tracking data.
@@ -48,6 +54,7 @@ Other included configs:
 - `configs/baseline_constant_velocity.yaml`
 - `configs/baseline_mlp.yaml`
 - `configs/baseline_st_transformer.yaml`
+- `configs/baseline_st_transformer_skillcorner.yaml`
 
 Each training run writes:
 
@@ -103,6 +110,56 @@ Assumptions for public data are intentionally conservative: if possession, phase
 stable home/away metadata are missing, the pipeline leaves those features empty instead of
 inventing them. Missing or invisible entities keep the fixed `[23]` entity shape and are handled by
 masks.
+
+## Running Phase 1.5 On SkillCorner Open Data
+
+Download SkillCorner Open Data locally and place the tracking files under:
+
+```text
+data/raw/skillcorner/
+  <match-folder>/
+    *_tracking*.jsonl
+```
+
+The adapter also accepts `.json` tracking files when the filename contains `tracking`. Multiple
+match folders can be placed under `data/raw/skillcorner`; when more than one tracking file is
+found, the match folder/file name is used as `match_id` so train/val/test splits remain
+match-based.
+
+Prepare windows:
+
+```powershell
+python scripts/prepare_tracking_data.py `
+  --source skillcorner `
+  --raw data/raw/skillcorner `
+  --out data/processed/skillcorner_windows.pt `
+  --fps-out 10 `
+  --context-seconds 2.0 `
+  --horizon-seconds 2.0 `
+  --stride-seconds 0.2
+```
+
+Train the SkillCorner transformer baseline:
+
+```powershell
+python scripts/train_baseline.py --config configs/baseline_st_transformer_skillcorner.yaml
+```
+
+Evaluate a checkpoint:
+
+```powershell
+python scripts/eval_baseline.py --checkpoint runs/st_transformer/<RUN_ID>/best.pt --split test
+```
+
+Known limitations:
+
+- Real SkillCorner files are not committed to this repo.
+- The adapter focuses on tracking rows, not event labels or tactical phases.
+- Possession, phase, and event fields are optional and stay empty when absent.
+- If a tracking file has fewer than the required context plus horizon frames, preparation fails
+  clearly instead of writing an empty benchmark.
+- If public file layouts differ from the supported `ball_data`/`player_data` or frame `data`
+  variants, the adapter may need a small schema extension.
 
 ## Synthetic Demo
 

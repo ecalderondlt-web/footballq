@@ -66,6 +66,12 @@ def main() -> None:
         horizon_seconds=args.horizon_seconds,
         stride_seconds=args.stride_seconds,
     )
+    if len(windows.match_id) == 0:
+        raise RuntimeError(
+            "No windows were produced. Check that the input has enough consecutive frames for "
+            f"context={args.context_seconds}s and horizon={args.horizon_seconds}s at "
+            f"fps_out={args.fps_out}, and that player/ball rows have visible x/y positions."
+        )
     out = save_windows_pt(windows, args.out)
     print(
         f"wrote {len(windows.match_id):,} windows to {out} "

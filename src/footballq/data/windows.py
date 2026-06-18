@@ -78,8 +78,26 @@ class TrackingWindowTensorData:
     def n_features(self) -> int:
         return int(self.past.shape[3])
 
+    def window_records(self) -> list[dict[str, Any]]:
+        """Return per-window dicts for lightweight inspection scripts."""
+
+        return [
+            {
+                "past": self.past[idx],
+                "future_xy": self.future_xy[idx],
+                "past_mask": self.past_mask[idx],
+                "future_mask": self.future_mask[idx],
+                "entity_type": self.entity_type[idx],
+                "team_id": self.team_id[idx],
+                "match_id": self.match_id[idx],
+                "start_frame": self.start_frame[idx],
+            }
+            for idx in range(len(self.match_id))
+        ]
+
     def to_dict(self) -> dict[str, Any]:
         return {
+            "windows": self.window_records(),
             "past": self.past,
             "future_xy": self.future_xy,
             "past_mask": self.past_mask,
@@ -97,7 +115,7 @@ class TrackingWindowTensorData:
         }
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "TrackingWindowTensorData":
+    def from_dict(cls, payload: dict[str, Any]) -> TrackingWindowTensorData:
         return cls(
             past=payload["past"].float(),
             future_xy=payload["future_xy"].float(),
@@ -139,7 +157,7 @@ class TrackingWindowDataset(Dataset):
             "start_frame": self.data.start_frame[data_index],
         }
 
-    def subset(self, indices: list[int]) -> "TrackingWindowDataset":
+    def subset(self, indices: list[int]) -> TrackingWindowDataset:
         return TrackingWindowDataset(self.data, indices=indices)
 
 
@@ -156,7 +174,31 @@ def load_windows_pt(path: str | Path) -> TrackingWindowTensorData:
     """Load windows saved by :func:`save_windows_pt`."""
 
     payload = torch.load(Path(path), map_location="cpu", weights_only=False)
+    if isinstance(payload, list):
+        return _from_window_records(payload)
+    if isinstance(payload, dict) and "train" in payload and "past" not in payload:
+        return _from_window_records(payload["train"])
     return TrackingWindowTensorData.from_dict(payload)
+
+
+def _from_window_records(records: list[dict[str, Any]]) -> TrackingWindowTensorData:
+    if not records:
+        raise ValueError("Window record list is empty.")
+    return TrackingWindowTensorData(
+        past=torch.stack([record["past"].float() for record in records]),
+        future_xy=torch.stack([record["future_xy"].float() for record in records]),
+        past_mask=torch.stack([record["past_mask"].bool() for record in records]),
+        future_mask=torch.stack([record["future_mask"].bool() for record in records]),
+        entity_type=torch.stack([record["entity_type"].long() for record in records]),
+        team_id=torch.stack([record["team_id"].long() for record in records]),
+        match_id=[str(record.get("match_id", "")) for record in records],
+        start_frame=[int(record.get("start_frame", 0)) for record in records],
+        feature_names=list(FEATURE_NAMES),
+        fps=10.0,
+        context_seconds=float(records[0]["past"].shape[0]) / 10.0,
+        horizon_seconds=float(records[0]["future_xy"].shape[0]) / 10.0,
+        stride_seconds=0.2,
+    )
 
 
 def _natural_key(value: object) -> tuple[str, int]:
@@ -193,9 +235,14 @@ def _standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
     out["y_m"] = pd.to_numeric(out["y_m"], errors="coerce")
     out["time_s"] = pd.to_numeric(out["time_s"], errors="coerce")
     out["frame_id"] = pd.to_numeric(out["frame_id"], errors="coerce")
-    out["visible"] = out["visible"].fillna(True).astype(bool) & out["x_m"].notna() & out["y_m"].notna()
+    out["visible"] = (
+        out["visible"].fillna(True).astype(bool) & out["x_m"].notna() & out["y_m"].notna()
+    )
     out["is_visible"] = out["visible"]
-    return out.sort_values(["match_id", "period", "time_s", "frame_id", "agent_id"], kind="mergesort")
+    return out.sort_values(
+        ["match_id", "period", "time_s", "frame_id", "agent_id"],
+        kind="mergesort",
+    )
 
 
 def _normalize_team_id(value: object) -> str:
@@ -279,10 +326,19 @@ def _agents_for_period(period_df: pd.DataFrame) -> list[str]:
     players = period_df[period_df["agent_type"] == AGENT_PLAYER].copy()
     players["team_norm"] = players["team_id"].map(_normalize_team_id)
 
-    home = sorted(players[players["team_norm"] == "home"]["agent_id"].dropna().astype(str).unique(), key=_natural_key)
-    away = sorted(players[players["team_norm"] == "away"]["agent_id"].dropna().astype(str).unique(), key=_natural_key)
+    home = sorted(
+        players[players["team_norm"] == "home"]["agent_id"].dropna().astype(str).unique(),
+        key=_natural_key,
+    )
+    away = sorted(
+        players[players["team_norm"] == "away"]["agent_id"].dropna().astype(str).unique(),
+        key=_natural_key,
+    )
     unknown = sorted(
-        players[~players["team_norm"].isin(["home", "away"])]["agent_id"].dropna().astype(str).unique(),
+        players[~players["team_norm"].isin(["home", "away"])]["agent_id"]
+        .dropna()
+        .astype(str)
+        .unique(),
         key=_natural_key,
     )
     if len(home) < N_PLAYERS_PER_TEAM and unknown:
@@ -302,7 +358,10 @@ def _agents_for_period(period_df: pd.DataFrame) -> list[str]:
     )
 
 
-def _static_entity_arrays(agent_ids: list[str], period_df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+def _static_entity_arrays(
+    agent_ids: list[str],
+    period_df: pd.DataFrame,
+) -> tuple[np.ndarray, np.ndarray]:
     entity_type = np.zeros(N_ENTITIES, dtype=np.int64)
     team_id = np.zeros(N_ENTITIES, dtype=np.int64)
     lookup = (
@@ -379,7 +438,11 @@ def build_tracking_windows(
     match_ids: list[str] = []
     start_frames: list[int] = []
 
-    for (match_id, period), period_df in source.groupby(["match_id", "period"], dropna=False, sort=False):
+    for (match_id, period), period_df in source.groupby(
+        ["match_id", "period"],
+        dropna=False,
+        sort=False,
+    ):
         period_df = period_df.copy()
         times = _selected_times(period_df["time_s"].to_numpy(dtype=float), fps_out=fps_out)
         if len(times) < total_steps:
