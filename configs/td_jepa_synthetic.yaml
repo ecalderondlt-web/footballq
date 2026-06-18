@@ -1,0 +1,34 @@
+experiment: td_jepa_synthetic
+seed: 7
+data:
+  path: data/processed/synthetic_td_jepa.pt
+  source: synthetic
+  fps_out: 10
+  context_seconds: 1.0
+  delta_seconds: 0.2
+  stride_seconds: 0.2
+split:
+  val_fraction: 0.25
+  test_fraction: 0.25
+model:
+  z_dim: 64
+  d_model: 64
+  n_layers: 1
+  n_heads: 4
+  dropout: 0.1
+  motion_hidden_dim: 128
+ema:
+  momentum: 0.996
+loss:
+  variance_weight: 1.0
+  variance_threshold: 0.05
+training:
+  seed: 7
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  max_epochs: 5
+  num_workers: 0
+  device: auto
+  run_root: runs
+  best_metric: total_loss

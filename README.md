@@ -161,6 +161,96 @@ Known limitations:
 - If public file layouts differ from the supported `ball_data`/`player_data` or frame `data`
   variants, the adapter may need a small schema extension.
 
+## Experiment 2: Soccer TD-JEPA
+
+Experiment 2 pretrains a self-supervised temporal-difference latent state model on the same
+canonical 23-entity tracking representation:
+
+```text
+z_t + delta_z_t ~= z_t_plus_delta
+```
+
+This is representation pretraining only. It does not implement latent flow matching, text
+alignment, video processing, tactical discovery, counterfactual search, or a UI.
+
+Prepare synthetic TD-JEPA examples:
+
+```powershell
+python scripts/make_synthetic_data.py `
+  --out data/synthetic/tracking.parquet `
+  --num-matches 3 `
+  --num-frames 1000 `
+  --fps 10
+
+python scripts/prepare_td_jepa_data.py `
+  --source synthetic `
+  --raw data/synthetic/tracking.parquet `
+  --out data/processed/synthetic_td_jepa.pt `
+  --fps-out 10 `
+  --context-seconds 1.0 `
+  --delta-seconds 0.2 `
+  --stride-seconds 0.2
+```
+
+Train, evaluate, and export embeddings:
+
+```powershell
+python scripts/train_td_jepa.py --config configs/td_jepa_synthetic.yaml
+python scripts/eval_td_jepa.py --checkpoint runs/td_jepa/latest.pt --split test
+python scripts/export_td_embeddings.py `
+  --checkpoint runs/td_jepa/latest.pt `
+  --data data/processed/synthetic_td_jepa.pt `
+  --out data/processed/synthetic_td_embeddings.pt `
+  --split test
+```
+
+For SkillCorner, first place downloaded Open Data tracking files under `data/raw/skillcorner/`,
+then run:
+
+```powershell
+python scripts/prepare_td_jepa_data.py `
+  --source skillcorner `
+  --raw data/raw/skillcorner `
+  --out data/processed/skillcorner_td_jepa.pt `
+  --fps-out 10 `
+  --context-seconds 1.0 `
+  --delta-seconds 0.2 `
+  --stride-seconds 0.2
+
+python scripts/train_td_jepa.py --config configs/td_jepa_skillcorner.yaml
+python scripts/eval_td_jepa.py --checkpoint runs/td_jepa/latest.pt --split test
+python scripts/export_td_embeddings.py `
+  --checkpoint runs/td_jepa/latest.pt `
+  --data data/processed/skillcorner_td_jepa.pt `
+  --out data/processed/skillcorner_td_embeddings.pt `
+  --split test
+```
+
+TD-JEPA run directories are written to `runs/td_jepa/<timestamp>/` and include:
+
+- `config.yaml`
+- `metrics_train.jsonl`
+- `metrics_val.jsonl`
+- `best.pt`
+- `latest.pt`
+- `embeddings_sample.pt`
+
+Stable convenience copies are also written to `runs/td_jepa/latest.pt`,
+`runs/td_jepa/best.pt`, and `runs/td_jepa/embeddings_sample.pt`.
+
+The embedding export payload contains:
+
+- `z`: `[num_examples, z_dim]`
+- `match_id`
+- `frame_t`
+- `delta_frames`
+- `source_split`
+- `config`
+
+Downloaded raw data, processed `.pt` files, embeddings, and run artifacts stay local and must not
+be committed. They are ignored because they are large, reproducible from public sources, and may be
+governed by dataset licenses.
+
 ## Synthetic Demo
 
 The demo does not require internet or real football data.
