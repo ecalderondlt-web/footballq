@@ -27,6 +27,52 @@ def constant_latent_velocity_predict(past_z: torch.Tensor, horizon_steps: int) -
     return past_z[:, -1:, :] + steps * dz.unsqueeze(1)
 
 
+def latent_baseline_predict(
+    past_z: torch.Tensor,
+    horizon_steps: int,
+    residual_mode: str,
+) -> torch.Tensor:
+    """Dispatch a named latent baseline used for residual targets."""
+
+    if residual_mode == "last_latent":
+        return last_latent_predict(past_z, horizon_steps)
+    if residual_mode in {"constant_latent_velocity", "constant_velocity", "cv"}:
+        return constant_latent_velocity_predict(past_z, horizon_steps)
+    raise ValueError(
+        f"Unknown residual_mode {residual_mode!r}. "
+        "Expected last_latent or constant_latent_velocity."
+    )
+
+
+def residual_future(
+    past_z: torch.Tensor,
+    future_z: torch.Tensor,
+    residual_mode: str,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return ``(baseline_future_z, residual_future_z)`` for a residual mode."""
+
+    baseline = latent_baseline_predict(past_z, future_z.shape[1], residual_mode)
+    return baseline, future_z - baseline
+
+
+def normalize_residual(residual: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
+    """Normalize residuals with broadcastable train-set statistics."""
+
+    return (residual - mean.to(residual.device)) / std.to(residual.device).clamp_min(1e-6)
+
+
+def denormalize_residual(
+    residual_norm: torch.Tensor,
+    mean: torch.Tensor,
+    std: torch.Tensor,
+) -> torch.Tensor:
+    """Invert residual normalization."""
+
+    return residual_norm * std.to(residual_norm.device).clamp_min(1e-6) + mean.to(
+        residual_norm.device
+    )
+
+
 class LatentMLPPredictor(nn.Module):
     """Deterministic MLP baseline from flattened context to future latents."""
 

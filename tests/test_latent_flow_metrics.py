@@ -13,3 +13,25 @@ def test_latent_metrics_known_values():
     assert metrics["latent_step_mse"] == 1.0
     assert metrics["minADE_8"] == metrics["latent_ADE"]
     assert metrics["minFDE_8"] == metrics["latent_FDE"]
+
+
+def test_minade_minfde_metrics():
+    target = torch.zeros(1, 2, 2)
+    bad = torch.ones(1, 1, 2, 2) * 3.0
+    good = torch.zeros(1, 1, 2, 2)
+    predictions = torch.cat([bad, good], dim=1)
+    metrics = compute_latent_rollout_metrics(
+        predictions,
+        target,
+        torch.ones(1, 2, dtype=torch.bool),
+    )
+    assert metrics["latent_ADE"] > 0.0
+    assert metrics["minADE"] == 0.0
+    assert metrics["minFDE"] == 0.0
+    assert metrics["minADE_4"] == 0.0
+    assert metrics["minFDE_4"] == 0.0
+    assert metrics["sample_std_mean"] > 0.0
+    assert metrics["diversity_mean_pairwise_distance"] > 0.0
+    for value in metrics.values():
+        if isinstance(value, float):
+            assert torch.isfinite(torch.tensor(value))

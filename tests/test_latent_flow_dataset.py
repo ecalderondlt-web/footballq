@@ -1,8 +1,15 @@
 import torch
 
 from footballq.latent_flow.dataset import (
+    add_residual_targets,
     build_latent_rollout_dataset,
     split_latent_indices_by_match,
+)
+from footballq.latent_flow.baselines import (
+    constant_latent_velocity_predict,
+    denormalize_residual,
+    last_latent_predict,
+    normalize_residual,
 )
 
 
@@ -65,3 +72,60 @@ def test_latent_rollout_split_by_match_id():
     assert train.isdisjoint(val)
     assert train.isdisjoint(test)
     assert val.isdisjoint(test)
+
+
+def test_residual_latent_dataset_shapes(tmp_path):
+    path = tmp_path / "embeddings.pt"
+    _write_latent_embeddings(path, matches=3, steps=12, dim=6)
+    data = build_latent_rollout_dataset(
+        path,
+        context_steps=3,
+        horizon_steps=2,
+        residual_mode="constant_latent_velocity",
+    )
+    assert data.examples["baseline_future_z"].shape == data.examples["future_z"].shape
+    assert data.examples["residual_future_z"].shape == data.examples["future_z"].shape
+    assert data.metadata["normalization"]["residual_mode"] == "constant_latent_velocity"
+    assert data.metadata["normalization"]["residual_mean"].shape == (6,)
+
+
+def test_last_latent_baseline_residual_computation(tmp_path):
+    path = tmp_path / "embeddings.pt"
+    _write_latent_embeddings(path, matches=3, steps=8, dim=4)
+    data = build_latent_rollout_dataset(path, context_steps=3, horizon_steps=2, residual_mode=None)
+    data = add_residual_targets(data, "last_latent")
+    expected = last_latent_predict(data.examples["past_z"], data.horizon_steps)
+    assert torch.allclose(data.examples["baseline_future_z"], expected)
+    assert torch.allclose(
+        data.examples["residual_future_z"],
+        data.examples["future_z"] - expected,
+    )
+
+
+def test_constant_velocity_baseline_residual_computation(tmp_path):
+    path = tmp_path / "embeddings.pt"
+    _write_latent_embeddings(path, matches=3, steps=8, dim=4)
+    data = build_latent_rollout_dataset(path, context_steps=3, horizon_steps=2, residual_mode=None)
+    data = add_residual_targets(data, "constant_latent_velocity")
+    expected = constant_latent_velocity_predict(data.examples["past_z"], data.horizon_steps)
+    assert torch.allclose(data.examples["baseline_future_z"], expected)
+    assert torch.allclose(
+        data.examples["residual_future_z"],
+        data.examples["future_z"] - expected,
+    )
+
+
+def test_residual_normalization_roundtrip(tmp_path):
+    path = tmp_path / "embeddings.pt"
+    _write_latent_embeddings(path, matches=3, steps=12, dim=5)
+    data = build_latent_rollout_dataset(
+        path,
+        context_steps=3,
+        horizon_steps=2,
+        residual_mode="last_latent",
+    )
+    stats = data.metadata["normalization"]
+    residual = data.examples["residual_future_z"]
+    norm = normalize_residual(residual, stats["residual_mean"], stats["residual_std"])
+    restored = denormalize_residual(norm, stats["residual_mean"], stats["residual_std"])
+    assert torch.allclose(restored, residual, atol=1e-6)

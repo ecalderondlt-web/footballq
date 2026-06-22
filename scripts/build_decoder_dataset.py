@@ -1,0 +1,57 @@
+"""Build an Experiment 4C coordinate-decoder dataset."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from footballq.decoding.dataset import build_decoder_dataset  # noqa: E402
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--embeddings", type=Path, required=True)
+    parser.add_argument("--windows", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--horizon-steps", type=int, default=None)
+    parser.add_argument("--context-z-steps", type=int, default=5)
+    parser.add_argument("--rollout-steps", type=int, default=None)
+    parser.add_argument("--seed", type=int, default=123)
+    parser.add_argument("--val-fraction", type=float, default=0.2)
+    parser.add_argument("--test-fraction", type=float, default=0.2)
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    data = build_decoder_dataset(
+        args.embeddings,
+        args.windows,
+        out=args.out,
+        horizon_steps=args.horizon_steps,
+        context_z_steps=args.context_z_steps,
+        rollout_steps=args.rollout_steps,
+        seed=args.seed,
+        val_fraction=args.val_fraction,
+        test_fraction=args.test_fraction,
+    )
+    print(f"decoder_dataset: {args.out}")
+    print(f"examples: {data.num_examples}")
+    print(f"latent_dim: {data.latent_dim}")
+    print(f"horizon_steps: {data.horizon_steps}")
+    print(f"rollout_steps: {data.rollout_steps}")
+    print(f"alignment: {data.metadata['alignment']}")
+    if data.metadata.get("warnings"):
+        print("warnings:")
+        for warning in data.metadata["warnings"]:
+            print(f"- {warning}")
+
+
+if __name__ == "__main__":
+    main()

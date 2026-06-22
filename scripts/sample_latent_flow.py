@@ -15,6 +15,8 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from footballq.latent_flow.dataset import LatentRolloutDataset, load_latent_rollout_dataset  # noqa: E402
+from footballq.latent_flow.baselines import denormalize_residual  # noqa: E402
+from footballq.latent_flow.dataset import ensure_residual_targets, residual_normalization_stats  # noqa: E402
 from footballq.latent_flow.flow_matching import sample_latent_flow  # noqa: E402
 from footballq.latent_flow.models import create_latent_model  # noqa: E402
 from footballq.training.train import resolve_device  # noqa: E402
@@ -38,6 +40,13 @@ def main() -> None:
     payload = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     cfg = payload["config"]
     data = load_latent_rollout_dataset(args.dataset)
+    model_name = str(payload["model_name"])
+    if model_name == "residual_latent_flow_mlp":
+        residual_mode = str(
+            payload.get("residual_mode")
+            or cfg.get("flow", {}).get("residual_mode", "last_latent")
+        )
+        data = ensure_residual_targets(data, residual_mode)
     indices = data.splits[f"{args.split}_indices"][: args.num_examples]
     loader = DataLoader(LatentRolloutDataset(data, indices=indices), batch_size=args.num_examples)
     batch = next(iter(loader))
@@ -51,7 +60,14 @@ def main() -> None:
     model.load_state_dict(payload["model_state_dict"])
     model = model.to(device)
     past_z = batch["past_z"].to(device)
-    steps = int(args.num_steps or cfg.get("sampling", {}).get("num_steps", 20))
+    flow_cfg = cfg.get("flow", {})
+    steps = int(
+        args.num_steps
+        or flow_cfg.get("num_sampling_steps", cfg.get("sampling", {}).get("num_steps", 20))
+    )
+    noise_scale = float(flow_cfg.get("noise_scale", cfg.get("sampling", {}).get("noise_scale", 1.0)))
+    if bool(flow_cfg.get("deterministic_mean_eval", False)):
+        noise_scale = 0.0
     samples = sample_latent_flow(
         model,
         past_z,
@@ -59,7 +75,20 @@ def main() -> None:
         latent_dim=data.latent_dim,
         num_samples=args.num_samples,
         num_steps=steps,
-    ).cpu()
+        noise_scale=noise_scale,
+    )
+    if model_name == "residual_latent_flow_mlp":
+        normalization = payload.get("normalization") or data.metadata.get("normalization", {})
+        if "residual_mean" in normalization and "residual_std" in normalization:
+            residual_mean = normalization["residual_mean"].float().to(device)
+            residual_std = normalization["residual_std"].float().to(device)
+        else:
+            mean, std = residual_normalization_stats(data)
+            residual_mean = mean.to(device)
+            residual_std = std.to(device)
+        residual = denormalize_residual(samples, residual_mean, residual_std)
+        samples = batch["baseline_future_z"].to(device).unsqueeze(1) + residual
+    samples = samples.cpu()
     args.out.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
         {

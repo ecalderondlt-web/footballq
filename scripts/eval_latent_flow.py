@@ -21,12 +21,13 @@ from footballq.latent_flow.eval import (  # noqa: E402
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=Path, default=None)
-    parser.add_argument("--dataset", type=Path, required=True)
+    parser.add_argument("--dataset", type=Path, default=None)
     parser.add_argument("--split", default="test", choices=["train", "val", "test"])
     parser.add_argument("--baseline", choices=["last_latent", "constant_latent_velocity"], default=None)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--num-samples", type=int, default=None)
     parser.add_argument("--num-steps", type=int, default=None)
+    parser.add_argument("--noise-scale", type=float, default=None)
     return parser.parse_args()
 
 
@@ -39,6 +40,8 @@ def _fmt(value: object) -> str:
 def main() -> None:
     args = parse_args()
     if args.baseline:
+        if args.dataset is None:
+            raise SystemExit("--dataset is required when evaluating a baseline.")
         result = evaluate_latent_baseline(
             args.dataset,
             baseline=args.baseline,
@@ -53,6 +56,7 @@ def main() -> None:
             device=args.device,
             num_samples=args.num_samples,
             num_steps=args.num_steps,
+            noise_scale=args.noise_scale,
         )
     else:
         raise SystemExit("Provide either --checkpoint or --baseline.")
@@ -62,11 +66,20 @@ def main() -> None:
         "split",
         "latent_ADE",
         "latent_FDE",
+        "latent_RMSE",
         "latent_step_mse",
         "latent_cosine_similarity",
+        "one_step_error",
+        "multi_step_rollout_error",
+        "delta_ADE",
+        "residual_ADE",
+        "minADE_4",
+        "minFDE_4",
         "minADE_8",
         "minFDE_8",
         "diversity_mean_pairwise_distance",
+        "noise_scale",
+        "num_sampling_steps",
         "num_examples",
     ]:
         if key in metrics:

@@ -43,17 +43,31 @@ class LatentFlowMLP(nn.Module):
         num_layers: int = 4,
         dropout: float = 0.1,
         time_embed_dim: int = 64,
+        conditioning: str = "past_z_gru",
     ) -> None:
         super().__init__()
         self.latent_dim = int(latent_dim)
         self.context_steps = int(context_steps)
         self.horizon_steps = int(horizon_steps)
         self.time_embed_dim = int(time_embed_dim)
-        self.context_encoder = nn.GRU(
-            input_size=self.latent_dim,
-            hidden_size=hidden_dim,
-            batch_first=True,
-        )
+        self.conditioning = str(conditioning)
+        if self.conditioning == "past_z_flat":
+            self.context_encoder = nn.Sequential(
+                nn.Linear(self.latent_dim * self.context_steps, hidden_dim),
+                nn.SiLU(),
+                nn.Linear(hidden_dim, hidden_dim),
+            )
+        elif self.conditioning == "past_z_gru":
+            self.context_encoder = nn.GRU(
+                input_size=self.latent_dim,
+                hidden_size=hidden_dim,
+                batch_first=True,
+            )
+        else:
+            raise ValueError(
+                "conditioning must be 'past_z_gru' or 'past_z_flat', "
+                f"got {self.conditioning!r}"
+            )
         flat_future_dim = self.horizon_steps * self.latent_dim
         input_dim = flat_future_dim + hidden_dim + self.time_embed_dim
         layers: list[nn.Module] = []
@@ -71,8 +85,11 @@ class LatentFlowMLP(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, past_z: torch.Tensor, x_t: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
-        _, hidden = self.context_encoder(past_z)
-        context = hidden[-1]
+        if self.conditioning == "past_z_flat":
+            context = self.context_encoder(past_z.flatten(start_dim=1))
+        else:
+            _, hidden = self.context_encoder(past_z)
+            context = hidden[-1]
         t_emb = sinusoidal_time_embedding(t, self.time_embed_dim)
         features = torch.cat([x_t.flatten(start_dim=1), context, t_emb], dim=1)
         out = self.net(features)
@@ -87,7 +104,7 @@ def create_latent_model(config: dict[str, object], latent_dim: int, context_step
     hidden_dim = int(model_cfg.get("hidden_dim", 256))
     num_layers = int(model_cfg.get("num_layers", 4))
     dropout = float(model_cfg.get("dropout", 0.1))
-    if name == "latent_flow_mlp":
+    if name in {"latent_flow_mlp", "residual_latent_flow_mlp"}:
         return LatentFlowMLP(
             latent_dim=latent_dim,
             context_steps=context_steps,
@@ -96,6 +113,7 @@ def create_latent_model(config: dict[str, object], latent_dim: int, context_step
             num_layers=num_layers,
             dropout=dropout,
             time_embed_dim=int(model_cfg.get("time_embed_dim", 64)),
+            conditioning=str(model_cfg.get("conditioning", "past_z_gru")),
         )
     if name == "mlp_latent":
         return LatentMLPPredictor(

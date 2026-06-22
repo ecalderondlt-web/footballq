@@ -1,0 +1,23 @@
+experiment: decoder_reconstruct_current
+seed: 123
+data:
+  decoder_dataset: data/processed/skillcorner_decoder_dataset.pt
+  batch_size: 256
+  num_workers: 0
+target:
+  mode: reconstruct_current
+model:
+  name: linear
+  hidden_sizes: []
+  dropout: 0.0
+training:
+  epochs: 1
+  learning_rate: 0.001
+  weight_decay: 0.0
+  seed: 123
+  grad_clip_norm: 1.0
+  device: auto
+  run_root: runs
+  max_train_batches: 20
+  max_eval_batches: 20
+  best_metric: current_all_entity_error_m

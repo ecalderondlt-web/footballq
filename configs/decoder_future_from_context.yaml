@@ -1,0 +1,25 @@
+experiment: decoder_future_from_context
+seed: 123
+data:
+  decoder_dataset: data/processed/skillcorner_decoder_dataset.pt
+  batch_size: 256
+  num_workers: 0
+target:
+  mode: future_from_context
+model:
+  name: context_mlp
+  pooling: mean
+  hidden_sizes: [256, 256]
+  dropout: 0.1
+  activation: relu
+training:
+  epochs: 1
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  seed: 123
+  grad_clip_norm: 1.0
+  device: auto
+  run_root: runs
+  max_train_batches: 20
+  max_eval_batches: 20
+  best_metric: all_entity_ADE_m

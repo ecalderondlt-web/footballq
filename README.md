@@ -428,6 +428,235 @@ Known limitations:
 - The first sampler is fixed-step Euler integration.
 - No text alignment, video processing, tactical discovery UI, or counterfactual tooling is included.
 
+## Experiment 4B: Residual Latent Flow Matching
+
+Experiment 4B keeps the latent-space scope of Experiment 4A but changes the target. Instead of
+generating absolute future TD-JEPA latents from noise, it models residuals around a strong smooth
+latent baseline:
+
+```text
+residual_future_z = true_future_z - baseline_future_z
+future_z_hat = baseline_future_z + residual_flow(past_z)
+```
+
+Supported residual baselines:
+
+- `last_latent`: repeats the latest context latent for the full horizon
+- `constant_latent_velocity`: extrapolates the latest latent velocity
+
+Residual targets are normalized with train-split statistics only. Evaluation always reports metrics
+back in original latent units.
+
+Build the rollout dataset with residual fields:
+
+```powershell
+python scripts/build_latent_rollout_dataset.py `
+  --embeddings data/processed/skillcorner_td_embeddings_all.pt `
+  --out data/processed/skillcorner_latent_rollout_dataset.pt `
+  --context-steps 5 `
+  --horizon-steps 5 `
+  --stride-steps 1 `
+  --residual-mode constant_latent_velocity
+```
+
+Train residual flow:
+
+```powershell
+python scripts/train_latent_flow.py --config configs/latent_flow_residual_last.yaml
+python scripts/train_latent_flow.py --config configs/latent_flow_residual_cv.yaml
+```
+
+Evaluate a residual checkpoint:
+
+```powershell
+python scripts/eval_latent_flow.py `
+  --checkpoint runs/latent_flow/<RUN_ID>/best.pt `
+  --split test
+```
+
+Run the comparison suite:
+
+```powershell
+python scripts/run_latent_flow_suite.py `
+  --dataset data/processed/skillcorner_latent_rollout_dataset.pt `
+  --checkpoint runs/latent_flow/<MLP_RUN>/best.pt `
+  --checkpoint runs/latent_flow/<ABS_FLOW_RUN>/best.pt `
+  --checkpoint runs/latent_flow/<RESIDUAL_RUN>/best.pt `
+  --out runs/latent_flow_suite/experiment4b
+```
+
+Run a small residual-flow ablation:
+
+```powershell
+python scripts/run_latent_flow_ablation.py `
+  --base-config configs/latent_flow_residual_cv_small.yaml `
+  --out runs/latent_flow_ablation/experiment4b `
+  --noise-scales 0.0 0.1 0.3 `
+  --num-steps 5 10 `
+  --num-samples 4
+```
+
+## Experiment 4B.1: Stochastic Residual-Flow Ablation
+
+Experiment 4B.1 keeps the residual latent-flow setup and asks whether stochastic sampling can
+improve best-of-sample metrics without ruining average rollout quality. This is still latent-space
+only: no coordinate decoder, raw-coordinate flow, video processing, text alignment, or TD-JEPA
+fine-tuning is introduced here.
+
+Residual flow is used instead of absolute latent flow because the TD-JEPA future latents are smooth
+and the deterministic smooth baselines are already strong. The flow model therefore learns the
+remaining correction around `constant_latent_velocity` or `last_latent`, not the whole future from
+scratch.
+
+Longer residual-CV training:
+
+```powershell
+python scripts/train_latent_flow.py --config configs/latent_flow_residual_cv.yaml
+```
+
+Resume after an interruption:
+
+```powershell
+python scripts/train_latent_flow.py `
+  --config configs/latent_flow_residual_cv.yaml `
+  --resume runs/latent_flow/<RUN_ID>/latest.pt
+```
+
+The trainer records `epoch` and global `step` in checkpoints, writes `latest.pt` during long epochs
+when `training.save_every_steps` is set, and logs train loss plus validation ADE/FDE/cosine.
+
+Evaluate a resumed checkpoint:
+
+```powershell
+python scripts/eval_latent_flow.py `
+  --checkpoint runs/latent_flow/<RUN_ID>/best.pt `
+  --split test
+```
+
+Run the full stochastic ablation grid:
+
+```powershell
+python scripts/run_latent_flow_ablation.py `
+  --base-config configs/latent_flow_residual_cv.yaml `
+  --checkpoint runs/latent_flow/<RUN_ID>/best.pt `
+  --out runs/latent_flow_ablation/experiment4b1 `
+  --noise-scales 0.0 0.01 0.03 0.05 0.1 `
+  --num-steps 5 10 20 `
+  --num-samples 4 8 16
+```
+
+The ablation writes:
+
+- `runs/latent_flow_ablation/experiment4b1/results.csv`
+- `runs/latent_flow_ablation/experiment4b1/summary.json`
+
+Interpretation:
+
+- `latent_ADE` and `latent_FDE` are mean rollout quality across samples; lower is better.
+- `minADE` and `minFDE` are best-of-sample metrics; they can improve when sampling creates useful
+  alternatives.
+- `diversity_mean_pairwise_distance` and `sample_std_mean` show whether the sampler is actually
+  producing distinct futures.
+- A stochastic config is treated as unacceptable by default if mean `latent_ADE` is more than 2x the
+  `constant_latent_velocity` baseline ADE, even if its best-of-sample metric improves.
+
+Useful metrics:
+
+- `latent_ADE`, `latent_FDE`, `latent_RMSE`: future latent rollout error
+- `one_step_error`: first future latent error
+- `multi_step_rollout_error`: average horizon error, equivalent to latent ADE
+- `residual_ADE`: residual-space error for residual checkpoints
+- `delta_ADE`: error after subtracting the latest context latent
+- `minADE`, `minFDE`, `minADE_4`, `minADE_8`, `minFDE_4`, `minFDE_8`: best-of-k sample diagnostics
+- `diversity_mean_pairwise_distance`: sample diversity; in residual configs this is controlled by
+  `flow.noise_scale`
+- `sample_std_mean`: mean standard deviation across sampled futures
+
+Known limitations:
+
+- Residual flow is still a latent-space diagnostic and does not decode coordinates.
+- Smooth latent baselines remain very strong because TD-JEPA embeddings are temporally smooth.
+- `deterministic_mean_eval: true` and low `noise_scale` are useful first checks; larger stochastic
+  noise should be treated as an ablation, not a default quality setting.
+
+## Experiment 4C: Coordinate Decoding From TD-JEPA Latents
+
+Experiment 4C bridges frozen TD-JEPA latents back to football coordinates. It trains lightweight
+decoders on precomputed embeddings and SkillCorner tracking windows; the TD-JEPA encoder remains
+frozen and is not loaded for fine-tuning.
+
+Required upstream artifacts:
+
+- `data/processed/skillcorner_windows.pt`
+- `data/processed/skillcorner_td_embeddings_all.pt`
+- optionally `data/processed/skillcorner_latent_rollout_dataset.pt` and a residual-flow checkpoint
+  for broader latent-rollout comparisons
+
+Build the decoder dataset:
+
+```powershell
+python scripts/build_decoder_dataset.py `
+  --embeddings data/processed/skillcorner_td_embeddings_all.pt `
+  --windows data/processed/skillcorner_windows.pt `
+  --out data/processed/skillcorner_decoder_dataset.pt `
+  --horizon-steps 20
+```
+
+Train current-state reconstruction:
+
+```powershell
+python scripts/train_coordinate_decoder.py --config configs/decoder_reconstruct_current.yaml
+```
+
+Train future coordinate decoders:
+
+```powershell
+python scripts/train_coordinate_decoder.py --config configs/decoder_future_from_z.yaml
+python scripts/train_coordinate_decoder.py --config configs/decoder_future_from_context.yaml
+python scripts/train_coordinate_decoder.py --config configs/decoder_rollout_from_latents.yaml
+```
+
+Evaluate a decoder checkpoint:
+
+```powershell
+python scripts/eval_coordinate_decoder.py `
+  --checkpoint runs/decoders/<MODE>/<DECODER>/<RUN_ID>/best.pt `
+  --split test
+```
+
+Run the compact comparison suite:
+
+```powershell
+python scripts/run_decoder_suite.py `
+  --dataset data/processed/skillcorner_decoder_dataset.pt `
+  --out runs/decoder_suite/experiment4c
+```
+
+Decoder tasks:
+
+- `reconstruct_current`: `z_t -> current_xy`
+- `future_from_z`: `z_t -> future_xy`
+- `future_from_context`: `z_context -> future_xy`
+- `rollout_from_latents`: future latent sequence -> future coordinates
+
+Metrics are reported in meters after denormalizing the model outputs:
+
+- Future prediction: `player_ADE_m`, `player_FDE_m`, `ball_ADE_m`, `ball_FDE_m`,
+  `all_entity_ADE_m`, `all_entity_FDE_m`, team shape errors
+- Reconstruction: `current_player_error_m`, `current_ball_error_m`,
+  `current_all_entity_error_m`, current team shape errors
+- Sampled rollout hooks: `mean_ADE_m`, `mean_FDE_m`, `minADE_k_m`, `minFDE_k_m`,
+  `coordinate_diversity_m`
+
+Known limitations:
+
+- The decoder is intentionally lightweight; it is a diagnostic bridge, not a full coordinate world
+  model.
+- Generated decoder datasets and run artifacts stay under `data/` and `runs/` and should not be
+  committed.
+- This phase does not add raw-coordinate flow matching, video, text alignment, UI, tactical
+  discovery, counterfactual search, or TD-JEPA fine-tuning.
+
 ## Synthetic Demo
 
 The demo does not require internet or real football data.

@@ -10,11 +10,14 @@ from torch.utils.data import DataLoader
 
 from footballq.latent_flow.baselines import (
     constant_latent_velocity_predict,
+    denormalize_residual,
     last_latent_predict,
 )
 from footballq.latent_flow.dataset import (
     LatentRolloutDataset,
+    ensure_residual_targets,
     load_latent_rollout_dataset,
+    residual_normalization_stats,
 )
 from footballq.latent_flow.flow_matching import sample_latent_flow
 from footballq.latent_flow.io import save_json
@@ -100,6 +103,7 @@ def evaluate_latent_checkpoint(
     device: str | None = "auto",
     num_samples: int | None = None,
     num_steps: int | None = None,
+    noise_scale: float | None = None,
 ) -> dict[str, Any]:
     """Reload a latent model checkpoint and evaluate a split."""
 
@@ -107,6 +111,13 @@ def evaluate_latent_checkpoint(
     cfg = dict(payload["config"])
     data_path = Path(dataset or cfg.get("data", {}).get("rollout_dataset"))
     data = load_latent_rollout_dataset(data_path)
+    model_name = str(payload["model_name"])
+    if model_name == "residual_latent_flow_mlp":
+        residual_mode = str(
+            payload.get("residual_mode")
+            or cfg.get("flow", {}).get("residual_mode", "last_latent")
+        )
+        data = ensure_residual_targets(data, residual_mode)
     batch_size = int(cfg.get("training", {}).get("batch_size", 256))
     loader = DataLoader(
         LatentRolloutDataset(data, split=split),
@@ -127,10 +138,30 @@ def evaluate_latent_checkpoint(
     predictions: list[torch.Tensor] = []
     futures: list[torch.Tensor] = []
     masks: list[torch.Tensor] = []
-    model_name = str(payload["model_name"])
     sampling_cfg = cfg.get("sampling", {})
+    flow_cfg = cfg.get("flow", {})
     sample_count = int(num_samples or sampling_cfg.get("num_samples", 8))
-    step_count = int(num_steps or sampling_cfg.get("num_steps", 20))
+    step_count = int(
+        num_steps
+        or flow_cfg.get("num_sampling_steps", sampling_cfg.get("num_steps", 20))
+    )
+    eval_noise_scale = float(
+        noise_scale
+        if noise_scale is not None
+        else flow_cfg.get("noise_scale", sampling_cfg.get("noise_scale", 1.0))
+    )
+    if noise_scale is None and bool(flow_cfg.get("deterministic_mean_eval", False)):
+        eval_noise_scale = 0.0
+    residual_mean = residual_std = None
+    if model_name == "residual_latent_flow_mlp":
+        normalization = payload.get("normalization") or data.metadata.get("normalization", {})
+        if "residual_mean" in normalization and "residual_std" in normalization:
+            residual_mean = normalization["residual_mean"].float().to(torch_device)
+            residual_std = normalization["residual_std"].float().to(torch_device)
+        else:
+            mean, std = residual_normalization_stats(data)
+            residual_mean = mean.to(torch_device)
+            residual_std = std.to(torch_device)
     with torch.no_grad():
         for batch in loader:
             batch = _batch_to_device(batch, torch_device)
@@ -142,7 +173,21 @@ def evaluate_latent_checkpoint(
                     latent_dim=data.latent_dim,
                     num_samples=sample_count,
                     num_steps=step_count,
+                    noise_scale=eval_noise_scale,
                 )
+            elif model_name == "residual_latent_flow_mlp":
+                assert residual_mean is not None and residual_std is not None
+                residual_norm = sample_latent_flow(
+                    model,
+                    batch["past_z"],
+                    horizon_steps=data.horizon_steps,
+                    latent_dim=data.latent_dim,
+                    num_samples=sample_count,
+                    num_steps=step_count,
+                    noise_scale=eval_noise_scale,
+                )
+                residual = denormalize_residual(residual_norm, residual_mean, residual_std)
+                pred = batch["baseline_future_z"].unsqueeze(1) + residual
             elif model_name == "mlp_latent":
                 pred = model(batch["past_z"])
             else:
@@ -150,6 +195,16 @@ def evaluate_latent_checkpoint(
             predictions.append(pred.detach().cpu())
             futures.append(batch["future_z"].detach().cpu())
             masks.append(batch["future_mask"].detach().cpu())
+            if "past_z_parts" not in locals():
+                past_z_parts = []
+                baseline_parts = []
+                residual_target_parts = []
+                residual_pred_parts = []
+            past_z_parts.append(batch["past_z"].detach().cpu())
+            if model_name == "residual_latent_flow_mlp":
+                baseline_parts.append(batch["baseline_future_z"].detach().cpu())
+                residual_target_parts.append(batch["residual_future_z"].detach().cpu())
+                residual_pred_parts.append(residual.detach().cpu())
     if not predictions:
         raise ValueError(f"No examples found for split {split!r}.")
     pred_all = torch.cat(predictions, dim=0)
@@ -158,6 +213,29 @@ def evaluate_latent_checkpoint(
         torch.cat(futures, dim=0),
         torch.cat(masks, dim=0),
     )
+    if "past_z_parts" in locals():
+        past_all = torch.cat(past_z_parts, dim=0)
+        target_all = torch.cat(futures, dim=0)
+        mask_all = torch.cat(masks, dim=0)
+        last = past_all[:, -1:, :]
+        delta_metrics = compute_latent_rollout_metrics(pred_all - last.unsqueeze(1) if pred_all.ndim == 4 else pred_all - last, target_all - last, mask_all)
+        metrics["delta_ADE"] = delta_metrics["latent_ADE"]
+    if model_name == "residual_latent_flow_mlp" and "residual_pred_parts" in locals():
+        residual_pred_all = torch.cat(residual_pred_parts, dim=0)
+        residual_target_all = torch.cat(residual_target_parts, dim=0)
+        residual_metrics = compute_latent_rollout_metrics(
+            residual_pred_all,
+            residual_target_all,
+            torch.cat(masks, dim=0),
+        )
+        metrics["residual_ADE"] = residual_metrics["latent_ADE"]
+        metrics["residual_FDE"] = residual_metrics["latent_FDE"]
+        metrics["residual_mode"] = str(payload.get("residual_mode"))
+        metrics["noise_scale"] = eval_noise_scale
+        metrics["num_sampling_steps"] = step_count
+    elif model_name == "latent_flow_mlp":
+        metrics["noise_scale"] = eval_noise_scale
+        metrics["num_sampling_steps"] = step_count
     metrics.update(
         {
             "model": model_name,

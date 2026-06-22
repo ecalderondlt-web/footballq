@@ -5,6 +5,7 @@ from footballq.latent_flow.baselines import (
     last_latent_predict,
 )
 from footballq.latent_flow.flow_matching import flow_matching_loss, sample_latent_flow
+from footballq.latent_flow.metrics import diversity_mean_pairwise_distance
 from footballq.latent_flow.models import LatentFlowMLP
 
 
@@ -82,3 +83,61 @@ def test_latent_flow_sampling_shapes():
     )
     assert samples.shape == (4, 3, 2, 6)
     assert torch.isfinite(samples).all()
+
+
+def test_noise_scale_zero_is_deterministic_or_stable():
+    torch.manual_seed(123)
+    model = LatentFlowMLP(
+        latent_dim=6,
+        context_steps=3,
+        horizon_steps=2,
+        hidden_dim=16,
+        num_layers=2,
+        dropout=0.0,
+        time_embed_dim=8,
+    )
+    past = torch.randn(4, 3, 6)
+    first = sample_latent_flow(
+        model,
+        past,
+        horizon_steps=2,
+        latent_dim=6,
+        num_samples=2,
+        num_steps=2,
+        noise_scale=0.0,
+    )
+    second = sample_latent_flow(
+        model,
+        past,
+        horizon_steps=2,
+        latent_dim=6,
+        num_samples=2,
+        num_steps=2,
+        noise_scale=0.0,
+    )
+    assert torch.allclose(first, second)
+    assert diversity_mean_pairwise_distance(first) == 0.0
+
+
+def test_noise_scale_positive_produces_nonzero_diversity():
+    torch.manual_seed(123)
+    model = LatentFlowMLP(
+        latent_dim=6,
+        context_steps=3,
+        horizon_steps=2,
+        hidden_dim=16,
+        num_layers=2,
+        dropout=0.0,
+        time_embed_dim=8,
+    )
+    samples = sample_latent_flow(
+        model,
+        torch.randn(4, 3, 6),
+        horizon_steps=2,
+        latent_dim=6,
+        num_samples=4,
+        num_steps=2,
+        noise_scale=0.1,
+    )
+    assert samples.shape == (4, 4, 2, 6)
+    assert diversity_mean_pairwise_distance(samples) > 0.0

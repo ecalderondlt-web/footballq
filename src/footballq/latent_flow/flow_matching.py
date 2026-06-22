@@ -11,10 +11,11 @@ def flow_matching_loss(
     past_z: torch.Tensor,
     future_z: torch.Tensor,
     future_mask: torch.Tensor | None = None,
+    noise_scale: float = 1.0,
 ) -> torch.Tensor:
     """Compute straight-line conditional flow-matching loss."""
 
-    noise = torch.randn_like(future_z)
+    noise = torch.randn_like(future_z) * float(noise_scale)
     t = torch.rand(future_z.shape[0], device=future_z.device, dtype=future_z.dtype)
     view_t = t.view(-1, 1, 1)
     x_t = (1.0 - view_t) * noise + view_t * future_z
@@ -36,6 +37,7 @@ def sample_latent_flow(
     latent_dim: int,
     num_samples: int = 8,
     num_steps: int = 20,
+    noise_scale: float = 1.0,
 ) -> torch.Tensor:
     """Sample future latent sequences with fixed-step Euler integration."""
 
@@ -43,13 +45,22 @@ def sample_latent_flow(
     batch_size = past_z.shape[0]
     num_samples = int(num_samples)
     num_steps = max(1, int(num_steps))
-    x = torch.randn(
-        batch_size * num_samples,
-        int(horizon_steps),
-        int(latent_dim),
-        device=past_z.device,
-        dtype=past_z.dtype,
-    )
+    if float(noise_scale) == 0.0:
+        x = torch.zeros(
+            batch_size * num_samples,
+            int(horizon_steps),
+            int(latent_dim),
+            device=past_z.device,
+            dtype=past_z.dtype,
+        )
+    else:
+        x = torch.randn(
+            batch_size * num_samples,
+            int(horizon_steps),
+            int(latent_dim),
+            device=past_z.device,
+            dtype=past_z.dtype,
+        ) * float(noise_scale)
     repeated_past = past_z.repeat_interleave(num_samples, dim=0)
     dt = 1.0 / float(num_steps)
     for step in range(num_steps):

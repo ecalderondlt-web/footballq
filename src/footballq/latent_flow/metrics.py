@@ -55,14 +55,24 @@ def compute_latent_rollout_metrics(
         ade = _masked_mean(distances, future_mask)
         fde = _fde_per_sample(pred, target, future_mask).mean()
         step_mse = _masked_mean(mse, future_mask)
+        one_step = distances[:, 0].mean()
         return {
             "latent_ADE": float(ade.item()),
             "latent_FDE": float(fde.item()),
+            "latent_RMSE": float(torch.sqrt(step_mse).item()),
             "latent_step_mse": float(step_mse.item()),
             "latent_cosine_similarity": float(cosine.item()),
+            "cosine_similarity": float(cosine.item()),
+            "one_step_error": float(one_step.item()),
+            "multi_step_rollout_error": float(ade.item()),
+            "minADE": float(ade.item()),
+            "minFDE": float(fde.item()),
+            "minADE_4": float(ade.item()),
+            "minFDE_4": float(fde.item()),
             "minADE_8": float(ade.item()),
             "minFDE_8": float(fde.item()),
-            "diversity_mean_pairwise_distance": math.nan,
+            "diversity_mean_pairwise_distance": 0.0,
+            "sample_std_mean": 0.0,
             "num_examples": int(target.shape[0]),
         }
 
@@ -81,13 +91,34 @@ def compute_latent_rollout_metrics(
     cosine = F.cosine_similarity(valid_pred, valid_target, dim=-1).mean()
     ade_per = _ade_per_sample(pred, expanded_target, expanded_mask)
     fde_per = _fde_per_sample(pred, expanded_target, expanded_mask)
+    k4 = min(4, pred.shape[1])
+    k8 = min(8, pred.shape[1])
+    kall = pred.shape[1]
+    sample_1 = pred[:, 0]
+    sample_1_ade = _ade_per_sample(sample_1, target, future_mask).mean()
+    sample_1_fde = _fde_per_sample(sample_1, target, future_mask).mean()
+    one_step = distances[:, :, 0].mean()
+    step_mse = _masked_mean(mse, expanded_mask)
     return {
         "latent_ADE": float(ade_per.mean().item()),
         "latent_FDE": float(fde_per.mean().item()),
-        "latent_step_mse": float(_masked_mean(mse, expanded_mask).item()),
+        "latent_RMSE": float(torch.sqrt(step_mse).item()),
+        "latent_step_mse": float(step_mse.item()),
         "latent_cosine_similarity": float(cosine.item()),
-        "minADE_8": float(ade_per.min(dim=1).values.mean().item()),
-        "minFDE_8": float(fde_per.min(dim=1).values.mean().item()),
+        "cosine_similarity": float(cosine.item()),
+        "one_step_error": float(one_step.item()),
+        "multi_step_rollout_error": float(ade_per.mean().item()),
+        "sample_1_latent_ADE": float(sample_1_ade.item()),
+        "sample_1_latent_FDE": float(sample_1_fde.item()),
+        "minADE": float(ade_per.min(dim=1).values.mean().item()),
+        "minFDE": float(fde_per.min(dim=1).values.mean().item()),
+        "minADE_4": float(ade_per[:, :k4].min(dim=1).values.mean().item()),
+        "minFDE_4": float(fde_per[:, :k4].min(dim=1).values.mean().item()),
+        "minADE_8": float(ade_per[:, :k8].min(dim=1).values.mean().item()),
+        "minFDE_8": float(fde_per[:, :k8].min(dim=1).values.mean().item()),
+        f"minADE_{kall}": float(ade_per.min(dim=1).values.mean().item()),
+        f"minFDE_{kall}": float(fde_per.min(dim=1).values.mean().item()),
         "diversity_mean_pairwise_distance": diversity_mean_pairwise_distance(pred),
+        "sample_std_mean": float(pred.std(dim=1, unbiased=False).mean().item()),
         "num_examples": int(target.shape[0]),
     }

@@ -11,6 +11,8 @@ from typing import Any
 import torch
 from torch.utils.data import Dataset
 
+from footballq.latent_flow.baselines import residual_future
+
 
 @dataclass
 class LatentRolloutData:
@@ -78,6 +80,13 @@ class LatentRolloutDataset(Dataset):
             "past_z": self.data.examples["past_z"][row].float(),
             "future_z": self.data.examples["future_z"][row].float(),
             "future_mask": self.data.examples["future_mask"][row].bool(),
+            "baseline_future_z": self.data.examples.get("baseline_future_z", self.data.examples["future_z"])[
+                row
+            ].float(),
+            "residual_future_z": self.data.examples.get(
+                "residual_future_z",
+                torch.zeros_like(self.data.examples["future_z"]),
+            )[row].float(),
             "match_id": self.data.examples["match_id"][row],
             "start_index": int(self.data.examples["start_index"][row]),
             "frame_t": int(self.data.examples["frame_t"][row]),
@@ -160,6 +169,82 @@ def split_latent_indices_by_match(
     )
 
 
+def _masked_train_stats(
+    values: torch.Tensor,
+    mask: torch.Tensor,
+    train_indices: list[int],
+) -> tuple[torch.Tensor, torch.Tensor]:
+    train_values = values[train_indices]
+    train_mask = mask[train_indices].bool().unsqueeze(-1).expand_as(train_values)
+    flat = train_values[train_mask].view(-1, values.shape[-1])
+    mean = flat.mean(dim=0)
+    std = flat.std(dim=0, unbiased=False).clamp_min(1e-6)
+    return mean.float(), std.float()
+
+
+def add_residual_targets(
+    data: LatentRolloutData,
+    residual_mode: str,
+) -> LatentRolloutData:
+    """Attach baseline, residual targets, and train-only normalization stats."""
+
+    if residual_mode in {"none", "", None}:  # type: ignore[comparison-overlap]
+        return data
+    baseline, residual = residual_future(
+        data.examples["past_z"].float(),
+        data.examples["future_z"].float(),
+        residual_mode,
+    )
+    train_indices = [int(value) for value in data.splits.get("train_indices", [])]
+    if not train_indices:
+        raise ValueError("Cannot compute residual normalization without train_indices.")
+    residual_mean, residual_std = _masked_train_stats(
+        residual,
+        data.examples["future_mask"],
+        train_indices,
+    )
+    latent_mean, latent_std = _masked_train_stats(
+        data.examples["future_z"].float(),
+        data.examples["future_mask"],
+        train_indices,
+    )
+    data.examples["baseline_future_z"] = baseline.float()
+    data.examples["residual_future_z"] = residual.float()
+    data.metadata["residual_mode"] = residual_mode
+    data.metadata["normalization"] = {
+        "residual_mode": residual_mode,
+        "residual_mean": residual_mean,
+        "residual_std": residual_std,
+        "latent_mean": latent_mean,
+        "latent_std": latent_std,
+        "stats_source": "train_split_only",
+    }
+    return data
+
+
+def ensure_residual_targets(data: LatentRolloutData, residual_mode: str) -> LatentRolloutData:
+    """Ensure a rollout dataset has residual fields for the requested mode."""
+
+    current = str(data.metadata.get("residual_mode", ""))
+    if (
+        current == residual_mode
+        and "baseline_future_z" in data.examples
+        and "residual_future_z" in data.examples
+        and data.metadata.get("normalization", {}).get("residual_mode") == residual_mode
+    ):
+        return data
+    return add_residual_targets(data, residual_mode)
+
+
+def residual_normalization_stats(data: LatentRolloutData) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return residual mean/std tensors from dataset metadata."""
+
+    normalization = data.metadata.get("normalization", {})
+    if "residual_mean" not in normalization or "residual_std" not in normalization:
+        raise ValueError("Residual normalization stats are missing from the rollout dataset.")
+    return normalization["residual_mean"].float(), normalization["residual_std"].float()
+
+
 def build_latent_rollout_dataset(
     embeddings_path: str | Path,
     out: str | Path | None = None,
@@ -169,6 +254,7 @@ def build_latent_rollout_dataset(
     seed: int = 123,
     val_fraction: float = 0.2,
     test_fraction: float = 0.2,
+    residual_mode: str | None = "constant_latent_velocity",
 ) -> LatentRolloutData:
     """Build latent rollout examples without crossing match boundaries."""
 
@@ -262,6 +348,8 @@ def build_latent_rollout_dataset(
         },
         splits=splits,
     )
+    if residual_mode and residual_mode != "none":
+        data = add_residual_targets(data, residual_mode)
     if out is not None:
         save_latent_rollout_dataset(data, out)
     return data

@@ -1,0 +1,11 @@
+experiment: decoder_suite_experiment4c
+data:
+  decoder_dataset: data/processed/skillcorner_decoder_dataset.pt
+suite:
+  out: runs/decoder_suite/experiment4c
+  split: test
+  epochs: 1
+  max_train_batches: 20
+  max_eval_batches: 20
+  batch_size: 256
+  device: auto
