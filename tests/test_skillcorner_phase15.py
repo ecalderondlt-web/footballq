@@ -101,13 +101,19 @@ def test_skillcorner_windows_shape(tmp_path):
     assert len(windows.match_id) > 0
     assert windows.past.shape[1:] == (20, 23, len(windows.feature_names))
     assert windows.future_xy.shape[1:] == (20, 23, 2)
+    assert windows.possession_team_id[0] == "home"
+    assert windows.possession_available[0] is True
+    assert windows.phase[0] == "unknown"
     out = save_windows_pt(windows, tmp_path / "skillcorner_windows.pt")
     payload = torch.load(out, map_location="cpu")
     assert "windows" in payload
+    assert payload["possession_team_id"][0] == "home"
+    assert payload["possession_available"][0] is True
     first = payload["windows"][0]
     assert first["past"].shape[1] == 23
     assert first["future_xy"].shape[1] == 23
     assert first["future_xy"].shape[-1] == 2
+    assert first["possession_team_id"] == "home"
 
 
 def test_real_data_or_fixture_preserves_23_entity_shape(tmp_path):

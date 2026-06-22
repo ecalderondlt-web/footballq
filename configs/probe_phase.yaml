@@ -1,0 +1,22 @@
+seed: 123
+data:
+  probe_dataset: data/processed/skillcorner_probe_dataset.pt
+target:
+  name: phase
+  task_type: classification
+features:
+  source: td_jepa
+  random_seed: 123
+model:
+  probe_type: linear
+  hidden_dim: 128
+  dropout: 0.1
+training:
+  batch_size: 256
+  max_epochs: 50
+  patience: 8
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  device: auto
+  seed: 123
+  run_root: runs

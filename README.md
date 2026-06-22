@@ -222,8 +222,8 @@ python scripts/eval_td_jepa.py --checkpoint runs/td_jepa/latest.pt --split test
 python scripts/export_td_embeddings.py `
   --checkpoint runs/td_jepa/latest.pt `
   --data data/processed/skillcorner_td_jepa.pt `
-  --out data/processed/skillcorner_td_embeddings.pt `
-  --split test
+  --out data/processed/skillcorner_td_embeddings_all.pt `
+  --split all
 ```
 
 TD-JEPA run directories are written to `runs/td_jepa/<timestamp>/` and include:
@@ -250,6 +250,86 @@ The embedding export payload contains:
 Downloaded raw data, processed `.pt` files, embeddings, and run artifacts stay local and must not
 be committed. They are ignored because they are large, reproducible from public sources, and may be
 governed by dataset licenses.
+
+## Experiment 3: Frozen Latent Probes
+
+Experiment 3 checks whether the frozen TD-JEPA latent space contains recoverable soccer
+information. It trains small probe heads on precomputed embeddings and baseline features. The
+TD-JEPA encoder is not loaded or fine-tuned by probe training.
+
+Required local inputs:
+
+- TD-JEPA embeddings such as `data/processed/skillcorner_td_embeddings_all.pt`
+- Matching SkillCorner windows such as `data/processed/skillcorner_windows.pt`
+
+Build a probe dataset:
+
+```powershell
+python scripts/build_probe_dataset.py `
+  --embeddings data/processed/skillcorner_td_embeddings_all.pt `
+  --windows data/processed/skillcorner_windows.pt `
+  --out data/processed/skillcorner_probe_dataset_all.pt `
+  --targets possession_team has_ball_or_possession_available phase future_ball_progression_bucket future_ball_displacement_m team_shape_change_bucket
+```
+
+The builder aligns embeddings back to windows by `(match_id, frame_t)` and falls back to index
+ordering only when no key alignment is possible. Splits are by `match_id`; if only one or two
+matches are present, the dataset is marked as a smoke-evaluation split because fully disjoint
+train/val/test matches are impossible.
+
+Train and evaluate one probe:
+
+```powershell
+python scripts/train_probe.py --config configs/probe_future_ball_progression.yaml
+python scripts/eval_probe.py --checkpoint runs/probes/<target>/<feature_source>/<probe_type>/<RUN_ID>/best.pt --split test
+```
+
+Run the compact comparison suite:
+
+```powershell
+python scripts/run_probe_suite.py `
+  --dataset data/processed/skillcorner_probe_dataset_all.pt `
+  --out runs/probe_suite/experiment3_all_matches
+```
+
+Probe feature sources:
+
+- `td_jepa`: frozen TD-JEPA embeddings `z`
+- `random_same_shape`: deterministic random features with the same shape as `z`
+- `raw_state_summary`: current-state geometry summaries such as ball position, velocity, team
+  centroids, widths, lengths, stretch indices, and centroid distances
+
+Supported initial targets include future ball progression buckets, team shape-change buckets,
+future ball displacement regression, future ball dx/dy, team centroid shift, width/length change,
+stretch-index change, possession availability, and possession team when possession bits are
+present. Phase labels are not invented from window tensors; `configs/probe_phase.yaml` fails
+clearly until phase is preserved in a canonical label artifact.
+
+Each probe run writes:
+
+- `runs/probes/<target>/<feature_source>/<probe_type>/<timestamp>/config.yaml`
+- `metrics_train.jsonl`
+- `metrics_val.jsonl`
+- `best.pt`
+- `latest.pt`
+- `eval_test.json`
+- `label_map.json` for classification probes
+- `predictions_sample.pt`
+
+The suite writes `results.csv` and `results.json` under the requested output directory. Compare
+TD-JEPA against random features first; TD-JEPA beating random on multiple labels is the main sanity
+check. Raw-state summaries may beat TD-JEPA on direct geometry labels because they expose current
+positions explicitly. For imbalanced classification labels, macro F1 is usually more informative
+than accuracy.
+
+Known limitations:
+
+- Current SkillCorner window artifacts do not preserve phase strings or event labels.
+- Public SkillCorner possession fields may be absent; when present fields are empty,
+  `possession_team` is labeled `unknown`.
+- Future ball progression uses raw x displacement because attacking direction is not stored in the
+  current window tensors.
+- Team shape-change labels use all visible players when possession-team identity is unavailable.
 
 ## Synthetic Demo
 

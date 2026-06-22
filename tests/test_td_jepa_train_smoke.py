@@ -64,3 +64,15 @@ def test_td_jepa_one_batch_train_eval_and_export(tmp_path):
     assert len(payload["match_id"]) == payload["z"].shape[0]
     assert len(payload["frame_t"]) == payload["z"].shape[0]
     assert payload["source_split"] == "test"
+
+    all_out = export_td_embeddings(
+        result["latest_checkpoint"],
+        data_path,
+        tmp_path / "embeddings_all.pt",
+        split="all",
+        device="cpu",
+    )
+    all_payload = torch.load(all_out, map_location="cpu", weights_only=False)
+    assert all_payload["z"].shape[0] == len(data.match_id)
+    assert len(all_payload["source_split"]) == all_payload["z"].shape[0]
+    assert set(all_payload["source_split"]).issubset({"train", "val", "test"})

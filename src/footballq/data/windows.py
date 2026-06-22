@@ -61,6 +61,24 @@ class TrackingWindowTensorData:
     horizon_seconds: float
     stride_seconds: float
     coordinate_mode: str = "centered_normalized"
+    phase: list[str] | None = None
+    event_type: list[str] | None = None
+    possession_team_id: list[str] | None = None
+    possession_available: list[bool] | None = None
+    label_frame: list[int] | None = None
+
+    def __post_init__(self) -> None:
+        n = len(self.match_id)
+        if self.phase is None:
+            self.phase = ["unknown"] * n
+        if self.event_type is None:
+            self.event_type = ["unknown"] * n
+        if self.possession_team_id is None:
+            self.possession_team_id = ["unknown"] * n
+        if self.possession_available is None:
+            self.possession_available = [False] * n
+        if self.label_frame is None:
+            self.label_frame = list(self.start_frame)
 
     @property
     def history_steps(self) -> int:
@@ -91,6 +109,11 @@ class TrackingWindowTensorData:
                 "team_id": self.team_id[idx],
                 "match_id": self.match_id[idx],
                 "start_frame": self.start_frame[idx],
+                "label_frame": self.label_frame[idx],
+                "phase": self.phase[idx],
+                "event_type": self.event_type[idx],
+                "possession_team_id": self.possession_team_id[idx],
+                "possession_available": self.possession_available[idx],
             }
             for idx in range(len(self.match_id))
         ]
@@ -106,6 +129,11 @@ class TrackingWindowTensorData:
             "team_id": self.team_id,
             "match_id": self.match_id,
             "start_frame": self.start_frame,
+            "label_frame": self.label_frame,
+            "phase": self.phase,
+            "event_type": self.event_type,
+            "possession_team_id": self.possession_team_id,
+            "possession_available": self.possession_available,
             "feature_names": self.feature_names,
             "fps": self.fps,
             "context_seconds": self.context_seconds,
@@ -125,6 +153,30 @@ class TrackingWindowTensorData:
             team_id=payload["team_id"].long(),
             match_id=[str(value) for value in payload["match_id"]],
             start_frame=[int(value) for value in payload["start_frame"]],
+            label_frame=[
+                int(value)
+                for value in payload.get("label_frame", payload["start_frame"])
+            ],
+            phase=(
+                [_clean_metadata_value(value) for value in payload["phase"]]
+                if "phase" in payload
+                else None
+            ),
+            event_type=(
+                [_clean_metadata_value(value) for value in payload["event_type"]]
+                if "event_type" in payload
+                else None
+            ),
+            possession_team_id=(
+                [_normalize_team_id(value) for value in payload["possession_team_id"]]
+                if "possession_team_id" in payload
+                else None
+            ),
+            possession_available=(
+                [bool(value) for value in payload["possession_available"]]
+                if "possession_available" in payload
+                else None
+            ),
             feature_names=[str(value) for value in payload["feature_names"]],
             fps=float(payload["fps"]),
             context_seconds=float(payload["context_seconds"]),
@@ -193,6 +245,18 @@ def _from_window_records(records: list[dict[str, Any]]) -> TrackingWindowTensorD
         team_id=torch.stack([record["team_id"].long() for record in records]),
         match_id=[str(record.get("match_id", "")) for record in records],
         start_frame=[int(record.get("start_frame", 0)) for record in records],
+        label_frame=[
+            int(record.get("label_frame", record.get("start_frame", 0)))
+            for record in records
+        ],
+        phase=[_clean_metadata_value(record.get("phase")) for record in records],
+        event_type=[_clean_metadata_value(record.get("event_type")) for record in records],
+        possession_team_id=[
+            _normalize_team_id(record.get("possession_team_id")) for record in records
+        ],
+        possession_available=[
+            bool(record.get("possession_available", False)) for record in records
+        ],
         feature_names=list(FEATURE_NAMES),
         fps=10.0,
         context_seconds=float(records[0]["past"].shape[0]) / 10.0,
@@ -246,14 +310,55 @@ def _standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _normalize_team_id(value: object) -> str:
+    if isinstance(value, dict):
+        value = (
+            value.get("team")
+            or value.get("team_id")
+            or value.get("group")
+            or value.get("side")
+            or value.get("name")
+        )
     text = str(value).strip().lower().replace("-", "_").replace(" ", "_")
     if text in {"home", "h", "home_team", "team_home", "1", "team_1"}:
         return "home"
     if text in {"away", "a", "away_team", "team_away", "2", "team_2"}:
         return "away"
+    if "home_team" in text or text.endswith("_home") or text.startswith("home_"):
+        return "home"
+    if "away_team" in text or text.endswith("_away") or text.startswith("away_"):
+        return "away"
     if text in {"ball", "neutral", "none", "nan", "<na>", ""}:
         return "neutral"
     return text
+
+
+def _clean_metadata_value(value: object) -> str:
+    if value is None or pd.isna(value):
+        return "unknown"
+    text = str(value).strip()
+    if not text or text.lower() in {"nan", "<na>", "none", "null"}:
+        return "unknown"
+    return text
+
+
+def _first_non_missing(values: pd.Series | None) -> object:
+    if values is None:
+        return pd.NA
+    for value in values:
+        if pd.notna(value):
+            return value
+    return pd.NA
+
+
+def _metadata_for_time(period_df: pd.DataFrame, time_s: float) -> dict[str, object]:
+    rows = period_df[period_df["time_s"].astype(float) == float(time_s)]
+    possession = _normalize_team_id(_first_non_missing(rows.get("possession_team_id")))
+    return {
+        "phase": _clean_metadata_value(_first_non_missing(rows.get("phase"))),
+        "event_type": _clean_metadata_value(_first_non_missing(rows.get("event_type"))),
+        "possession_team_id": possession,
+        "possession_available": possession in {"home", "away"},
+    }
 
 
 def _team_code(value: object) -> int:
@@ -437,6 +542,11 @@ def build_tracking_windows(
     team_ids: list[np.ndarray] = []
     match_ids: list[str] = []
     start_frames: list[int] = []
+    label_frames: list[int] = []
+    phases: list[str] = []
+    event_types: list[str] = []
+    possession_team_ids: list[str] = []
+    possession_available_values: list[bool] = []
 
     for (match_id, period), period_df in source.groupby(
         ["match_id", "period"],
@@ -501,6 +611,13 @@ def build_tracking_windows(
             team_ids.append(team_id_arr)
             match_ids.append(str(match_id))
             start_frames.append(int(frame_by_time.get(float(history_times[0]), start)))
+            label_time = float(history_times[-1])
+            label_meta = _metadata_for_time(period_df, label_time)
+            label_frames.append(int(frame_by_time.get(label_time, start + history_steps - 1)))
+            phases.append(str(label_meta["phase"]))
+            event_types.append(str(label_meta["event_type"]))
+            possession_team_ids.append(str(label_meta["possession_team_id"]))
+            possession_available_values.append(bool(label_meta["possession_available"]))
 
     if not past_rows:
         past = torch.empty((0, history_steps, N_ENTITIES, len(FEATURE_NAMES)), dtype=torch.float32)
@@ -526,6 +643,11 @@ def build_tracking_windows(
         team_id=team_id,
         match_id=match_ids,
         start_frame=start_frames,
+        label_frame=label_frames,
+        phase=phases,
+        event_type=event_types,
+        possession_team_id=possession_team_ids,
+        possession_available=possession_available_values,
         feature_names=list(FEATURE_NAMES),
         fps=float(fps_out),
         context_seconds=float(context_seconds),

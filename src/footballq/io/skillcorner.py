@@ -54,6 +54,14 @@ class SkillCornerAdapter(TrackingDataAdapter):
 
     @staticmethod
     def _normalize_team(value: object) -> object:
+        if isinstance(value, dict):
+            value = (
+                value.get("team")
+                or value.get("team_id")
+                or value.get("group")
+                or value.get("side")
+                or value.get("name")
+            )
         text = str(value).strip().lower()
         if not text or text in {"nan", "<na>", "none", "null"}:
             return pd.NA
@@ -61,6 +69,10 @@ class SkillCornerAdapter(TrackingDataAdapter):
         if text in {"home", "h", "home_team", "team_home", "1", "team_1"}:
             return "home"
         if text in {"away", "a", "away_team", "team_away", "2", "team_2"}:
+            return "away"
+        if "home_team" in text or text.endswith("_home") or text.startswith("home_"):
+            return "home"
+        if "away_team" in text or text.endswith("_away") or text.startswith("away_"):
             return "away"
         return text
 
