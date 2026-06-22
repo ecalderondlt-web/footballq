@@ -1,0 +1,27 @@
+experiment: latent_flow_synthetic
+seed: 123
+data:
+  rollout_dataset: data/processed/synthetic_latent_rollout_dataset.pt
+model:
+  name: latent_flow_mlp
+  latent_dim: 16
+  context_steps: 5
+  horizon_steps: 5
+  hidden_dim: 64
+  num_layers: 3
+  dropout: 0.0
+  time_embed_dim: 32
+training:
+  batch_size: 64
+  max_epochs: 5
+  learning_rate: 0.0005
+  weight_decay: 0.00001
+  seed: 123
+  grad_clip_norm: 1.0
+  num_workers: 0
+  device: auto
+  run_root: runs
+  best_metric: loss
+sampling:
+  num_samples: 4
+  num_steps: 8

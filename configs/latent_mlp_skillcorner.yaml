@@ -1,0 +1,27 @@
+experiment: latent_mlp_skillcorner
+seed: 123
+data:
+  rollout_dataset: data/processed/skillcorner_latent_rollout_dataset.pt
+model:
+  name: mlp_latent
+  latent_dim: 128
+  context_steps: 5
+  horizon_steps: 5
+  hidden_dim: 256
+  num_layers: 3
+  dropout: 0.1
+training:
+  batch_size: 256
+  max_epochs: 5
+  max_train_batches: 80
+  learning_rate: 0.0005
+  weight_decay: 0.00001
+  seed: 123
+  grad_clip_norm: 1.0
+  num_workers: 0
+  device: auto
+  run_root: runs
+  best_metric: loss
+sampling:
+  num_samples: 1
+  num_steps: 1

@@ -331,6 +331,103 @@ Known limitations:
   current window tensors.
 - Team shape-change labels use all visible players when possession-team identity is unavailable.
 
+## Experiment 4A: Latent Flow Matching
+
+Experiment 4A tests latent-space generative rollout. It uses frozen TD-JEPA embeddings as states
+and trains a conditional flow-matching model to generate future latent sequences from past latent
+context. It does not fine-tune the TD-JEPA encoder and does not decode latents back to coordinate
+trajectories. Coordinate decoding is reserved for Experiment 4B.
+
+Required input:
+
+- TD-JEPA embeddings, preferably the all-match export:
+  `data/processed/skillcorner_td_embeddings_all.pt`
+
+Build a latent rollout dataset:
+
+```powershell
+python scripts/build_latent_rollout_dataset.py `
+  --embeddings data/processed/skillcorner_td_embeddings_all.pt `
+  --out data/processed/skillcorner_latent_rollout_dataset.pt `
+  --context-steps 5 `
+  --horizon-steps 5 `
+  --stride-steps 1
+```
+
+The builder creates examples shaped like:
+
+- `past_z`: `[num_examples, context_steps, latent_dim]`
+- `future_z`: `[num_examples, horizon_steps, latent_dim]`
+- `future_mask`: `[num_examples, horizon_steps]`
+
+Examples are built within each `match_id` only and never cross match boundaries. Splits are by
+`match_id`; if fewer than three matches are present, the dataset records a smoke-split warning.
+
+Train latent flow:
+
+```powershell
+python scripts/train_latent_flow.py --config configs/latent_flow_skillcorner.yaml
+```
+
+Evaluate deterministic baselines:
+
+```powershell
+python scripts/eval_latent_flow.py `
+  --dataset data/processed/skillcorner_latent_rollout_dataset.pt `
+  --baseline last_latent `
+  --split test
+
+python scripts/eval_latent_flow.py `
+  --dataset data/processed/skillcorner_latent_rollout_dataset.pt `
+  --baseline constant_latent_velocity `
+  --split test
+```
+
+Evaluate a trained flow checkpoint:
+
+```powershell
+python scripts/eval_latent_flow.py `
+  --checkpoint runs/latent_flow/<RUN_ID>/best.pt `
+  --dataset data/processed/skillcorner_latent_rollout_dataset.pt `
+  --split test
+```
+
+Sample latent futures:
+
+```powershell
+python scripts/sample_latent_flow.py `
+  --checkpoint runs/latent_flow/<RUN_ID>/best.pt `
+  --dataset data/processed/skillcorner_latent_rollout_dataset.pt `
+  --split test `
+  --num-examples 8 `
+  --num-samples 8 `
+  --out runs/latent_flow/<RUN_ID>/samples_test.pt
+```
+
+Run a compact comparison suite:
+
+```powershell
+python scripts/run_latent_flow_suite.py `
+  --dataset data/processed/skillcorner_latent_rollout_dataset.pt `
+  --checkpoint runs/latent_flow/<RUN_ID>/best.pt `
+  --out runs/latent_flow_suite/experiment4a
+```
+
+The suite writes `results.csv` and `results.json` with:
+
+- `latent_ADE`: mean latent L2 error over future steps
+- `latent_FDE`: latent L2 error at the final future step
+- `latent_step_mse`: per-step latent MSE
+- `latent_cosine_similarity`: cosine similarity between predicted and true future latents
+- `minADE_8` and `minFDE_8`: best-of-8 sample metrics for flow outputs
+- `diversity_mean_pairwise_distance`: sample diversity for multi-sample flow outputs
+
+Known limitations:
+
+- Metrics are latent-space diagnostics, not coordinate-space trajectory quality.
+- The first sampler is fixed-step Euler integration.
+- No text alignment, video processing, tactical discovery UI, or counterfactual tooling is included.
+
 ## Synthetic Demo
 
 The demo does not require internet or real football data.
