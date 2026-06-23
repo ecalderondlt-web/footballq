@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,6 +48,14 @@ def main() -> None:
     print(f"horizon_steps: {data.horizon_steps}")
     print(f"rollout_steps: {data.rollout_steps}")
     print(f"alignment: {data.metadata['alignment']}")
+    match_counts = Counter(str(value) for value in data.examples["match_id"])
+    print(f"matches: {len(match_counts)}")
+    print("examples_per_match:")
+    for match_id in sorted(match_counts):
+        print(f"- {match_id}: {match_counts[match_id]}")
+    print("split_match_ids:")
+    for split in ["train", "val", "test"]:
+        print(f"- {split}: {', '.join(str(value) for value in data.splits[f'{split}_match_ids'])}")
     if data.metadata.get("warnings"):
         print("warnings:")
         for warning in data.metadata["warnings"]:

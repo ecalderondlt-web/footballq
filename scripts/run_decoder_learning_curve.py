@@ -1,4 +1,4 @@
-"""Run Experiment 4C.1 decoder learning-curve diagnostics."""
+"""Run Experiment 4C decoder learning-curve diagnostics."""
 
 from __future__ import annotations
 
@@ -20,8 +20,13 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path)
     parser.add_argument("--dataset", type=Path)
+    parser.add_argument("--datasets", nargs="*", type=Path)
     parser.add_argument("--out", type=Path)
+    parser.add_argument("--models", nargs="*")
     parser.add_argument("--match-counts", nargs="*")
+    parser.add_argument("--stress-percentile", type=float)
+    parser.add_argument("--expected-horizons", nargs="*", type=float)
+    parser.add_argument("--require-real-split", action="store_true")
     parser.add_argument("--split", choices=["train", "val", "test"])
     parser.add_argument("--device")
     parser.add_argument("--epochs", type=int)
@@ -41,20 +46,50 @@ def _option(cli_value: Any, config_value: Any, default: Any) -> Any:
     return default
 
 
+def _as_list(value: Any) -> list[Any]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    return [value]
+
+
 def _config_args(args: argparse.Namespace) -> dict[str, Any]:
     cfg: dict[str, Any] = {}
     if args.config is not None:
         cfg = load_yaml(args.config)
     data_cfg = cfg.get("data", {})
     suite_cfg = cfg.get("suite", {})
+    datasets = (
+        args.datasets
+        or data_cfg.get("decoder_datasets")
+        or suite_cfg.get("datasets")
+        or None
+    )
     dataset = args.dataset or data_cfg.get("decoder_dataset") or data_cfg.get("path")
+    if datasets is None and dataset is not None:
+        datasets = [dataset]
     out = args.out or suite_cfg.get("out")
-    if dataset is None or out is None:
-        raise ValueError("Set --dataset and --out, or provide them in --config.")
+    if not datasets or out is None:
+        raise ValueError("Set --dataset/--datasets and --out, or provide them in --config.")
+    datasets = _as_list(datasets)
     return {
-        "dataset": Path(dataset),
+        "dataset": Path(datasets[0]),
+        "datasets": [Path(value) for value in datasets],
         "out": Path(out),
         "match_counts": _option(args.match_counts, suite_cfg.get("match_counts"), ["1", "3", "all"]),
+        "models": _option(args.models, suite_cfg.get("models"), None),
+        "stress_percentile": float(
+            _option(args.stress_percentile, suite_cfg.get("stress_percentile"), 0.75)
+        ),
+        "expected_horizons": _option(
+            args.expected_horizons,
+            suite_cfg.get("expected_horizons"),
+            [2.0, 4.0, 6.0],
+        ),
+        "require_real_split": bool(
+            args.require_real_split or suite_cfg.get("require_real_split", False)
+        ),
         "split": _option(args.split, suite_cfg.get("split"), "test"),
         "device": _option(args.device, suite_cfg.get("device"), "auto"),
         "epochs": int(_option(args.epochs, suite_cfg.get("epochs"), 1)),
@@ -80,7 +115,12 @@ def main() -> None:
     result = run_decoder_learning_curve(
         options["dataset"],
         options["out"],
+        datasets=options["datasets"],
         match_counts=options["match_counts"],
+        models=options["models"],
+        stress_percentile=options["stress_percentile"],
+        require_real_split=options["require_real_split"],
+        expected_horizons=options["expected_horizons"],
         split=options["split"],
         device=options["device"],
         epochs=options["epochs"],
@@ -91,11 +131,19 @@ def main() -> None:
         run_root=options["run_root"],
     )
     print(f"results_csv: {result['results_csv']}")
+    print(f"stress_results_csv: {result['stress_results_csv']}")
     print(f"summary_json: {result['summary_json']}")
     print(f"num_available_matches: {result['summary']['num_available_matches']}")
     if result["summary"].get("limited_to_three_matches"):
         print("warning: all-data learning curve is limited to three or fewer matches")
     for diagnostics in result["summary"].get("subset_diagnostics", []):
+        print(
+            "subset: "
+            f"dataset={diagnostics['dataset_label']} matches={diagnostics['num_matches']} "
+            f"train={';'.join(diagnostics['train_match_ids'])} "
+            f"val={';'.join(diagnostics['val_match_ids'])} "
+            f"test={';'.join(diagnostics['test_match_ids'])}"
+        )
         if diagnostics.get("smoke_split"):
             print(
                 "warning: "

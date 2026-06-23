@@ -59,6 +59,9 @@ def load_source(source: str, raw: Path, match_id: str) -> pd.DataFrame:
 def main() -> None:
     args = parse_args()
     tracking = load_source(args.source, args.raw, args.match_id)
+    match_ids = sorted(str(value) for value in tracking["match_id"].dropna().unique())
+    print(f"source_matches: {len(match_ids)}")
+    print(f"match_ids: {', '.join(match_ids)}")
     windows = build_tracking_windows(
         tracking,
         fps_out=args.fps_out,
@@ -73,10 +76,19 @@ def main() -> None:
             f"fps_out={args.fps_out}, and that player/ball rows have visible x/y positions."
         )
     out = save_windows_pt(windows, args.out)
+    window_counts = pd.Series(windows.match_id, dtype="string").value_counts().sort_index()
     print(
         f"wrote {len(windows.match_id):,} windows to {out} "
         f"with past={tuple(windows.past.shape)} future={tuple(windows.future_xy.shape)}"
     )
+    print("windows_per_match:")
+    for match_id, count in window_counts.items():
+        print(f"- {match_id}: {int(count)}")
+    if args.source == "skillcorner" and len(match_ids) < 3:
+        print(
+            "warning: fewer than 3 SkillCorner matches were found; downstream real split "
+            "evaluation should be treated as smoke-only unless more matches are added."
+        )
 
 
 if __name__ == "__main__":

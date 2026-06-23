@@ -1,0 +1,184 @@
+"""Prepare several horizon-specific tracking window files from one raw load."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+import pandas as pd
+import torch
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from footballq.data.windows import (  # noqa: E402
+    TrackingWindowTensorData,
+    build_tracking_windows,
+    load_windows_pt,
+    save_windows_pt,
+)
+from footballq.io.idsse import IDSSEAdapter  # noqa: E402
+from footballq.io.metrica import MetricaAdapter  # noqa: E402
+from footballq.io.skillcorner import SkillCornerAdapter  # noqa: E402
+from footballq.io.skillcorner_report import discover_skillcorner_raw_matches, horizon_label  # noqa: E402
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--source", choices=["skillcorner", "idsse", "metrica"], required=True)
+    parser.add_argument("--raw", type=Path, required=True)
+    parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument("--prefix", default="skillcorner_windows")
+    parser.add_argument("--match-id", default="match_1")
+    parser.add_argument("--fps-out", type=float, default=10.0)
+    parser.add_argument("--context-seconds", type=float, default=2.0)
+    parser.add_argument("--horizon-seconds", nargs="+", type=float, default=[2.0, 4.0, 6.0])
+    parser.add_argument("--stride-seconds", type=float, default=0.2)
+    parser.add_argument("--combined-load", action="store_true")
+    parser.add_argument("--cache-dir", type=Path)
+    parser.add_argument("--resume", action="store_true")
+    return parser.parse_args()
+
+
+def _load_source(source: str, raw: Path, match_id: str) -> pd.DataFrame:
+    if source == "skillcorner":
+        return SkillCornerAdapter(raw_dir=raw, match_id=match_id).load_tracking()
+    if source == "idsse":
+        return IDSSEAdapter(raw_dir=raw, match_id=match_id).load_tracking()
+    if source == "metrica":
+        return MetricaAdapter(raw_dir=raw, match_id=match_id).load_tracking()
+    raise ValueError(f"Unknown source: {source}")
+
+
+def _concat_windows(parts: list[TrackingWindowTensorData]) -> TrackingWindowTensorData:
+    if not parts:
+        raise ValueError("Cannot concatenate an empty list of windows.")
+    first = parts[0]
+    return TrackingWindowTensorData(
+        past=torch.cat([part.past for part in parts], dim=0),
+        future_xy=torch.cat([part.future_xy for part in parts], dim=0),
+        past_mask=torch.cat([part.past_mask for part in parts], dim=0),
+        future_mask=torch.cat([part.future_mask for part in parts], dim=0),
+        entity_type=torch.cat([part.entity_type for part in parts], dim=0),
+        team_id=torch.cat([part.team_id for part in parts], dim=0),
+        match_id=[value for part in parts for value in part.match_id],
+        start_frame=[value for part in parts for value in part.start_frame],
+        label_frame=[value for part in parts for value in part.label_frame],
+        phase=[value for part in parts for value in part.phase],
+        event_type=[value for part in parts for value in part.event_type],
+        possession_team_id=[value for part in parts for value in part.possession_team_id],
+        possession_available=[value for part in parts for value in part.possession_available],
+        feature_names=list(first.feature_names),
+        fps=first.fps,
+        context_seconds=first.context_seconds,
+        horizon_seconds=first.horizon_seconds,
+        stride_seconds=first.stride_seconds,
+        coordinate_mode=first.coordinate_mode,
+    )
+
+
+def _write_horizon(windows: TrackingWindowTensorData, out: Path) -> None:
+    save_windows_pt(windows, out)
+    counts = pd.Series(windows.match_id, dtype="string").value_counts().sort_index()
+    print(
+        f"wrote {len(windows.match_id):,} windows to {out} "
+        f"with past={tuple(windows.past.shape)} future={tuple(windows.future_xy.shape)}"
+    )
+    print("windows_per_match:")
+    for match_id, count in counts.items():
+        print(f"- {match_id}: {int(count)}")
+
+
+def _prepare_combined(args: argparse.Namespace) -> list[str]:
+    tracking = _load_source(args.source, args.raw, args.match_id)
+    match_ids = sorted(str(value) for value in tracking["match_id"].dropna().unique())
+    print(f"source_matches: {len(match_ids)}")
+    print(f"match_ids: {', '.join(match_ids)}")
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+    for horizon_seconds in args.horizon_seconds:
+        windows = build_tracking_windows(
+            tracking,
+            fps_out=args.fps_out,
+            context_seconds=args.context_seconds,
+            horizon_seconds=horizon_seconds,
+            stride_seconds=args.stride_seconds,
+        )
+        if len(windows.match_id) == 0:
+            raise RuntimeError(
+                f"No windows were produced for horizon_seconds={horizon_seconds}. "
+                "Check raw data duration and visibility coverage."
+            )
+        out = args.out_dir / f"{args.prefix}_{horizon_label(horizon_seconds)}.pt"
+        _write_horizon(windows, out)
+    return match_ids
+
+
+def _prepare_skillcorner_per_match(args: argparse.Namespace) -> list[str]:
+    raw_matches = discover_skillcorner_raw_matches(args.raw)
+    if not raw_matches:
+        raise FileNotFoundError(f"No SkillCorner tracking files found under {args.raw}.")
+    match_ids = [match.match_id for match in raw_matches]
+    print(f"source_matches: {len(match_ids)}")
+    print(f"match_ids: {', '.join(match_ids)}")
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+    cache_dir = args.cache_dir or (args.out_dir / ".skillcorner_window_cache")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cached_by_horizon: dict[float, list[Path]] = {float(value): [] for value in args.horizon_seconds}
+    for raw_match in raw_matches:
+        print(f"preparing_match: {raw_match.match_id}")
+        tracking: pd.DataFrame | None = None
+        for horizon_seconds in args.horizon_seconds:
+            label = horizon_label(horizon_seconds)
+            cache_path = cache_dir / f"{raw_match.match_id}_{args.prefix}_{label}.pt"
+            if args.resume and cache_path.exists():
+                print(f"using_cached: {cache_path}")
+                cached_by_horizon[float(horizon_seconds)].append(cache_path)
+                continue
+            if tracking is None:
+                tracking = SkillCornerAdapter(
+                    raw_dir=Path(raw_match.match_dir),
+                    match_id=raw_match.match_id,
+                ).load_tracking()
+            windows = build_tracking_windows(
+                tracking,
+                fps_out=args.fps_out,
+                context_seconds=args.context_seconds,
+                horizon_seconds=horizon_seconds,
+                stride_seconds=args.stride_seconds,
+            )
+            if len(windows.match_id) == 0:
+                print(
+                    f"warning: no windows for match={raw_match.match_id} "
+                    f"horizon_seconds={horizon_seconds}"
+                )
+                continue
+            save_windows_pt(windows, cache_path)
+            print(f"cached_match_horizon: {cache_path} windows={len(windows.match_id)}")
+            cached_by_horizon[float(horizon_seconds)].append(cache_path)
+    for horizon_seconds, paths in cached_by_horizon.items():
+        if not paths:
+            raise RuntimeError(f"No windows were produced for horizon_seconds={horizon_seconds}.")
+        combined = _concat_windows([load_windows_pt(path) for path in paths])
+        out = args.out_dir / f"{args.prefix}_{horizon_label(horizon_seconds)}.pt"
+        _write_horizon(combined, out)
+    return match_ids
+
+
+def main() -> None:
+    args = parse_args()
+    if args.source == "skillcorner" and not args.combined_load:
+        match_ids = _prepare_skillcorner_per_match(args)
+    else:
+        match_ids = _prepare_combined(args)
+    if args.source == "skillcorner" and len(match_ids) < 3:
+        print(
+            "warning: fewer than 3 SkillCorner matches were found; downstream real split "
+            "evaluation should be treated as smoke-only unless more matches are added."
+        )
+
+
+if __name__ == "__main__":
+    main()

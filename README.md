@@ -761,6 +761,185 @@ Do not claim that latent rollouts beat raw coordinate baselines unless the meter
 it. This phase still excludes text alignment, video, UI, counterfactuals, raw-coordinate flow
 matching, and TD-JEPA fine-tuning.
 
+## Experiment 4C.2: Longer Horizons And Stress Slices
+
+Experiment 4C.2 asks whether residual coordinate decoding becomes more useful when evaluation uses
+more local SkillCorner matches, longer horizons, and high-change windows where constant velocity is
+less forgiving.
+
+Raw and processed data are still local artifacts. Keep SkillCorner Open Data under:
+
+```text
+data/raw/skillcorner/
+```
+
+The adapter discovers every tracking JSON/JSONL file below that directory whose filename contains
+`tracking`. `data/` and `runs/` are ignored because they can contain raw match data, processed
+windows, checkpoints, and generated reports; commit only code, configs, docs, and tests.
+
+Prepare 2s, 4s, and 6s window files:
+
+```powershell
+python scripts/prepare_tracking_data.py --source skillcorner --raw data/raw/skillcorner --out data/processed/skillcorner_windows_h2s.pt --fps-out 10 --context-seconds 2.0 --horizon-seconds 2.0 --stride-seconds 0.2
+python scripts/prepare_tracking_data.py --source skillcorner --raw data/raw/skillcorner --out data/processed/skillcorner_windows_h4s.pt --fps-out 10 --context-seconds 2.0 --horizon-seconds 4.0 --stride-seconds 0.2
+python scripts/prepare_tracking_data.py --source skillcorner --raw data/raw/skillcorner --out data/processed/skillcorner_windows_h6s.pt --fps-out 10 --context-seconds 2.0 --horizon-seconds 6.0 --stride-seconds 0.2
+```
+
+Or write all three horizon files with the multi-horizon helper:
+
+```powershell
+python scripts/prepare_tracking_horizons.py --source skillcorner --raw data/raw/skillcorner --out-dir data/processed --prefix skillcorner_windows --fps-out 10 --context-seconds 2.0 --horizon-seconds 2.0 4.0 6.0 --stride-seconds 0.2
+```
+
+Each command reports discovered match IDs and windows per match. One- or two-match local runs are
+allowed for debugging, but real split evaluation requires at least three matches so train, val, and
+test are disjoint by `match_id`.
+
+Build decoder datasets for each horizon:
+
+```powershell
+python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h2s.pt --out data/processed/skillcorner_decoder_dataset_h2s.pt --horizon-steps 20
+python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h4s.pt --out data/processed/skillcorner_decoder_dataset_h4s.pt --horizon-steps 40
+python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h6s.pt --out data/processed/skillcorner_decoder_dataset_h6s.pt --horizon-steps 60
+```
+
+The embeddings only need to be regenerated if their `match_id`/`frame_t` rows do not align with the
+new window files. When longer horizons remove end-of-match windows, the decoder builder drops
+unmatched embedding rows and reports the count.
+
+Run the multi-horizon residual learning curve and stress-slice evaluation:
+
+```powershell
+python scripts/run_decoder_learning_curve.py `
+  --datasets data/processed/skillcorner_decoder_dataset_h2s.pt data/processed/skillcorner_decoder_dataset_h4s.pt data/processed/skillcorner_decoder_dataset_h6s.pt `
+  --out runs/decoder_learning_curve/experiment4c2 `
+  --models coordinate_constant_velocity last_coordinate_position residual_context_only residual_z_plus_context `
+  --epochs 3 `
+  --batch-size 256
+```
+
+Equivalent config-driven command:
+
+```powershell
+python scripts/run_decoder_learning_curve.py --config configs/decoder_learning_curve_skillcorner_4c2.yaml
+```
+
+The CSV contains overall rows and stress-slice rows for:
+
+- `all_windows`
+- `high_future_ball_displacement`
+- `high_ball_acceleration`
+- `high_ball_direction_change`
+- `high_team_shape_change`
+- `high_team_width_change`
+- `high_team_length_change`
+- `high_stretch_index_change`
+- `possession_change` when explicit future possession-change labels exist
+- `event_near_window` when window event metadata is known
+
+High-change slices use top-25-percent thresholds computed from future ground truth for evaluation
+grouping only. These labels are not fed into decoder inputs. Thresholds and slice counts are written
+to `summary.json`.
+
+Interpretation:
+
+- `residual_z_plus_context_decoder` beating `residual_context_only_decoder` means TD-JEPA `z`
+  adds measurable value beyond raw past coordinates for that horizon or slice.
+- Beating `coordinate_constant_velocity` on a stress slice is stronger evidence than improving only
+  over direct latent decoders, because constant velocity is the short-horizon reference to beat.
+- If all available equals three matches, treat results as proof-of-concept. It is not final science
+  until more SkillCorner matches or another real dataset are included.
+- This experiment still excludes text alignment, video, UI, tactical discovery, counterfactuals,
+  latent stochasticity tuning, and TD-JEPA fine-tuning.
+
+## Experiment 4C.3: All-Available-Games Decoder Scale Validation
+
+Experiment 4C.3 asks whether residual `z_plus_context` decoding becomes consistently better than
+residual raw-context decoding when more real matches, longer horizons, and stress slices are
+available. It is a scale-validation report, not a new architecture phase.
+
+Verify local SkillCorner availability:
+
+```powershell
+python scripts/report_skillcorner_availability.py `
+  --raw data/raw/skillcorner `
+  --processed-dir data/processed `
+  --embeddings data/processed/skillcorner_td_embeddings_all.pt
+```
+
+The report prints raw match IDs, tracking/metadata/event availability, window counts per horizon,
+decoder examples per horizon, examples per match, and embedding/window key alignment.
+
+Prepare all horizons with resumable per-match caching:
+
+```powershell
+python scripts/prepare_tracking_horizons.py `
+  --source skillcorner `
+  --raw data/raw/skillcorner `
+  --out-dir data/processed `
+  --prefix skillcorner_windows `
+  --fps-out 10 `
+  --context-seconds 2.0 `
+  --horizon-seconds 2.0 4.0 6.0 `
+  --stride-seconds 0.2 `
+  --resume
+```
+
+By default this processes SkillCorner match folders one at a time and caches per-match horizon
+windows under `data/processed/.skillcorner_window_cache/`, which makes long 6s runs easier to
+resume. Use `--combined-load` only when you explicitly want a one-shot raw load.
+
+Build decoder datasets:
+
+```powershell
+python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h2s.pt --out data/processed/skillcorner_decoder_dataset_h2s.pt --horizon-steps 20
+python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h4s.pt --out data/processed/skillcorner_decoder_dataset_h4s.pt --horizon-steps 40
+python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h6s.pt --out data/processed/skillcorner_decoder_dataset_h6s.pt --horizon-steps 60
+```
+
+If a new raw match has windows but no TD-JEPA embeddings, the decoder builder fails clearly instead
+of silently dropping that match. Rebuild all-match TD-JEPA data and embeddings with the existing
+Experiment 2 scripts, then rerun the decoder build.
+
+Run all-available scale validation:
+
+```powershell
+python scripts/run_decoder_learning_curve.py `
+  --datasets `
+    data/processed/skillcorner_decoder_dataset_h2s.pt `
+    data/processed/skillcorner_decoder_dataset_h4s.pt `
+    data/processed/skillcorner_decoder_dataset_h6s.pt `
+  --out runs/decoder_learning_curve/experiment4c3_all_available `
+  --models coordinate_constant_velocity last_coordinate_position residual_context_only residual_z_plus_context `
+  --match-counts 1 3 all `
+  --epochs 5 `
+  --batch-size 256 `
+  --require-real-split
+```
+
+For a faster local smoke run, add:
+
+```powershell
+--max-train-batches 20 --max-eval-batches 20
+```
+
+Outputs:
+
+- `runs/decoder_learning_curve/experiment4c3_all_available/results.csv`
+- `runs/decoder_learning_curve/experiment4c3_all_available/stress_results.csv`
+- `runs/decoder_learning_curve/experiment4c3_all_available/summary.json`
+
+Interpretation:
+
+- Positive signal: residual `z_plus_context` consistently beats residual context-only overall,
+  especially at 4s/6s or on high-change stress slices.
+- Negative signal: `z_plus_context` gains remain tiny or inconsistent, while coordinate constant
+  velocity dominates all horizons and stress slices.
+- With only three local SkillCorner matches, this remains a limited scale check. Add the remaining
+  SkillCorner Open Data matches under `data/raw/skillcorner/` before treating the result as final.
+
+Do not commit raw SkillCorner data, processed windows, decoder datasets, checkpoints, or reports.
+
 ## Synthetic Demo
 
 The demo does not require internet or real football data.

@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 import torch
 
 from footballq.data.windows import build_tracking_windows, save_windows_pt
@@ -79,6 +80,24 @@ def test_decoder_dataset_match_splits_are_disjoint_when_possible(tmp_path):
     assert val.isdisjoint(test)
 
 
+def test_no_silent_match_drop_when_embeddings_missing(tmp_path):
+    windows, windows_path, embeddings_path = _windows_and_embeddings(tmp_path, matches=3)
+    kept = [idx for idx, match_id in enumerate(windows.match_id) if match_id != "decoder_m2"]
+    payload = torch.load(embeddings_path, map_location="cpu", weights_only=False)
+    torch.save(
+        {
+            **payload,
+            "z": payload["z"][kept],
+            "match_id": [payload["match_id"][idx] for idx in kept],
+            "frame_t": [payload["frame_t"][idx] for idx in kept],
+            "source_split": [payload["source_split"][idx] for idx in kept],
+        },
+        tmp_path / "embeddings_missing_match.pt",
+    )
+    with pytest.raises(ValueError, match="Missing match IDs"):
+        build_decoder_dataset(tmp_path / "embeddings_missing_match.pt", windows_path)
+
+
 def test_decoder_dataset_modes_return_expected_targets(tmp_path):
     _, windows_path, embeddings_path = _windows_and_embeddings(tmp_path)
     data = build_decoder_dataset(embeddings_path, windows_path, horizon_steps=4, rollout_steps=2)
@@ -110,3 +129,44 @@ def test_coordinate_constant_velocity_baseline_alignment(tmp_path):
         feature_names=data.metadata["feature_names"],
     )
     assert torch.allclose(data.examples["coordinate_baseline_xy"], expected)
+
+
+def test_decoder_dataset_supports_multiple_horizon_lengths(tmp_path):
+    frames = []
+    for idx in range(3):
+        frames.append(
+            generate_synthetic_tracking(
+                match_id=f"decoder_horizon_{idx}",
+                duration_s=8.0,
+                fps=5.0,
+                seed=idx,
+            )
+        )
+    for horizon_steps, horizon_seconds in [(4, 0.8), (8, 1.6), (12, 2.4)]:
+        windows = build_tracking_windows(
+            pd.concat(frames, ignore_index=True),
+            fps_out=5.0,
+            context_seconds=1.0,
+            horizon_seconds=horizon_seconds,
+            stride_seconds=0.2,
+        )
+        windows_path = save_windows_pt(windows, tmp_path / f"windows_{horizon_steps}.pt")
+        embeddings_path = tmp_path / f"embeddings_{horizon_steps}.pt"
+        torch.save(
+            {
+                "z": torch.randn(len(windows.match_id), 8),
+                "match_id": windows.match_id,
+                "frame_t": windows.start_frame,
+                "source_split": ["synthetic" for _ in windows.match_id],
+                "config": {},
+            },
+            embeddings_path,
+        )
+        data = build_decoder_dataset(
+            embeddings_path,
+            windows_path,
+            horizon_steps=horizon_steps,
+        )
+        assert data.horizon_steps == horizon_steps
+        assert data.examples["future_xy"].shape[1] == horizon_steps
+        assert data.examples["coordinate_baseline_xy"].shape[1] == horizon_steps

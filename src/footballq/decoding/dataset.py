@@ -279,6 +279,12 @@ def _align_embeddings_to_windows(
         missing = len(match_ids) - len(embedding_indices)
         if missing:
             warnings.append(f"dropped {missing} embedding rows without matching window keys")
+        matched_window_keys = set(window_indices)
+        unmatched_window_count = len(windows.match_id) - len(matched_window_keys)
+        if unmatched_window_count:
+            warnings.append(
+                f"dropped {unmatched_window_count} window rows without matching embedding keys"
+            )
         return embedding_indices, window_indices, "match_id_frame_t", warnings
 
     n = min(len(match_ids), len(windows.match_id))
@@ -286,6 +292,29 @@ def _align_embeddings_to_windows(
         raise ValueError("No embedding rows or window rows are available for decoder building.")
     warnings.append("no exact match_id/frame_t alignment was possible; falling back to index order")
     return list(range(n)), list(range(n)), "index_order", warnings
+
+
+def _validate_embedding_match_coverage(
+    windows: TrackingWindowTensorData,
+    window_indices: list[int],
+    alignment: str,
+    embeddings_path: Path,
+) -> None:
+    """Fail when an entire prepared window match is missing from embeddings."""
+
+    if alignment != "match_id_frame_t":
+        return
+    window_matches = set(str(value) for value in windows.match_id)
+    aligned_matches = set(str(windows.match_id[idx]) for idx in window_indices)
+    missing_matches = sorted(window_matches - aligned_matches)
+    if missing_matches:
+        raise ValueError(
+            "Embeddings do not cover all prepared window matches. Missing match IDs: "
+            f"{', '.join(missing_matches)}. Rebuild TD-JEPA data/embeddings over all local "
+            "matches, for example with scripts/prepare_td_jepa_data.py and "
+            "scripts/export_td_embeddings.py, then rerun build_decoder_dataset.py. "
+            f"Embeddings path: {embeddings_path}"
+        )
 
 
 def _subset_windows(windows: TrackingWindowTensorData, indices: list[int]) -> TrackingWindowTensorData:
@@ -448,6 +477,7 @@ def build_decoder_dataset(
         embeddings,
         windows,
     )
+    _validate_embedding_match_coverage(windows, window_indices, alignment, embeddings_path)
     aligned_windows = _subset_windows(windows, window_indices)
     z_aligned = z[embedding_indices]
     horizon = int(horizon_steps or aligned_windows.horizon_steps)

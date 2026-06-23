@@ -9,12 +9,14 @@ from footballq.decoding.dataset import (
 )
 from footballq.decoding.eval import evaluate_decoder_checkpoint
 from footballq.decoding.learning_curve import run_decoder_learning_curve
+from footballq.decoding.stress import compute_stress_slices
 from footballq.decoding.train import train_coordinate_decoder_from_config
 
 __all__ = [
     "DecoderDataset",
     "DecoderDatasetData",
     "build_decoder_dataset",
+    "compute_stress_slices",
     "evaluate_decoder_checkpoint",
     "load_decoder_dataset",
     "run_decoder_learning_curve",

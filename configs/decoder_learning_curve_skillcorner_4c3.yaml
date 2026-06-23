@@ -1,0 +1,21 @@
+experiment: decoder_learning_curve_skillcorner_4c3_all_available
+data:
+  decoder_datasets:
+    - data/processed/skillcorner_decoder_dataset_h2s.pt
+    - data/processed/skillcorner_decoder_dataset_h4s.pt
+    - data/processed/skillcorner_decoder_dataset_h6s.pt
+suite:
+  out: runs/decoder_learning_curve/experiment4c3_all_available
+  match_counts: [1, 3, all]
+  models:
+    - coordinate_constant_velocity
+    - last_coordinate_position
+    - residual_context_only
+    - residual_z_plus_context
+  split: test
+  stress_percentile: 0.75
+  expected_horizons: [2.0, 4.0, 6.0]
+  require_real_split: true
+  epochs: 5
+  batch_size: 256
+  device: auto
