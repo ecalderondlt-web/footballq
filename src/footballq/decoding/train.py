@@ -56,10 +56,32 @@ def _batch_to_device(batch: dict[str, Any], device: torch.device) -> dict[str, A
     }
 
 
+def is_current_mode(mode: str) -> bool:
+    return mode in {
+        "reconstruct_current",
+        "reconstruct_current_from_context",
+        "reconstruct_current_from_z_context",
+    }
+
+
+def is_residual_future_mode(mode: str) -> bool:
+    return mode.startswith("residual_future_")
+
+
+def prediction_from_decoder_output(
+    output: torch.Tensor,
+    batch: dict[str, Any],
+    mode: str,
+) -> torch.Tensor:
+    if is_residual_future_mode(mode):
+        return batch["coordinate_baseline_xy"] + output
+    return output
+
+
 def _target_for_loss(batch: dict[str, Any], mode: str) -> tuple[torch.Tensor, torch.Tensor]:
     target = batch["target_xy"]
     mask = batch["target_mask"]
-    if mode == "reconstruct_current":
+    if is_current_mode(mode):
         target = target.unsqueeze(1)
         mask = mask.unsqueeze(1)
     return target, mask
@@ -82,11 +104,11 @@ def evaluate_decoder_model(
     losses: list[float] = []
     for batch_idx, batch in enumerate(loader, start=1):
         batch = _batch_to_device(batch, device)
-        pred = model(batch["x"])
+        pred = prediction_from_decoder_output(model(batch["x"]), batch, mode)
         target, mask = _target_for_loss(batch, mode)
         loss = masked_mse_loss(pred, target, mask)
         losses.append(float(loss.item()))
-        if mode == "reconstruct_current":
+        if is_current_mode(mode):
             preds.append(pred[:, 0].detach().cpu())
             targets.append(batch["target_xy"].detach().cpu())
             masks.append(batch["target_mask"].detach().cpu())
@@ -163,10 +185,12 @@ def _save_prediction_sample(
     model.eval()
     with torch.no_grad():
         device_batch = _batch_to_device(batch, device)
-        pred = model(device_batch["x"]).detach().cpu()
+        raw_pred = model(device_batch["x"])
+        pred = prediction_from_decoder_output(raw_pred, device_batch, mode).detach().cpu()
     torch.save(
         {
             "prediction_xy_norm": pred[:4],
+            "raw_decoder_output_xy_norm": raw_pred.detach().cpu()[:4],
             "target_xy_norm": batch["target_xy"][:4],
             "target_mask": batch["target_mask"][:4],
             "mode": mode,
@@ -237,7 +261,7 @@ def train_coordinate_decoder_from_config(config: str | Path | dict[str, Any]) ->
     metric_name = str(
         train_cfg.get(
             "best_metric",
-            "current_all_entity_error_m" if mode == "reconstruct_current" else "all_entity_ADE_m",
+            "current_all_entity_error_m" if is_current_mode(mode) else "all_entity_ADE_m",
         )
     )
     best_metric = float("inf")
@@ -249,7 +273,7 @@ def train_coordinate_decoder_from_config(config: str | Path | dict[str, Any]) ->
         for batch_idx, batch in enumerate(loaders["train"], start=1):
             batch = _batch_to_device(batch, device)
             optimizer.zero_grad(set_to_none=True)
-            pred = model(batch["x"])
+            pred = prediction_from_decoder_output(model(batch["x"]), batch, mode)
             target, mask = _target_for_loss(batch, mode)
             loss = masked_mse_loss(pred, target, mask)
             loss.backward()

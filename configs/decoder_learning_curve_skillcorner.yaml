@@ -1,0 +1,12 @@
+experiment: decoder_learning_curve_skillcorner
+data:
+  decoder_dataset: data/processed/skillcorner_decoder_dataset.pt
+suite:
+  out: runs/decoder_learning_curve/experiment4c1
+  match_counts: [1, 3, all]
+  split: test
+  epochs: 3
+  max_train_batches: 80
+  max_eval_batches: 40
+  batch_size: 256
+  device: auto

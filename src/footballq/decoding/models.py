@@ -87,11 +87,31 @@ class SequenceMLPDecoder(nn.Module):
 
 
 def decoder_output_steps(mode: str, data: DecoderDatasetData) -> int:
-    if mode == "reconstruct_current":
+    if mode in {
+        "reconstruct_current",
+        "reconstruct_current_from_context",
+        "reconstruct_current_from_z_context",
+    }:
         return 1
     if mode == "rollout_from_latents":
         return data.rollout_steps
     return data.horizon_steps
+
+
+def decoder_input_dim(mode: str, data: DecoderDatasetData) -> int:
+    if mode in {
+        "future_from_past_context",
+        "residual_future_from_past_context",
+        "reconstruct_current_from_context",
+    }:
+        return data.past_context_dim
+    if mode in {
+        "future_from_z_past_context",
+        "residual_future_from_z_past_context",
+        "reconstruct_current_from_z_context",
+    }:
+        return int(data.metadata.get("z_past_context_dim", data.latent_dim + data.past_context_dim))
+    return data.latent_dim
 
 
 def create_coordinate_decoder(
@@ -105,14 +125,21 @@ def create_coordinate_decoder(
     mode = str(target_cfg.get("mode", model_cfg.get("input_type", "future_from_z")))
     name = str(model_cfg.get("name", "linear"))
     hidden_sizes = [int(value) for value in model_cfg.get("hidden_sizes", [])]
-    if name == "mlp" and not hidden_sizes:
+    if name != "linear" and not hidden_sizes:
         hidden_sizes = [256, 256]
     output_steps = decoder_output_steps(mode, data)
     dropout = float(model_cfg.get("dropout", 0.0))
     activation = str(model_cfg.get("activation", "relu"))
-    if name in {"linear", "mlp"}:
+    if name in {
+        "linear",
+        "mlp",
+        "raw_context_mlp",
+        "z_context_mlp",
+        "residual_mlp",
+        "residual_context_mlp",
+    }:
         return MLPDecoder(
-            input_dim=data.latent_dim,
+            input_dim=decoder_input_dim(mode, data),
             output_steps=output_steps,
             n_entities=data.n_entities,
             hidden_sizes=[] if name == "linear" else hidden_sizes,

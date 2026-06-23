@@ -1,0 +1,24 @@
+experiment: decoder_residual_context_future_real
+seed: 123
+data:
+  decoder_dataset: data/processed/skillcorner_decoder_dataset.pt
+  batch_size: 256
+  num_workers: 0
+target:
+  mode: residual_future_from_z_past_context
+model:
+  name: residual_context_mlp
+  hidden_sizes: [512, 512]
+  dropout: 0.1
+  activation: relu
+training:
+  epochs: 10
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  seed: 123
+  grad_clip_norm: 1.0
+  device: auto
+  run_root: runs
+  max_train_batches: 200
+  max_eval_batches: 80
+  best_metric: all_entity_ADE_m

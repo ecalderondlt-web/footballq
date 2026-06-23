@@ -12,11 +12,19 @@ import torch
 from torch.utils.data import Dataset
 
 from footballq.data.windows import TrackingWindowTensorData, load_windows_pt
+from footballq.models.constant_velocity import predict_constant_velocity
 
 DECODER_MODES = {
     "reconstruct_current",
+    "reconstruct_current_from_context",
+    "reconstruct_current_from_z_context",
     "future_from_z",
     "future_from_context",
+    "future_from_past_context",
+    "future_from_z_past_context",
+    "residual_future_from_z",
+    "residual_future_from_past_context",
+    "residual_future_from_z_past_context",
     "rollout_from_latents",
 }
 
@@ -68,6 +76,10 @@ class DecoderDatasetData:
     def rollout_steps(self) -> int:
         return int(torch.as_tensor(self.examples["z_rollout"]).shape[1])
 
+    @property
+    def past_context_dim(self) -> int:
+        return int(torch.as_tensor(self.examples["past_context"]).shape[-1])
+
 
 class DecoderDataset(Dataset):
     """PyTorch dataset for one decoder input/target mode."""
@@ -100,12 +112,41 @@ class DecoderDataset(Dataset):
             x = examples["z"][row]
             target_xy = examples["current_xy"][row]
             target_mask = examples["current_mask"][row]
+        elif self.mode == "reconstruct_current_from_context":
+            x = examples["past_context"][row]
+            target_xy = examples["current_xy"][row]
+            target_mask = examples["current_mask"][row]
+        elif self.mode == "reconstruct_current_from_z_context":
+            x = examples["z_past_context"][row]
+            target_xy = examples["current_xy"][row]
+            target_mask = examples["current_mask"][row]
         elif self.mode == "future_from_z":
             x = examples["z"][row]
             target_xy = examples["future_xy"][row]
             target_mask = examples["future_mask"][row]
         elif self.mode == "future_from_context":
             x = examples["z_context"][row]
+            target_xy = examples["future_xy"][row]
+            target_mask = examples["future_mask"][row]
+        elif self.mode == "future_from_past_context":
+            x = examples["past_context"][row]
+            target_xy = examples["future_xy"][row]
+            target_mask = examples["future_mask"][row]
+        elif self.mode == "future_from_z_past_context":
+            x = examples["z_past_context"][row]
+            target_xy = examples["future_xy"][row]
+            target_mask = examples["future_mask"][row]
+        elif self.mode in {
+            "residual_future_from_z",
+            "residual_future_from_past_context",
+            "residual_future_from_z_past_context",
+        }:
+            if self.mode == "residual_future_from_z":
+                x = examples["z"][row]
+            elif self.mode == "residual_future_from_past_context":
+                x = examples["past_context"][row]
+            else:
+                x = examples["z_past_context"][row]
             target_xy = examples["future_xy"][row]
             target_mask = examples["future_mask"][row]
         else:
@@ -124,8 +165,12 @@ class DecoderDataset(Dataset):
             "z": examples["z"][row].float(),
             "z_context": examples["z_context"][row].float(),
             "z_context_mask": examples["z_context_mask"][row].bool(),
+            "past_context": examples["past_context"][row].float(),
+            "z_past_context": examples["z_past_context"][row].float(),
             "z_rollout": examples["z_rollout"][row].float(),
             "z_rollout_mask": examples["z_rollout_mask"][row].bool(),
+            "coordinate_baseline_xy": examples["coordinate_baseline_xy"][row].float(),
+            "last_position_xy": examples["last_position_xy"][row].float(),
             "past": examples["past"][row].float(),
             "past_mask": examples["past_mask"][row].bool(),
             "entity_type": examples["entity_type"][row].long(),
@@ -151,6 +196,54 @@ def save_decoder_dataset(data: DecoderDatasetData, out: str | Path) -> Path:
 def load_decoder_dataset(path: str | Path) -> DecoderDatasetData:
     payload = torch.load(Path(path), map_location="cpu", weights_only=False)
     return DecoderDatasetData.from_dict(payload)
+
+
+def subset_decoder_dataset(
+    data: DecoderDatasetData,
+    indices: list[int],
+    seed: int = 123,
+) -> DecoderDatasetData:
+    """Return a re-indexed decoder dataset subset with fresh match-level splits."""
+
+    indices = [int(value) for value in indices]
+    examples: dict[str, Any] = {}
+    for key, value in data.examples.items():
+        if isinstance(value, torch.Tensor):
+            examples[key] = value[indices]
+        elif isinstance(value, list):
+            examples[key] = [value[idx] for idx in indices]
+        else:
+            examples[key] = value
+    match_ids = [str(value) for value in examples["match_id"]]
+    splits, split_warnings = split_decoder_indices_by_match(match_ids, seed=seed)
+    metadata = dict(data.metadata)
+    metadata["num_examples"] = len(indices)
+    metadata["num_matches"] = len(set(match_ids))
+    metadata["subset_warnings"] = split_warnings
+    metadata["warnings"] = list(metadata.get("warnings", [])) + split_warnings
+    return DecoderDatasetData(metadata=metadata, examples=examples, splits=splits)
+
+
+def decoder_split_diagnostics(data: DecoderDatasetData) -> dict[str, Any]:
+    """Return split sizes, match IDs, and disjointness diagnostics."""
+
+    train = set(str(value) for value in data.splits.get("train_match_ids", []))
+    val = set(str(value) for value in data.splits.get("val_match_ids", []))
+    test = set(str(value) for value in data.splits.get("test_match_ids", []))
+    disjoint = train.isdisjoint(val) and train.isdisjoint(test) and val.isdisjoint(test)
+    num_matches = len(set(str(value) for value in data.examples.get("match_id", [])))
+    return {
+        "num_matches": num_matches,
+        "num_examples": data.num_examples,
+        "num_train_examples": len(data.splits.get("train_indices", [])),
+        "num_val_examples": len(data.splits.get("val_indices", [])),
+        "num_test_examples": len(data.splits.get("test_indices", [])),
+        "train_match_ids": sorted(train),
+        "val_match_ids": sorted(val),
+        "test_match_ids": sorted(test),
+        "disjoint_match_split": bool(disjoint),
+        "smoke_split": bool(num_matches < 3 or not disjoint),
+    }
 
 
 def _source_split_values(source_split: object, n: int) -> list[str]:
@@ -377,6 +470,22 @@ def build_decoder_dataset(
         frame_t,
         rollout,
     )
+    past_context = torch.cat(
+        [
+            aligned_windows.past.flatten(start_dim=1),
+            aligned_windows.past_mask.float().flatten(start_dim=1),
+        ],
+        dim=1,
+    ).float()
+    z_past_context = torch.cat([z_aligned.float(), past_context], dim=1)
+    coordinate_baseline_xy = predict_constant_velocity(
+        aligned_windows.past.float(),
+        aligned_windows.past_mask.bool(),
+        horizon_steps=horizon,
+        dt=1.0 / float(aligned_windows.fps),
+        feature_names=list(aligned_windows.feature_names),
+    ).float()
+    last_position_xy = aligned_windows.past[:, -1:, :, :2].expand(-1, horizon, -1, -1).float()
     split_payload, split_warnings = split_decoder_indices_by_match(
         match_ids,
         val_fraction=val_fraction,
@@ -390,12 +499,16 @@ def build_decoder_dataset(
         "z": z_aligned.float(),
         "z_context": z_context.float(),
         "z_context_mask": z_context_mask,
+        "past_context": past_context,
+        "z_past_context": z_past_context,
         "z_rollout": z_rollout.float(),
         "z_rollout_mask": z_rollout_mask,
         "current_xy": aligned_windows.past[:, -1, :, :2].float(),
         "current_mask": aligned_windows.past_mask[:, -1].bool(),
         "future_xy": aligned_windows.future_xy[:, :horizon].float(),
         "future_mask": aligned_windows.future_mask[:, :horizon].bool(),
+        "coordinate_baseline_xy": coordinate_baseline_xy,
+        "last_position_xy": last_position_xy,
         "past": aligned_windows.past.float(),
         "past_mask": aligned_windows.past_mask.bool(),
         "entity_type": aligned_windows.entity_type.long(),
@@ -419,6 +532,8 @@ def build_decoder_dataset(
         "num_window_rows": int(len(windows.match_id)),
         "num_examples": int(z_aligned.shape[0]),
         "latent_dim": int(z_aligned.shape[1]),
+        "past_context_dim": int(past_context.shape[1]),
+        "z_past_context_dim": int(z_past_context.shape[1]),
         "n_entities": int(aligned_windows.n_entities),
         "horizon_steps": horizon,
         "context_z_steps": context_z_steps,

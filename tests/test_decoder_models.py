@@ -10,6 +10,8 @@ def _data():
         examples={
             "z": torch.randn(5, 8),
             "z_context": torch.randn(5, 3, 8),
+            "past_context": torch.randn(5, 20),
+            "z_past_context": torch.randn(5, 28),
             "z_rollout": torch.randn(5, 2, 8),
             "entity_type": torch.zeros(5, 23, dtype=torch.long),
             "future_xy": torch.randn(5, 4, 23, 2),
@@ -59,3 +61,31 @@ def test_context_and_rollout_decoder_shapes():
     )
     assert context_model(torch.randn(6, 3, 8)).shape == (6, 4, 23, 2)
     assert rollout_model(torch.randn(6, 2, 8)).shape == (6, 2, 23, 2)
+
+
+def test_raw_context_and_residual_decoder_shapes():
+    data = _data()
+    context_model = create_coordinate_decoder(
+        {
+            "target": {"mode": "future_from_z_past_context"},
+            "model": {"name": "z_context_mlp", "hidden_sizes": [16]},
+        },
+        data,
+    )
+    residual_model = create_coordinate_decoder(
+        {
+            "target": {"mode": "residual_future_from_z_past_context"},
+            "model": {"name": "residual_context_mlp", "hidden_sizes": [16]},
+        },
+        data,
+    )
+    current_model = create_coordinate_decoder(
+        {
+            "target": {"mode": "reconstruct_current_from_context"},
+            "model": {"name": "raw_context_mlp", "hidden_sizes": [16]},
+        },
+        data,
+    )
+    assert context_model(torch.randn(6, 28)).shape == (6, 4, 23, 2)
+    assert residual_model(torch.randn(6, 28)).shape == (6, 4, 23, 2)
+    assert current_model(torch.randn(6, 20)).shape == (6, 1, 23, 2)

@@ -139,7 +139,11 @@ def decoder_metrics(
     team_id: torch.Tensor,
     mode: str,
 ) -> dict[str, float]:
-    if mode == "reconstruct_current":
+    if mode in {
+        "reconstruct_current",
+        "reconstruct_current_from_context",
+        "reconstruct_current_from_z_context",
+    }:
         if pred_norm.ndim == 4:
             pred_norm = pred_norm[:, 0]
         return compute_reconstruction_metrics(pred_norm, target_norm, mask, entity_type, team_id)

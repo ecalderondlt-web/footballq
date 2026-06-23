@@ -106,3 +106,24 @@ def test_future_decoder_train_eval_reload(tmp_path):
     assert torch.isfinite(torch.tensor(metrics["all_entity_ADE_m"]))
     payload = torch.load(result["best_checkpoint"], map_location="cpu", weights_only=False)
     assert payload["encoder_frozen"] is True
+
+
+def test_residual_context_future_decoder_train_eval_reload(tmp_path):
+    dataset_path = _decoder_dataset_path(tmp_path)
+    result = train_coordinate_decoder_from_config(
+        _config(
+            dataset_path,
+            tmp_path,
+            mode="residual_future_from_z_past_context",
+            name="residual_context_mlp",
+        )
+    )
+    metrics = evaluate_decoder_checkpoint(
+        result["best_checkpoint"],
+        dataset=dataset_path,
+        split="test",
+        device="cpu",
+    )["metrics"]
+    assert torch.isfinite(torch.tensor(metrics["all_entity_ADE_m"]))
+    sample = torch.load(result["run_dir"] / "predictions_sample.pt", map_location="cpu", weights_only=False)
+    assert "raw_decoder_output_xy_norm" in sample

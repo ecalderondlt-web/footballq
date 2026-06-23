@@ -657,6 +657,110 @@ Known limitations:
 - This phase does not add raw-coordinate flow matching, video, text alignment, UI, tactical
   discovery, counterfactual search, or TD-JEPA fine-tuning.
 
+## Experiment 4C.1: Decoder Learning Curve And Residual Context Decoding
+
+Experiment 4C.1 asks whether weak coordinate decoding is mainly caused by too little data, too weak
+a decoder formulation, or both. It adds match-count learning curves, raw-context ablations, and
+residual coordinate decoders around the coordinate constant-velocity baseline.
+
+Why this matters:
+
+- Three local SkillCorner matches are enough for smoke testing but too little for a serious
+  coordinate-decoder conclusion.
+- A single `z_t` may not preserve exact absolute coordinates.
+- Context-conditioned decoders test whether TD-JEPA embeddings add value beyond observable past
+  coordinates; they do not prove that `z_t` alone is sufficient.
+
+Place SkillCorner Open Data locally under:
+
+```text
+data/raw/skillcorner/
+```
+
+Raw match files are ignored by Git. If internet download is unavailable, manually download the
+SkillCorner Open Data matches and keep their tracking JSON/JSONL files under that directory.
+
+Rebuild all available SkillCorner windows:
+
+```powershell
+python scripts/prepare_tracking_data.py `
+  --source skillcorner `
+  --raw data/raw/skillcorner `
+  --out data/processed/skillcorner_windows.pt `
+  --fps-out 10 `
+  --context-seconds 2.0 `
+  --horizon-seconds 2.0 `
+  --stride-seconds 0.2
+```
+
+Rebuild TD-JEPA data, train/export embeddings with the existing Experiment 2 commands, then rebuild
+the decoder dataset:
+
+```powershell
+python scripts/build_decoder_dataset.py `
+  --embeddings data/processed/skillcorner_td_embeddings_all.pt `
+  --windows data/processed/skillcorner_windows.pt `
+  --out data/processed/skillcorner_decoder_dataset.pt `
+  --horizon-steps 20
+```
+
+Run the learning curve:
+
+```powershell
+python scripts/run_decoder_learning_curve.py `
+  --dataset data/processed/skillcorner_decoder_dataset.pt `
+  --out runs/decoder_learning_curve/experiment4c1
+```
+
+The learning-curve CSV includes match counts, train/val/test match IDs, split disjointness,
+smoke-split flags, and finite meter metrics for:
+
+- `coordinate_constant_velocity`
+- `last_coordinate_position`
+- `raw_past_summary_mlp`
+- `z_only_decoder`
+- `context_only_decoder`
+- `z_plus_context_decoder`
+- `residual_context_only_decoder`
+- `residual_z_plus_context_decoder`
+- current-state reconstruction variants
+
+You can also run the same learning-curve settings from the checked-in config:
+
+```powershell
+python scripts/run_decoder_learning_curve.py --config configs/decoder_learning_curve_skillcorner.yaml
+```
+
+Train stronger real configs:
+
+```powershell
+python scripts/train_coordinate_decoder.py --config configs/decoder_reconstruct_current_real.yaml
+python scripts/train_coordinate_decoder.py --config configs/decoder_context_reconstruct_current_real.yaml
+python scripts/train_coordinate_decoder.py --config configs/decoder_residual_context_future_real.yaml
+```
+
+Evaluate:
+
+```powershell
+python scripts/eval_coordinate_decoder.py `
+  --checkpoint runs/decoders/<MODE>/<DECODER>/<RUN_ID>/best.pt `
+  --split test
+```
+
+Interpretation:
+
+- `context_only` beating `z_only` means raw observable state dominates exact coordinate decoding.
+- `z_plus_context` beating `context_only` is the key sign that TD-JEPA embeddings add measurable
+  value beyond raw past coordinates.
+- `residual_z_plus_context_decoder` approaching `coordinate_constant_velocity` means learned
+  corrections are becoming meaningful.
+- If only one or two matches are available, reported results are smoke-only and not a real
+  match-generalization test.
+
+Do not claim that latent rollouts beat raw coordinate baselines unless the meter-space metrics show
+it. This phase still excludes text alignment, video, UI, counterfactuals, raw-coordinate flow
+matching, and TD-JEPA fine-tuning.
+
 ## Synthetic Demo
 
 The demo does not require internet or real football data.

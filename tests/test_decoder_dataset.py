@@ -3,6 +3,7 @@ import torch
 
 from footballq.data.windows import build_tracking_windows, save_windows_pt
 from footballq.decoding.dataset import DecoderDataset, build_decoder_dataset
+from footballq.models.constant_velocity import predict_constant_velocity
 from footballq.synthetic.generate import generate_synthetic_tracking
 
 
@@ -55,6 +56,10 @@ def test_decoder_dataset_builds_and_preserves_shapes(tmp_path):
     assert data.examples["future_xy"].shape[1:] == (4, 23, 2)
     assert data.examples["z_context"].shape[1:] == (3, 8)
     assert data.examples["z_rollout"].shape[1:] == (2, 8)
+    assert data.examples["past_context"].shape[0] == data.num_examples
+    assert data.examples["z_past_context"].shape[1] == (
+        data.examples["past_context"].shape[1] + data.latent_dim
+    )
     assert data.examples["match_id"][0] == windows.match_id[0]
     assert data.examples["label_frame"][0].item() == windows.label_frame[0]
     assert data.metadata["alignment"] == "match_id_frame_t"
@@ -81,8 +86,27 @@ def test_decoder_dataset_modes_return_expected_targets(tmp_path):
     future = DecoderDataset(data, mode="future_from_z")[0]
     context = DecoderDataset(data, mode="future_from_context")[0]
     rollout = DecoderDataset(data, mode="rollout_from_latents")[0]
+    context_only = DecoderDataset(data, mode="future_from_past_context")[0]
+    z_context = DecoderDataset(data, mode="future_from_z_past_context")[0]
+    residual = DecoderDataset(data, mode="residual_future_from_z_past_context")[0]
     assert current["target_xy"].shape == (23, 2)
     assert future["target_xy"].shape == (4, 23, 2)
     assert context["x"].ndim == 2
     assert rollout["x"].shape[0] == 2
     assert rollout["target_xy"].shape == (2, 23, 2)
+    assert context_only["x"].ndim == 1
+    assert z_context["x"].shape[0] > context_only["x"].shape[0]
+    assert residual["coordinate_baseline_xy"].shape == (4, 23, 2)
+
+
+def test_coordinate_constant_velocity_baseline_alignment(tmp_path):
+    _, windows_path, embeddings_path = _windows_and_embeddings(tmp_path)
+    data = build_decoder_dataset(embeddings_path, windows_path, horizon_steps=4)
+    expected = predict_constant_velocity(
+        data.examples["past"],
+        data.examples["past_mask"],
+        horizon_steps=4,
+        dt=1.0 / float(data.metadata["fps"]),
+        feature_names=data.metadata["feature_names"],
+    )
+    assert torch.allclose(data.examples["coordinate_baseline_xy"], expected)

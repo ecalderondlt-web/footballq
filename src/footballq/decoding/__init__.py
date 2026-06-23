@@ -8,6 +8,7 @@ from footballq.decoding.dataset import (
     save_decoder_dataset,
 )
 from footballq.decoding.eval import evaluate_decoder_checkpoint
+from footballq.decoding.learning_curve import run_decoder_learning_curve
 from footballq.decoding.train import train_coordinate_decoder_from_config
 
 __all__ = [
@@ -16,6 +17,7 @@ __all__ = [
     "build_decoder_dataset",
     "evaluate_decoder_checkpoint",
     "load_decoder_dataset",
+    "run_decoder_learning_curve",
     "save_decoder_dataset",
     "train_coordinate_decoder_from_config",
 ]

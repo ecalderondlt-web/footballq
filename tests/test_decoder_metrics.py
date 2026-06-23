@@ -6,6 +6,7 @@ from footballq.decoding.metrics import (
     compute_future_coordinate_metrics,
     compute_reconstruction_metrics,
 )
+from footballq.decoding.train import prediction_from_decoder_output
 
 
 def _entities():
@@ -54,3 +55,14 @@ def test_reconstruction_metrics_are_in_meters():
     assert abs(metrics["current_ball_error_m"] - 2.0) < 1e-5
     for value in metrics.values():
         assert torch.isfinite(torch.tensor(value))
+
+
+def test_residual_coordinate_formula_adds_constant_velocity_baseline():
+    baseline = torch.ones(2, 3, 23, 2)
+    residual = torch.full((2, 3, 23, 2), 0.25)
+    pred = prediction_from_decoder_output(
+        residual,
+        {"coordinate_baseline_xy": baseline},
+        "residual_future_from_z_past_context",
+    )
+    assert torch.allclose(pred, torch.full_like(pred, 1.25))
