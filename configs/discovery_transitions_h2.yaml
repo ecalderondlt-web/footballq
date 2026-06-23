@@ -1,0 +1,8 @@
+experiment: discovery_transitions_h2
+data:
+  embeddings: data/processed/skillcorner_td_embeddings_all.pt
+  windows: data/processed/skillcorner_windows_h2s.pt
+  out: data/processed/skillcorner_transition_dataset.pt
+suite:
+  delta_steps: [2]
+  fps: 10

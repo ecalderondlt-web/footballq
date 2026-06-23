@@ -940,6 +940,61 @@ Interpretation:
 
 Do not commit raw SkillCorner data, processed windows, decoder datasets, checkpoints, or reports.
 
+## Experiment 5: latent transition discovery and tactical surprise
+
+Experiment 5 freezes coordinate decoding as infrastructure and analyzes TD-JEPA latent transitions
+directly. It builds examples of `z_t`, `z_next`, `delta_z`, transition metadata, cluster labels,
+surprise scores, and representative exemplars for later visual inspection.
+
+Build a transition dataset from all-match TD-JEPA embeddings and prepared windows:
+
+```bash
+python scripts/build_transition_dataset.py \
+  --embeddings data/processed/skillcorner_td_embeddings_all.pt \
+  --windows data/processed/skillcorner_windows_h2s.pt \
+  --out data/processed/skillcorner_transition_dataset.pt \
+  --delta-steps 2 5 10 \
+  --fps 10
+```
+
+Cluster one transition horizon:
+
+```bash
+python scripts/cluster_latent_transitions.py \
+  --dataset data/processed/skillcorner_transition_dataset.pt \
+  --out runs/discovery/transition_clusters_h2 \
+  --delta-seconds 0.2 \
+  --k 8 16 32 64 \
+  --feature normalized_delta_z
+```
+
+Analyze tactical surprise:
+
+```bash
+python scripts/analyze_tactical_surprise.py \
+  --dataset data/processed/skillcorner_transition_dataset.pt \
+  --out runs/discovery/surprise_h2 \
+  --delta-seconds 0.2
+```
+
+Run the full discovery suite:
+
+```bash
+python scripts/run_discovery_suite.py --config configs/discovery_suite_skillcorner.yaml
+```
+
+The suite writes generated artifacts under `runs/discovery/experiment5_skillcorner/`, including
+per-delta cluster CSVs, `enrichment_k32.csv`, `exemplars_k32.csv`, `surprise_examples.csv`,
+`summary.json`, and `report.md`. Inspect `cluster_summary.json` for cluster quality, enrichment
+CSVs for label associations, and surprise examples for high-change latent windows.
+
+Interpretation is deliberately conservative. Positive evidence would be recurring clusters that are
+not dominated by one match and are enriched for future ball displacement, team-shape change, or
+high-surprise/stress windows. Negative or weak evidence still leaves a useful harness for visual
+inspection and tactical annotation. Current limitations include sparse/unknown phase and event
+labels, no human tactical labels, no visualization in this experiment, and fully unsupervised
+cluster semantics.
+
 ## Synthetic Demo
 
 The demo does not require internet or real football data.

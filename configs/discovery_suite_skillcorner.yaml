@@ -1,0 +1,13 @@
+experiment: discovery_suite_skillcorner
+data:
+  embeddings: data/processed/skillcorner_td_embeddings_all.pt
+  windows: data/processed/skillcorner_windows_h2s.pt
+suite:
+  out: runs/discovery/experiment5_skillcorner
+  delta_steps: [2, 5, 10]
+  k: [8, 16, 32, 64]
+  fps: 10
+  feature: normalized_delta_z
+  seed: 123
+  max_iter: 12
+  fit_sample_size: 20000
