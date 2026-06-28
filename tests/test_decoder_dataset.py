@@ -27,7 +27,9 @@ def _windows_and_embeddings(tmp_path, matches=3, dim=8):
         stride_seconds=0.2,
     )
     windows_path = save_windows_pt(windows, tmp_path / "windows.pt")
-    z = torch.arange(len(windows.match_id) * dim, dtype=torch.float32).view(len(windows.match_id), dim)
+    z = torch.arange(len(windows.match_id) * dim, dtype=torch.float32).view(
+        len(windows.match_id), dim
+    )
     embeddings_path = tmp_path / "embeddings.pt"
     torch.save(
         {
@@ -63,7 +65,8 @@ def test_decoder_dataset_builds_and_preserves_shapes(tmp_path):
     )
     assert data.examples["match_id"][0] == windows.match_id[0]
     assert data.examples["label_frame"][0].item() == windows.label_frame[0]
-    assert data.metadata["alignment"] == "match_id_frame_t"
+    assert data.metadata["alignment"] == "sample_id"
+    assert data.examples["sample_id"][0] == windows.sample_id[0]
 
 
 def test_decoder_dataset_match_splits_are_disjoint_when_possible(tmp_path):

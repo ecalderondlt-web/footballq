@@ -11,11 +11,14 @@ from typing import Any
 
 import torch
 
-from footballq.discovery.transitions import STRESS_FIELDS, TransitionDatasetData, load_transition_dataset
-
+from footballq.discovery.transitions import (
+    STRESS_FIELDS,
+    TransitionDatasetData,
+    load_transition_dataset,
+)
 
 CATEGORICAL_LABELS = [
-    "future_ball_progression_bucket",
+    "future_ball_global_x_bucket",
     "future_ball_displacement_bucket",
     "possession_team_id",
     "possession_available",
@@ -29,7 +32,7 @@ CATEGORICAL_LABELS = [
 
 CONTINUOUS_LABELS = [
     "future_ball_displacement_m",
-    "future_ball_progression_m",
+    "future_ball_dx_global_m",
     "team_shape_change_m",
     "team_width_change_m",
     "team_length_change_m",
@@ -70,7 +73,9 @@ def _categorical_rows(
         global_counts = Counter(global_values)
         for cluster_id in range(k):
             local_indices = [
-                pos for pos, assignment in enumerate(assignments.tolist()) if int(assignment) == cluster_id
+                pos
+                for pos, assignment in enumerate(assignments.tolist())
+                if int(assignment) == cluster_id
             ]
             if not local_indices:
                 continue
@@ -111,7 +116,9 @@ def _continuous_rows(
     for label in labels:
         if label not in meta:
             continue
-        values = torch.tensor([float(value) for value in _subset_values(meta[label], global_indices)])
+        values = torch.tensor(
+            [float(value) for value in _subset_values(meta[label], global_indices)]
+        )
         finite = values[torch.isfinite(values)]
         if finite.numel() == 0:
             continue
@@ -205,7 +212,11 @@ def write_enrichment_outputs(
         "num_rows": len(rows),
         "top_associations": top,
     }
-    summary_path = Path(summary_out) if summary_out is not None else out_path.with_name("enrichment_summary.json")
+    summary_path = (
+        Path(summary_out)
+        if summary_out is not None
+        else out_path.with_name("enrichment_summary.json")
+    )
     with summary_path.open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2)
     return summary

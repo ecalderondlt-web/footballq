@@ -33,6 +33,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int)
     parser.add_argument("--max-iter", type=int)
     parser.add_argument("--fit-sample-size", type=int)
+    parser.add_argument("--split-manifest", type=Path)
+    parser.add_argument("--scientific-mode", action="store_true")
     return parser.parse_args()
 
 
@@ -54,19 +56,29 @@ def main() -> None:
     embeddings = _option(args.embeddings, data_cfg.get("embeddings"), None)
     windows = _option(args.windows, data_cfg.get("windows"), None)
     out = _option(args.out, suite_cfg.get("out"), None)
+    split_manifest = _option(
+        args.split_manifest,
+        suite_cfg.get("split_manifest", data_cfg.get("split_manifest")),
+        None,
+    )
     if embeddings is None or windows is None or out is None:
         raise ValueError("Set --embeddings, --windows, and --out, or provide --config.")
     result = run_discovery_suite(
         embeddings=Path(embeddings),
         windows=Path(windows),
         out=Path(out),
-        delta_steps=[int(value) for value in _option(args.delta_steps, suite_cfg.get("delta_steps"), [2, 5, 10])],
+        delta_steps=[
+            int(value)
+            for value in _option(args.delta_steps, suite_cfg.get("delta_steps"), [2, 5, 10])
+        ],
         k_values=[int(value) for value in _option(args.k, suite_cfg.get("k"), [8, 16, 32, 64])],
         fps=float(_option(args.fps, suite_cfg.get("fps"), 10.0)),
         feature=str(_option(args.feature, suite_cfg.get("feature"), "normalized_delta_z")),
         seed=int(_option(args.seed, suite_cfg.get("seed"), 123)),
         max_iter=int(_option(args.max_iter, suite_cfg.get("max_iter"), 30)),
         fit_sample_size=int(_option(args.fit_sample_size, suite_cfg.get("fit_sample_size"), 50000)),
+        split_manifest_path=Path(split_manifest) if split_manifest is not None else None,
+        scientific_mode=bool(args.scientific_mode or suite_cfg.get("scientific_mode", False)),
     )
     print(f"summary_json: {result['summary_json']}")
     print(f"report_md: {result['report_md']}")

@@ -14,6 +14,18 @@ from torch.utils.data import Dataset
 from footballq.data.windows import TrackingWindowTensorData, load_windows_pt
 from footballq.probes.features import probe_feature_matrix
 from footballq.probes.labels import derive_probe_targets, raw_state_summary_features
+from footballq.repro.feature_views import FULL_STATE_LEGACY, probe_validity_class
+from footballq.repro.identity import (
+    ensure_unique_sample_ids,
+    payload_periods,
+    payload_sample_ids,
+    sample_ids_from_components,
+)
+from footballq.repro.splits import (
+    assert_split_hash_compatible,
+    named_split_indices_from_manifest,
+    split_manifest_metadata,
+)
 
 
 @dataclass
@@ -26,7 +38,7 @@ class ProbeDatasetData:
     splits: dict[str, Any]
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "ProbeDatasetData":
+    def from_dict(cls, payload: dict[str, Any]) -> ProbeDatasetData:
         return cls(
             metadata=dict(payload["metadata"]),
             examples=dict(payload["examples"]),
@@ -122,16 +134,22 @@ def _source_split_values(source_split: object, n: int) -> list[str]:
 def _align_embeddings_to_windows(
     embeddings: dict[str, Any],
     windows: TrackingWindowTensorData,
+    allow_legacy_alignment: bool = False,
+    require_period: bool = False,
 ) -> tuple[list[int], list[int], str, list[str]]:
     match_ids = [str(value) for value in embeddings["match_id"]]
     frame_ts = [int(value) for value in embeddings["frame_t"]]
-    window_lookup: dict[tuple[str, int], deque[int]] = defaultdict(deque)
-    for idx, (match_id, start_frame) in enumerate(zip(windows.match_id, windows.start_frame, strict=True)):
-        window_lookup[(str(match_id), int(start_frame))].append(idx)
+    periods = payload_periods(embeddings, len(match_ids), default=None if require_period else 1)
+    sample_ids = payload_sample_ids(embeddings, match_ids, periods, frame_ts)
+    ensure_unique_sample_ids(sample_ids, context="probe embedding rows")
+    ensure_unique_sample_ids(list(windows.sample_id), context="probe window rows")
+    window_lookup: dict[str, deque[int]] = defaultdict(deque)
+    for idx, sample_id in enumerate(windows.sample_id):
+        window_lookup[str(sample_id)].append(idx)
 
     embedding_indices: list[int] = []
     window_indices: list[int] = []
-    for idx, key in enumerate(zip(match_ids, frame_ts, strict=True)):
+    for idx, key in enumerate(sample_ids):
         candidates = window_lookup.get(key)
         if candidates:
             embedding_indices.append(idx)
@@ -141,21 +159,39 @@ def _align_embeddings_to_windows(
     if embedding_indices:
         missing = len(match_ids) - len(embedding_indices)
         if missing:
-            warnings.append(
-                f"dropped {missing} embedding rows without matching window keys"
-            )
-        return embedding_indices, window_indices, "match_id_frame_t", warnings
+            warnings.append(f"dropped {missing} embedding rows without matching window keys")
+        return embedding_indices, window_indices, "sample_id", warnings
+
+    if not allow_legacy_alignment:
+        raise ValueError(
+            "No exact sample_id alignment was possible. Rebuild artifacts with period-aware "
+            "sample_id values or pass allow_legacy_alignment=True for non-scientific inspection."
+        )
+
+    legacy_lookup: dict[tuple[str, int], deque[int]] = defaultdict(deque)
+    for idx, (match_id, start_frame) in enumerate(
+        zip(windows.match_id, windows.start_frame, strict=True)
+    ):
+        legacy_lookup[(str(match_id), int(start_frame))].append(idx)
+    for idx, key in enumerate(zip(match_ids, frame_ts, strict=True)):
+        candidates = legacy_lookup.get(key)
+        if candidates:
+            embedding_indices.append(idx)
+            window_indices.append(candidates.popleft())
+    if embedding_indices:
+        warnings.append("used explicit legacy match_id/frame_t alignment")
+        return embedding_indices, window_indices, "legacy_match_id_frame_t", warnings
 
     n = min(len(match_ids), len(windows.match_id))
     if n == 0:
         raise ValueError("No embedding rows or window rows are available for probes.")
-    warnings.append(
-        "no exact match_id/frame_t alignment was possible; falling back to index order"
-    )
-    return list(range(n)), list(range(n)), "index_order", warnings
+    warnings.append("used explicit legacy index-order alignment")
+    return list(range(n)), list(range(n)), "legacy_index_order", warnings
 
 
-def _subset_windows(windows: TrackingWindowTensorData, indices: list[int]) -> TrackingWindowTensorData:
+def _subset_windows(
+    windows: TrackingWindowTensorData, indices: list[int]
+) -> TrackingWindowTensorData:
     return TrackingWindowTensorData(
         past=windows.past[indices],
         future_xy=windows.future_xy[indices],
@@ -164,7 +200,9 @@ def _subset_windows(windows: TrackingWindowTensorData, indices: list[int]) -> Tr
         entity_type=windows.entity_type[indices],
         team_id=windows.team_id[indices],
         match_id=[windows.match_id[idx] for idx in indices],
+        period=[windows.period[idx] for idx in indices],
         start_frame=[windows.start_frame[idx] for idx in indices],
+        sample_id=[windows.sample_id[idx] for idx in indices],
         label_frame=[windows.label_frame[idx] for idx in indices],
         phase=[windows.phase[idx] for idx in indices],
         event_type=[windows.event_type[idx] for idx in indices],
@@ -240,6 +278,9 @@ def build_probe_dataset(
     seed: int = 123,
     val_fraction: float = 0.2,
     test_fraction: float = 0.2,
+    allow_legacy_alignment: bool = False,
+    split_manifest_path: str | Path | None = None,
+    scientific_mode: bool = False,
 ) -> ProbeDatasetData:
     """Build a saved probe dataset from TD-JEPA embeddings and window tensors."""
 
@@ -251,6 +292,8 @@ def build_probe_dataset(
     embedding_indices, window_indices, alignment, alignment_warnings = _align_embeddings_to_windows(
         embeddings,
         windows,
+        allow_legacy_alignment=allow_legacy_alignment,
+        require_period=scientific_mode,
     )
     aligned_windows = _subset_windows(windows, window_indices)
     z_aligned = z[embedding_indices]
@@ -258,24 +301,43 @@ def build_probe_dataset(
     derived = derive_probe_targets(aligned_windows, target_names)
 
     match_ids = [str(aligned_windows.match_id[idx]) for idx in range(len(aligned_windows.match_id))]
-    frame_t = [int(aligned_windows.start_frame[idx]) for idx in range(len(aligned_windows.start_frame))]
-    split_payload, split_warnings = split_probe_indices_by_match(
-        match_ids,
-        val_fraction=val_fraction,
-        test_fraction=test_fraction,
-        seed=seed,
-    )
+    periods = [int(aligned_windows.period[idx]) for idx in range(len(aligned_windows.period))]
+    frame_t = [
+        int(aligned_windows.start_frame[idx]) for idx in range(len(aligned_windows.start_frame))
+    ]
+    sample_ids = sample_ids_from_components(match_ids, periods, frame_t)
+    if split_manifest_path is not None:
+        split_payload = named_split_indices_from_manifest(match_ids, split_manifest_path)
+        split_warnings: list[str] = []
+    else:
+        split_payload, split_warnings = split_probe_indices_by_match(
+            match_ids,
+            val_fraction=val_fraction,
+            test_fraction=test_fraction,
+            seed=seed,
+        )
     source_splits_all = _source_split_values(
         embeddings.get("source_split", "unknown"),
         int(z.shape[0]),
     )
     source_splits = [source_splits_all[idx] for idx in embedding_indices]
     warnings = alignment_warnings + split_warnings + derived.warnings
+    repro_metadata = split_manifest_metadata(split_manifest_path, scientific_mode=scientific_mode)
+    assert_split_hash_compatible(
+        embeddings,
+        repro_metadata,
+        source_name="probe embedding payload",
+        require_source_hash=scientific_mode,
+    )
+    if scientific_mode and str(alignment).startswith("legacy_"):
+        raise ValueError("Scientific probe datasets cannot use legacy alignment.")
     examples = {
         "z": z_aligned,
         "raw_state_summary": raw_features,
         "match_id": match_ids,
+        "period": torch.tensor(periods, dtype=torch.long),
         "frame_t": torch.tensor(frame_t, dtype=torch.long),
+        "sample_id": sample_ids,
         "source_split": source_splits,
         "targets": derived.targets,
         "target_masks": derived.masks,
@@ -293,12 +355,27 @@ def build_probe_dataset(
         "raw_state_summary_names": raw_feature_names,
         "targets": sorted(derived.targets),
         "requested_targets": list(target_names),
-        "skipped_targets": [
-            name for name in target_names if name not in derived.targets
-        ],
+        "skipped_targets": [name for name in target_names if name not in derived.targets],
         "target_types": derived.target_types,
+        "target_validity_classes": {
+            name: probe_validity_class(
+                name,
+                str(embeddings.get("feature_view", FULL_STATE_LEGACY)),
+            )
+            for name in derived.targets
+        },
         "warnings": warnings,
         "encoder_frozen": True,
+        "feature_view": str(embeddings.get("feature_view", FULL_STATE_LEGACY)),
+        "objective_mode": str(
+            embeddings.get(
+                "objective_mode",
+                embeddings.get("data_meta", {}).get("objective_mode", "unknown"),
+            )
+        ),
+        "legacy_alignment_allowed": bool(allow_legacy_alignment),
+        "alignment_scientific": not str(alignment).startswith("legacy_"),
+        **repro_metadata,
     }
     data = ProbeDatasetData(
         metadata=metadata,

@@ -18,7 +18,12 @@ from footballq.data.windows import (
     TrackingWindowTensorData,
     load_windows_pt,
 )
-
+from footballq.repro.identity import (
+    ensure_unique_sample_ids,
+    payload_periods,
+    payload_sample_ids,
+)
+from footballq.repro.splits import assert_split_hash_compatible, split_manifest_metadata
 
 UNKNOWN = "unknown"
 STRESS_FIELDS = [
@@ -54,7 +59,7 @@ class TransitionDatasetData:
         return sorted(float(value) for value in values.unique().tolist())
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "TransitionDatasetData":
+    def from_dict(cls, payload: dict[str, Any]) -> TransitionDatasetData:
         return cls(
             examples=dict(payload["examples"]),
             features=dict(payload.get("features", {})),
@@ -93,7 +98,9 @@ def _safe_tensor(values: list[float], dtype: torch.dtype = torch.float32) -> tor
     return torch.tensor(values, dtype=dtype)
 
 
-def _bucket_by_quantiles(values: torch.Tensor, low_name: str = "low", high_name: str = "high") -> list[str]:
+def _bucket_by_quantiles(
+    values: torch.Tensor, low_name: str = "low", high_name: str = "high"
+) -> list[str]:
     finite = values[torch.isfinite(values)]
     if finite.numel() == 0:
         return [UNKNOWN] * int(values.numel())
@@ -149,7 +156,9 @@ def _team_selector(windows: TrackingWindowTensorData, team_code: int) -> torch.T
     return windows.team_id.long() == int(team_code)
 
 
-def _team_stat(xy_m: torch.Tensor, mask: torch.Tensor, selector: torch.Tensor, stat: str) -> torch.Tensor:
+def _team_stat(
+    xy_m: torch.Tensor, mask: torch.Tensor, selector: torch.Tensor, stat: str
+) -> torch.Tensor:
     valid = mask & selector
     valid_f = valid.unsqueeze(-1).float()
     count = valid_f.sum(dim=1).clamp_min(1.0)
@@ -197,10 +206,14 @@ def _window_metric_payload(windows: TrackingWindowTensorData) -> dict[str, Any]:
         acceleration_mask = velocity_mask[:, 1:] & velocity_mask[:, :-1]
         acceleration_mag = torch.linalg.vector_norm(acceleration, dim=-1)
         acceleration_mag = acceleration_mag.masked_fill(~acceleration_mask, float("nan"))
-        ball_acceleration = torch.nan_to_num(
-            acceleration_mag,
-            nan=-float("inf"),
-        ).max(dim=1).values
+        ball_acceleration = (
+            torch.nan_to_num(
+                acceleration_mag,
+                nan=-float("inf"),
+            )
+            .max(dim=1)
+            .values
+        )
         ball_acceleration = ball_acceleration.masked_fill(
             ~torch.isfinite(ball_acceleration),
             float("nan"),
@@ -258,6 +271,7 @@ def _window_metric_payload(windows: TrackingWindowTensorData) -> dict[str, Any]:
 
     metrics = {
         "future_ball_displacement_m": ball_displacement,
+        "future_ball_dx_global_m": ball_progression,
         "future_ball_progression_m": ball_progression,
         "ball_acceleration_mps2": ball_acceleration,
         "ball_direction_change_rad": ball_direction_change,
@@ -267,6 +281,7 @@ def _window_metric_payload(windows: TrackingWindowTensorData) -> dict[str, Any]:
         "stretch_index_change_m": stretch_change,
     }
     categorical = {
+        "future_ball_global_x_bucket": _progression_bucket(ball_progression),
         "future_ball_progression_bucket": _progression_bucket(ball_progression),
         "future_ball_displacement_bucket": _bucket_by_quantiles(ball_displacement),
         "team_shape_change_bucket": _bucket_by_quantiles(shape_change),
@@ -283,17 +298,20 @@ def _window_metric_payload(windows: TrackingWindowTensorData) -> dict[str, Any]:
     return {**metrics, **categorical, **stress}
 
 
-def _window_lookup(windows_path: Path | None) -> tuple[dict[tuple[str, int], int], dict[str, Any], dict[str, Any]]:
+def _window_lookup(
+    windows_path: Path | None,
+) -> tuple[dict[str, int], dict[str, Any], dict[str, Any]]:
     if windows_path is None:
         return {}, {}, {"windows_available": False, "missing_metadata_fields": ["windows"]}
     windows = load_windows_pt(windows_path)
-    lookup: dict[tuple[str, int], int] = {}
-    for idx, (match_id, start_frame) in enumerate(zip(windows.match_id, windows.start_frame, strict=True)):
-        lookup.setdefault((str(match_id), int(start_frame)), idx)
+    ensure_unique_sample_ids(list(windows.sample_id), context="transition window rows")
+    lookup: dict[str, int] = {}
+    for idx, sample_id in enumerate(windows.sample_id):
+        lookup.setdefault(str(sample_id), idx)
     metrics = _window_metric_payload(windows)
     values: dict[str, Any] = {
         "label_frame": torch.tensor(windows.label_frame, dtype=torch.long),
-        "period": [None for _ in windows.match_id],
+        "period": [int(value) for value in windows.period],
         "phase": list(windows.phase or [UNKNOWN] * len(windows.match_id)),
         "event_type": list(windows.event_type or [UNKNOWN] * len(windows.match_id)),
         "possession_team_id": list(windows.possession_team_id or [UNKNOWN] * len(windows.match_id)),
@@ -305,7 +323,7 @@ def _window_lookup(windows_path: Path | None) -> tuple[dict[tuple[str, int], int
         "num_window_rows": len(windows.match_id),
         "window_match_count": len(set(str(value) for value in windows.match_id)),
         "window_match_ids": sorted(set(str(value) for value in windows.match_id)),
-        "missing_metadata_fields": ["period"],
+        "missing_metadata_fields": [],
     }
     return lookup, values, diagnostics
 
@@ -319,12 +337,16 @@ def _source_splits(payload: dict[str, Any], n: int) -> list[str]:
     return ["unknown"] * n
 
 
-def _ordered_by_match(match_ids: list[str], frame_t: list[int]) -> dict[str, list[int]]:
-    out: dict[str, list[int]] = defaultdict(list)
-    for idx, match_id in enumerate(match_ids):
-        out[str(match_id)].append(idx)
-    for match_id in list(out):
-        out[match_id].sort(key=lambda idx: (int(frame_t[idx]), idx))
+def _ordered_by_match_period(
+    match_ids: list[str],
+    periods: list[int],
+    frame_t: list[int],
+) -> dict[tuple[str, int], list[int]]:
+    out: dict[tuple[str, int], list[int]] = defaultdict(list)
+    for idx, (match_id, period) in enumerate(zip(match_ids, periods, strict=True)):
+        out[(str(match_id), int(period))].append(idx)
+    for key in list(out):
+        out[key].sort(key=lambda idx: (int(frame_t[idx]), idx))
     return out
 
 
@@ -341,13 +363,13 @@ def _median_frame_stride(indices: list[int], frame_t: list[int]) -> int:
 
 
 def _pair_indices_for_delta(
-    by_match: dict[str, list[int]],
+    by_match: dict[tuple[str, int], list[int]],
     frame_t: list[int],
     delta_step: int,
 ) -> tuple[list[tuple[int, int, int | None]], dict[str, Any]]:
     exact_pairs: list[tuple[int, int, int | None]] = []
     missing_by_match: dict[str, int] = {}
-    for match_id, indices in by_match.items():
+    for (match_id, period), indices in by_match.items():
         lookup = {int(frame_t[idx]): idx for idx in indices}
         missing = 0
         for idx in indices:
@@ -357,7 +379,7 @@ def _pair_indices_for_delta(
                 continue
             prev_idx = lookup.get(int(frame_t[idx]) - int(delta_step))
             exact_pairs.append((idx, next_idx, prev_idx))
-        missing_by_match[match_id] = missing
+        missing_by_match[f"{match_id}:period{period}"] = missing
     if exact_pairs:
         return exact_pairs, {
             "pairing_mode": "exact_frame_delta",
@@ -370,10 +392,10 @@ def _pair_indices_for_delta(
     fallback_pairs: list[tuple[int, int, int | None]] = []
     offsets: dict[str, int] = {}
     actual_deltas: list[int] = []
-    for match_id, indices in by_match.items():
+    for (match_id, period), indices in by_match.items():
         stride = _median_frame_stride(indices, frame_t)
         offset = max(1, int(math.floor(float(delta_step) / float(stride) + 0.5)))
-        offsets[match_id] = offset
+        offsets[f"{match_id}:period{period}"] = offset
         for pos, idx in enumerate(indices):
             next_pos = pos + offset
             if next_pos >= len(indices):
@@ -413,12 +435,14 @@ def _append_metadata(
         "event_type",
         "possession_team_id",
         "possession_available",
+        "future_ball_global_x_bucket",
         "future_ball_progression_bucket",
         "future_ball_displacement_bucket",
         "team_shape_change_bucket",
     ]
     continuous = [
         "future_ball_displacement_m",
+        "future_ball_dx_global_m",
         "future_ball_progression_m",
         "team_shape_change_m",
         "team_width_change_m",
@@ -442,7 +466,11 @@ def _append_metadata(
             metadata_acc[field].append(values[window_idx])
     for field in continuous:
         values = window_values.get(field)
-        value = float("nan") if window_idx is None or values is None else float(values[window_idx].item())
+        value = (
+            float("nan")
+            if window_idx is None or values is None
+            else float(values[window_idx].item())
+        )
         metadata_acc[field].append(value)
     for field in STRESS_FIELDS:
         values = window_values.get(field)
@@ -466,14 +494,12 @@ def _feature_payload(
     safe_delta_seconds = delta_seconds.float().clamp_min(1e-6).unsqueeze(1)
     latent_velocity = delta_z / safe_delta_seconds
     latent_velocity_norm = torch.linalg.vector_norm(latent_velocity, dim=1)
-    train_indices = [
-        idx for idx, split in enumerate(source_split) if str(split).lower() == "train"
-    ]
+    train_indices = [idx for idx, split in enumerate(source_split) if str(split).lower() == "train"]
     if not train_indices:
         train_indices = list(range(delta_z.shape[0]))
     train_delta = delta_z[train_indices]
     train_mean = train_delta.mean(dim=0)
-    train_std = train_delta.std(dim=0).clamp_min(1e-6)
+    train_std = train_delta.std(dim=0, unbiased=False).clamp_min(1e-6)
     normalized_delta_z = (delta_z - train_mean) / train_std
     features = {
         "delta_norm": delta_norm,
@@ -499,6 +525,8 @@ def build_transition_dataset(
     out: str | Path | None = None,
     delta_steps: list[int] | tuple[int, ...] = (2,),
     fps: float = 10.0,
+    split_manifest_path: str | Path | None = None,
+    scientific_mode: bool = False,
 ) -> TransitionDatasetData:
     """Build latent transition examples for one or more requested frame deltas."""
 
@@ -515,9 +543,12 @@ def build_transition_dataset(
         raise ValueError(f"Expected rank-2 embeddings, got shape {tuple(z.shape)}")
     n = int(z.shape[0])
     match_ids = _as_list(payload.get("match_id"), n)
+    periods = payload_periods(payload, n, default=None if scientific_mode else 1)
     frame_t = [int(value) for value in payload.get("frame_t", list(range(n)))]
+    sample_ids = payload_sample_ids(payload, match_ids, periods, frame_t)
+    ensure_unique_sample_ids(sample_ids, context="transition embedding rows")
     source_splits = _source_splits(payload, n)
-    by_match = _ordered_by_match(match_ids, frame_t)
+    by_match = _ordered_by_match_period(match_ids, periods, frame_t)
     window_key_to_idx, window_values, window_diag = _window_lookup(windows_path_obj)
 
     embedding_matches = set(str(value) for value in match_ids)
@@ -535,6 +566,8 @@ def build_transition_dataset(
     z_prev_rows: list[torch.Tensor] = []
     has_prev: list[bool] = []
     match_rows: list[str] = []
+    period_rows: list[int] = []
+    sample_id_rows: list[str] = []
     frame_rows: list[int] = []
     next_frame_rows: list[int] = []
     requested_delta_rows: list[int] = []
@@ -566,13 +599,15 @@ def build_transition_dataset(
                 z_prev_rows.append(z[prev_idx])
                 has_prev.append(True)
             match_rows.append(str(match_ids[idx]))
+            period_rows.append(int(periods[idx]))
+            sample_id_rows.append(str(sample_ids[idx]))
             frame_rows.append(int(frame_t[idx]))
             next_frame_rows.append(int(frame_t[next_idx]))
             requested_delta_rows.append(delta)
             actual_delta = int(frame_t[next_idx]) - int(frame_t[idx])
             actual_delta_rows.append(actual_delta)
             source_split_rows.append(str(source_splits[idx]))
-            window_idx = window_key_to_idx.get((str(match_ids[idx]), int(frame_t[idx])))
+            window_idx = window_key_to_idx.get(str(sample_ids[idx]))
             if window_idx is None:
                 unmatched_metadata += 1
             _append_metadata(metadata_acc, window_idx, window_values)
@@ -592,6 +627,13 @@ def build_transition_dataset(
         actual_seconds,
         source_split_rows,
     )
+    repro_metadata = split_manifest_metadata(split_manifest_path, scientific_mode=scientific_mode)
+    assert_split_hash_compatible(
+        payload,
+        repro_metadata,
+        source_name="transition embedding payload",
+        require_source_hash=scientific_mode,
+    )
 
     examples: dict[str, Any] = {
         "z_t": z_t,
@@ -604,7 +646,8 @@ def build_transition_dataset(
         "delta_seconds": requested_seconds,
         "actual_delta_seconds": actual_seconds,
         "match_id": match_rows,
-        "period": list(metadata_acc["period"]),
+        "period": period_rows,
+        "sample_id": sample_id_rows,
         "frame_t": torch.tensor(frame_rows, dtype=torch.long),
         "frame_next": torch.tensor(next_frame_rows, dtype=torch.long),
         "source_split": source_split_rows,
@@ -620,15 +663,31 @@ def build_transition_dataset(
         "num_matches": len(embedding_matches),
         "match_ids": sorted(embedding_matches),
         "requested_delta_steps": sorted(set(int(value) for value in requested_delta_rows)),
-        "requested_delta_seconds": sorted(set(float(value) for value in requested_seconds.tolist())),
+        "requested_delta_seconds": sorted(
+            set(float(value) for value in requested_seconds.tolist())
+        ),
         "actual_delta_seconds": sorted(set(float(value) for value in actual_seconds.tolist())),
         "fps": float(fps),
         "pairing_diagnostics": pairing_diagnostics,
         "unmatched_metadata_rows": int(unmatched_metadata),
         "missing_metadata_fields": window_diag.get("missing_metadata_fields", []),
         "match_counts": dict(Counter(match_rows)),
+        "feature_view": str(
+            payload.get(
+                "feature_view",
+                payload.get("data_meta", {}).get("feature_view", "unknown"),
+            )
+        ),
+        "objective_mode": str(
+            payload.get(
+                "objective_mode",
+                payload.get("data_meta", {}).get("objective_mode", "unknown"),
+            )
+        ),
+        "legacy_alignment_allowed": False,
         **window_diag,
         **feature_diag,
+        **repro_metadata,
     }
     data = TransitionDatasetData(examples=examples, features=features, metadata=metadata)
     if out is not None:

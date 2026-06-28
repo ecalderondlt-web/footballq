@@ -43,6 +43,8 @@ def export_td_embeddings(
     )
     z_parts: list[torch.Tensor] = []
     match_ids: list[str] = []
+    periods: list[int] = []
+    sample_ids: list[str] = []
     frame_ts: list[int] = []
     delta_frames: list[int] = []
     source_splits: list[str] = []
@@ -57,18 +59,44 @@ def export_td_embeddings(
             batch_indices = indices[cursor : cursor + batch_size]
             cursor += batch_size
             match_ids.extend(str(value) for value in batch["match_id"])
+            periods.extend(int(value) for value in batch["period"])
+            sample_ids.extend(str(value) for value in batch["sample_id"])
             frame_ts.extend(int(value) for value in batch["frame_t"])
             delta_frames.extend(int(value) for value in batch["delta_frames"])
             source_splits.extend(index_to_split.get(int(idx), "unknown") for idx in batch_indices)
     z_all = torch.cat(z_parts, dim=0) if z_parts else torch.empty((0, cfg["model"]["z_dim"]))
     out_path = Path(out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint_repro = dict(payload.get("data_meta", {}).get("repro_metadata", {}))
+    data_repro = dict(checkpoint_repro)
+    data_repro.update(data.metadata or {})
     payload_out: dict[str, Any] = {
         "z": z_all,
         "match_id": match_ids,
+        "period": periods,
         "frame_t": frame_ts,
+        "sample_id": sample_ids,
         "delta_frames": delta_frames,
         "source_split": source_splits if split == "all" else split,
+        "feature_view": data.feature_view,
+        "objective_mode": data.objective_mode,
+        "split_manifest_path": data_repro.get("split_manifest_path"),
+        "split_manifest_sha256": data_repro.get("split_manifest_sha256"),
+        "scientific_mode": data_repro.get("scientific_mode", False),
+        "data_meta": {
+            "feature_names": data.feature_names,
+            "feature_view": data.feature_view,
+            "objective_mode": data.objective_mode,
+            "prediction_gap_frames": data.prediction_gap_frames,
+            "repro_metadata": data_repro,
+            "split_manifest_path": data_repro.get("split_manifest_path"),
+            "split_manifest_sha256": data_repro.get("split_manifest_sha256"),
+        },
+        "metadata": {
+            "source_checkpoint": str(checkpoint),
+            "source_data": str(data_path),
+            **data_repro,
+        },
         "config": cfg,
     }
     torch.save(payload_out, out_path)

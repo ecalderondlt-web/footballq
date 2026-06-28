@@ -180,6 +180,10 @@ def _save_checkpoint(
             "epoch": epoch,
             "best_metric": best_metric,
             "encoder_frozen": True,
+            "metadata": data.metadata,
+            "split_manifest_sha256": data.metadata.get("split_manifest_sha256"),
+            "feature_view": data.metadata.get("feature_view"),
+            "objective_mode": data.metadata.get("objective_mode"),
         },
         path,
     )
@@ -371,7 +375,13 @@ def train_probe_from_config(config: str | Path | dict[str, Any]) -> dict[str, An
             task_type,
         )
     test_metrics = evaluate_probe_checkpoint(best_path, split="test")
-    _save_prediction_sample(run_dir / "predictions_sample.pt", model, loaders["test"], task_type, device)
+    _save_prediction_sample(
+        run_dir / "predictions_sample.pt",
+        model,
+        loaders["test"],
+        task_type,
+        device,
+    )
     return {
         "run_dir": run_dir,
         "latest_checkpoint": latest_path,
@@ -397,7 +407,12 @@ def evaluate_probe_checkpoint(
     target_name = str(payload["target_name"])
     task_type = str(payload["task_type"])
     feature_source = str(payload["feature_source"])
-    random_seed = int(cfg.get("features", {}).get("random_seed", cfg.get("training", {}).get("seed", 123)))
+    random_seed = int(
+        cfg.get("features", {}).get(
+            "random_seed",
+            cfg.get("training", {}).get("seed", 123),
+        )
+    )
     dataset = ProbeDataset(
         data,
         target_name=target_name,

@@ -26,6 +26,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--val-fraction", type=float, default=0.2)
     parser.add_argument("--test-fraction", type=float, default=0.2)
+    parser.add_argument("--allow-legacy-alignment", action="store_true")
+    parser.add_argument("--split-manifest", type=Path, default=None)
+    parser.add_argument("--scientific-mode", action="store_true")
     return parser.parse_args()
 
 
@@ -41,6 +44,9 @@ def main() -> None:
         seed=args.seed,
         val_fraction=args.val_fraction,
         test_fraction=args.test_fraction,
+        allow_legacy_alignment=args.allow_legacy_alignment,
+        split_manifest_path=args.split_manifest,
+        scientific_mode=args.scientific_mode,
     )
     print(f"decoder_dataset: {args.out}")
     print(f"examples: {data.num_examples}")

@@ -57,7 +57,8 @@ def test_transition_dataset_builds_and_preserves_metadata(tmp_path):
     assert set(data.examples["match_id"]) == set(windows.match_id)
     assert "possession_team_id" in data.examples["metadata"]
     assert "future_ball_displacement_m" in data.examples["metadata"]
-    assert "period" in data.metadata["missing_metadata_fields"]
+    assert "period" not in data.metadata["missing_metadata_fields"]
+    assert "sample_id" in data.examples
     assert data.features["normalized_delta_z"].shape == data.examples["delta_z"].shape
 
 

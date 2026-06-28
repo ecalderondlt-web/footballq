@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 import torch
 
-from footballq.data.normalize import denormalize_xy_to_meters, denormalize_velocity_to_mps
+from footballq.data.normalize import denormalize_velocity_to_mps, denormalize_xy_to_meters
 from footballq.data.windows import (
     BALL_INDEX,
     ENTITY_PLAYER,
@@ -25,13 +24,17 @@ CLASSIFICATION_TARGETS = {
     "possession_team",
     "has_ball_or_possession_available",
     "phase",
+    "future_ball_global_x_bucket",
     "future_ball_progression_bucket",
+    "future_ball_progression_attacking_bucket",
     "team_shape_change_bucket",
 }
 REGRESSION_TARGETS = {
+    "future_ball_dx_global_m",
     "future_ball_dx_m",
     "future_ball_dy_m",
     "future_ball_displacement_m",
+    "future_ball_progression_attacking_m",
     "team_centroid_shift_m",
     "team_width_change_m",
     "team_length_change_m",
@@ -79,7 +82,9 @@ def _masked_centroid(xy: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor
     return centroid, mask.any(dim=1)
 
 
-def _masked_spread(xy: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def _masked_spread(
+    xy: torch.Tensor, mask: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     large = torch.full_like(xy, 1e9)
     small = torch.full_like(xy, -1e9)
     min_xy = torch.where(mask.unsqueeze(-1), xy, large).amin(dim=1)
@@ -133,7 +138,9 @@ def _all_player_shape_change(
     }
 
 
-def _bucket(values: torch.Tensor, threshold: float, low: int, neutral: int, high: int) -> torch.Tensor:
+def _bucket(
+    values: torch.Tensor, threshold: float, low: int, neutral: int, high: int
+) -> torch.Tensor:
     out = torch.full(values.shape, neutral, dtype=torch.long)
     out = torch.where(values < -threshold, torch.full_like(out, low), out)
     out = torch.where(values > threshold, torch.full_like(out, high), out)
@@ -193,9 +200,7 @@ def derive_probe_targets(
 
     unsupported = [name for name in requested if name not in SUPPORTED_TARGETS]
     for name in unsupported:
-        warnings.append(
-            f"target {name!r} is unavailable from window tensors and was skipped"
-        )
+        warnings.append(f"target {name!r} is unavailable from window tensors and was skipped")
     requested = [name for name in requested if name in SUPPORTED_TARGETS]
     if not requested:
         return DerivedTargets(targets, masks, target_types, label_maps, warnings)
@@ -219,9 +224,7 @@ def derive_probe_targets(
             target_types["phase"] = "classification"
             label_maps["phase"] = phase_map
         else:
-            warnings.append(
-                "phase is unavailable in the aligned window metadata and was skipped"
-            )
+            warnings.append("phase is unavailable in the aligned window metadata and was skipped")
 
     if "possession_team" in requested or "has_ball_or_possession_available" in requested:
         possession_idx = _feature_index(windows, "is_possession_team")
@@ -287,20 +290,33 @@ def derive_probe_targets(
             target_types["has_ball_or_possession_available"] = "classification"
             label_maps["has_ball_or_possession_available"] = dict(POSSESSION_AVAILABLE_LABELS)
 
-    if "future_ball_progression_bucket" in requested:
-        targets["future_ball_progression_bucket"] = _bucket(
+    if "future_ball_global_x_bucket" in requested or "future_ball_progression_bucket" in requested:
+        bucket = _bucket(
             ball_dx,
             threshold=progression_neutral_m,
             low=PROGRESSION_LABELS["backward"],
             neutral=PROGRESSION_LABELS["neutral"],
             high=PROGRESSION_LABELS["forward"],
         )
-        masks["future_ball_progression_bucket"] = ball_visible
-        target_types["future_ball_progression_bucket"] = "classification"
-        label_maps["future_ball_progression_bucket"] = dict(PROGRESSION_LABELS)
+        if "future_ball_global_x_bucket" in requested:
+            targets["future_ball_global_x_bucket"] = bucket
+            masks["future_ball_global_x_bucket"] = ball_visible
+            target_types["future_ball_global_x_bucket"] = "classification"
+            label_maps["future_ball_global_x_bucket"] = dict(PROGRESSION_LABELS)
+        if "future_ball_progression_bucket" in requested:
+            targets["future_ball_progression_bucket"] = bucket
+            masks["future_ball_progression_bucket"] = ball_visible
+            target_types["future_ball_progression_bucket"] = "classification"
+            label_maps["future_ball_progression_bucket"] = dict(PROGRESSION_LABELS)
+            warnings.append(
+                "future_ball_progression_bucket is a deprecated alias for "
+                "future_ball_global_x_bucket because attacking direction is unknown"
+            )
+
+    if "future_ball_progression_attacking_bucket" in requested:
         warnings.append(
-            "future_ball_progression_bucket uses raw x displacement because attacking "
-            "direction is not stored in window tensors"
+            "future_ball_progression_attacking_bucket is unavailable because reliable "
+            "causal attacking-direction metadata is not stored in window tensors"
         )
 
     if "team_shape_change_bucket" in requested:
@@ -320,6 +336,7 @@ def derive_probe_targets(
         )
 
     regression_values = {
+        "future_ball_dx_global_m": (ball_dx, ball_visible),
         "future_ball_dx_m": (ball_dx, ball_visible),
         "future_ball_dy_m": (ball_dy, ball_visible),
         "future_ball_displacement_m": (ball_displacement, ball_visible),
@@ -334,6 +351,14 @@ def derive_probe_targets(
         targets[name] = values.float()
         masks[name] = valid.bool()
         target_types[name] = "regression"
+        if name == "future_ball_dx_m":
+            warnings.append("future_ball_dx_m is a deprecated alias for future_ball_dx_global_m")
+
+    if "future_ball_progression_attacking_m" in requested:
+        warnings.append(
+            "future_ball_progression_attacking_m is unavailable because reliable causal "
+            "attacking-direction metadata is not stored in window tensors"
+        )
 
     return DerivedTargets(targets, masks, target_types, label_maps, warnings)
 
@@ -403,8 +428,12 @@ def raw_state_summary_features(
     )
     ball_home_distance = torch.linalg.norm(ball_xy - home_centroid, dim=-1)
     ball_away_distance = torch.linalg.norm(ball_xy - away_centroid, dim=-1)
-    ball_home_distance = torch.where(home_valid, ball_home_distance, torch.zeros_like(ball_home_distance))
-    ball_away_distance = torch.where(away_valid, ball_away_distance, torch.zeros_like(ball_away_distance))
+    ball_home_distance = torch.where(
+        home_valid, ball_home_distance, torch.zeros_like(ball_home_distance)
+    )
+    ball_away_distance = torch.where(
+        away_valid, ball_away_distance, torch.zeros_like(ball_away_distance)
+    )
     parts.extend(
         [
             centroid_distance.unsqueeze(-1),

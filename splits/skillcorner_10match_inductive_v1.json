@@ -1,0 +1,26 @@
+{
+  "name": "skillcorner_10match_inductive_v1",
+  "version": 1,
+  "dataset": "skillcorner",
+  "protocol": "inductive",
+  "train_match_ids": ["1886347", "1899585", "1925299", "1953632", "1996435", "2011166"],
+  "val_match_ids": ["2006229", "2017461"],
+  "test_match_ids": ["2013725", "2015213"],
+  "all_match_ids": [
+    "1886347",
+    "1899585",
+    "1925299",
+    "1953632",
+    "1996435",
+    "2006229",
+    "2011166",
+    "2013725",
+    "2015213",
+    "2017461"
+  ],
+  "source": "progress_report_unverified",
+  "seed": null,
+  "creation_timestamp_utc": "2026-06-25T00:00:00Z",
+  "expected_count": 10,
+  "notes": "Match IDs came from the progress report and must be verified against local SkillCorner files before scientific claims."
+}

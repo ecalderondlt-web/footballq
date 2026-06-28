@@ -78,8 +78,9 @@ def test_probe_label_alignment(tmp_path):
         windows_path,
         target_names=["future_ball_displacement_m"],
     )
-    assert data.metadata["alignment"] == "match_id_frame_t"
+    assert data.metadata["alignment"] == "sample_id"
     assert data.examples["frame_t"].tolist() == [windows.start_frame[idx] for idx in order]
+    assert data.examples["sample_id"] == [windows.sample_id[idx] for idx in order]
 
 
 def test_probe_builder_preserves_window_metadata_after_alignment(tmp_path):

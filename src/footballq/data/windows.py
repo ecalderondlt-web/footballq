@@ -15,6 +15,7 @@ from torch.utils.data import Dataset
 
 from footballq.constants import AGENT_BALL, AGENT_PLAYER
 from footballq.data.normalize import normalize_velocity_from_mps, normalize_xy_from_meters
+from footballq.repro.identity import make_sample_id, sample_ids_from_components
 
 N_ENTITIES = 23
 BALL_INDEX = 0
@@ -54,6 +55,7 @@ class TrackingWindowTensorData:
     entity_type: torch.Tensor
     team_id: torch.Tensor
     match_id: list[str]
+    period: list[int]
     start_frame: list[int]
     feature_names: list[str]
     fps: float
@@ -66,9 +68,12 @@ class TrackingWindowTensorData:
     possession_team_id: list[str] | None = None
     possession_available: list[bool] | None = None
     label_frame: list[int] | None = None
+    sample_id: list[str] | None = None
 
     def __post_init__(self) -> None:
         n = len(self.match_id)
+        if len(self.period) != n:
+            raise ValueError("period must have the same length as match_id.")
         if self.phase is None:
             self.phase = ["unknown"] * n
         if self.event_type is None:
@@ -79,6 +84,10 @@ class TrackingWindowTensorData:
             self.possession_available = [False] * n
         if self.label_frame is None:
             self.label_frame = list(self.start_frame)
+        if self.sample_id is None:
+            self.sample_id = sample_ids_from_components(
+                self.match_id, self.period, self.start_frame
+            )
 
     @property
     def history_steps(self) -> int:
@@ -108,7 +117,9 @@ class TrackingWindowTensorData:
                 "entity_type": self.entity_type[idx],
                 "team_id": self.team_id[idx],
                 "match_id": self.match_id[idx],
+                "period": self.period[idx],
                 "start_frame": self.start_frame[idx],
+                "sample_id": self.sample_id[idx],
                 "label_frame": self.label_frame[idx],
                 "phase": self.phase[idx],
                 "event_type": self.event_type[idx],
@@ -128,7 +139,9 @@ class TrackingWindowTensorData:
             "entity_type": self.entity_type,
             "team_id": self.team_id,
             "match_id": self.match_id,
+            "period": self.period,
             "start_frame": self.start_frame,
+            "sample_id": self.sample_id,
             "label_frame": self.label_frame,
             "phase": self.phase,
             "event_type": self.event_type,
@@ -152,10 +165,19 @@ class TrackingWindowTensorData:
             entity_type=payload["entity_type"].long(),
             team_id=payload["team_id"].long(),
             match_id=[str(value) for value in payload["match_id"]],
-            start_frame=[int(value) for value in payload["start_frame"]],
-            label_frame=[
+            period=[
                 int(value)
-                for value in payload.get("label_frame", payload["start_frame"])
+                for value in payload.get(
+                    "period",
+                    payload.get("periods", [1 for _ in payload["match_id"]]),
+                )
+            ],
+            start_frame=[int(value) for value in payload["start_frame"]],
+            sample_id=(
+                [str(value) for value in payload["sample_id"]] if "sample_id" in payload else None
+            ),
+            label_frame=[
+                int(value) for value in payload.get("label_frame", payload["start_frame"])
             ],
             phase=(
                 [_clean_metadata_value(value) for value in payload["phase"]]
@@ -206,6 +228,8 @@ class TrackingWindowDataset(Dataset):
             "entity_type": self.data.entity_type[data_index],
             "team_id": self.data.team_id[data_index],
             "match_id": self.data.match_id[data_index],
+            "period": self.data.period[data_index],
+            "sample_id": self.data.sample_id[data_index],
             "start_frame": self.data.start_frame[data_index],
         }
 
@@ -244,10 +268,18 @@ def _from_window_records(records: list[dict[str, Any]]) -> TrackingWindowTensorD
         entity_type=torch.stack([record["entity_type"].long() for record in records]),
         team_id=torch.stack([record["team_id"].long() for record in records]),
         match_id=[str(record.get("match_id", "")) for record in records],
+        period=[int(record.get("period", 1)) for record in records],
         start_frame=[int(record.get("start_frame", 0)) for record in records],
-        label_frame=[
-            int(record.get("label_frame", record.get("start_frame", 0)))
+        sample_id=[
+            str(record["sample_id"])
+            if "sample_id" in record
+            else make_sample_id(
+                record.get("match_id", ""), record.get("period", 1), record.get("start_frame", 0)
+            )
             for record in records
+        ],
+        label_frame=[
+            int(record.get("label_frame", record.get("start_frame", 0))) for record in records
         ],
         phase=[_clean_metadata_value(record.get("phase")) for record in records],
         event_type=[_clean_metadata_value(record.get("event_type")) for record in records],
@@ -541,6 +573,7 @@ def build_tracking_windows(
     entity_types: list[np.ndarray] = []
     team_ids: list[np.ndarray] = []
     match_ids: list[str] = []
+    periods: list[int] = []
     start_frames: list[int] = []
     label_frames: list[int] = []
     phases: list[str] = []
@@ -562,8 +595,7 @@ def build_tracking_windows(
         agent_ids = _agents_for_period(period_df)
         entity_type_arr, team_id_arr = _static_entity_arrays(agent_ids, period_df)
         indexed = {
-            (float(row.time_s), str(row.agent_id)): row
-            for row in period_df.itertuples(index=False)
+            (float(row.time_s), str(row.agent_id)): row for row in period_df.itertuples(index=False)
         }
         frame_by_time = (
             period_df.drop_duplicates("time_s").set_index("time_s")["frame_id"].to_dict()
@@ -610,6 +642,7 @@ def build_tracking_windows(
             entity_types.append(entity_type_arr)
             team_ids.append(team_id_arr)
             match_ids.append(str(match_id))
+            periods.append(int(period))
             start_frames.append(int(frame_by_time.get(float(history_times[0]), start)))
             label_time = float(history_times[-1])
             label_meta = _metadata_for_time(period_df, label_time)
@@ -642,6 +675,7 @@ def build_tracking_windows(
         entity_type=entity_type,
         team_id=team_id,
         match_id=match_ids,
+        period=periods,
         start_frame=start_frames,
         label_frame=label_frames,
         phase=phases,

@@ -23,7 +23,10 @@ from footballq.data.windows import (  # noqa: E402
 from footballq.io.idsse import IDSSEAdapter  # noqa: E402
 from footballq.io.metrica import MetricaAdapter  # noqa: E402
 from footballq.io.skillcorner import SkillCornerAdapter  # noqa: E402
-from footballq.io.skillcorner_report import discover_skillcorner_raw_matches, horizon_label  # noqa: E402
+from footballq.io.skillcorner_report import (  # noqa: E402
+    discover_skillcorner_raw_matches,
+    horizon_label,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -65,7 +68,9 @@ def _concat_windows(parts: list[TrackingWindowTensorData]) -> TrackingWindowTens
         entity_type=torch.cat([part.entity_type for part in parts], dim=0),
         team_id=torch.cat([part.team_id for part in parts], dim=0),
         match_id=[value for part in parts for value in part.match_id],
+        period=[value for part in parts for value in part.period],
         start_frame=[value for part in parts for value in part.start_frame],
+        sample_id=[value for part in parts for value in part.sample_id],
         label_frame=[value for part in parts for value in part.label_frame],
         phase=[value for part in parts for value in part.phase],
         event_type=[value for part in parts for value in part.event_type],
@@ -126,7 +131,9 @@ def _prepare_skillcorner_per_match(args: argparse.Namespace) -> list[str]:
     args.out_dir.mkdir(parents=True, exist_ok=True)
     cache_dir = args.cache_dir or (args.out_dir / ".skillcorner_window_cache")
     cache_dir.mkdir(parents=True, exist_ok=True)
-    cached_by_horizon: dict[float, list[Path]] = {float(value): [] for value in args.horizon_seconds}
+    cached_by_horizon: dict[float, list[Path]] = {
+        float(value): [] for value in args.horizon_seconds
+    }
     for raw_match in raw_matches:
         print(f"preparing_match: {raw_match.match_id}")
         tracking: pd.DataFrame | None = None

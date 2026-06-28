@@ -18,11 +18,14 @@ from torch.utils.data import DataLoader
 try:
     from tqdm import tqdm
 except ImportError:  # pragma: no cover - minimal environments
+
     def tqdm(iterable: Any, *_args: Any, **_kwargs: Any) -> Any:
         return iterable
 
+
 from footballq.data.td_jepa_dataset import TDJEPAData, TDJEPADataset, load_td_jepa_data
 from footballq.models.td_jepa import SoccerTDJEPA
+from footballq.repro.splits import split_indices_from_manifest
 from footballq.training.ema import update_ema
 from footballq.training.td_jepa_losses import td_jepa_loss
 from footballq.training.train import resolve_device, split_indices_by_match
@@ -145,10 +148,14 @@ def _save_checkpoint(
             "run_dir": str(run_dir),
             "data_meta": {
                 "feature_names": data.feature_names,
+                "feature_view": data.feature_view,
+                "objective_mode": data.objective_mode,
+                "prediction_gap_frames": data.prediction_gap_frames,
                 "fps": data.fps,
                 "context_seconds": data.context_seconds,
                 "delta_seconds": data.delta_seconds,
                 "delta_frames": data.delta_frames,
+                "repro_metadata": data.metadata or {},
             },
         },
         path,
@@ -173,7 +180,9 @@ def _save_embedding_sample(
         {
             "z": z,
             "match_id": list(batch["match_id"]),
+            "period": [int(value) for value in batch["period"]],
             "frame_t": [int(value) for value in batch["frame_t"]],
+            "sample_id": list(batch["sample_id"]),
             "delta_frames": [int(value) for value in batch["delta_frames"]],
         },
         path,
@@ -194,12 +203,16 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
         raise ValueError("TD-JEPA data file contains zero examples.")
 
     split_cfg = cfg.get("split", {})
-    split_indices = split_indices_by_match(
-        data.match_id,
-        val_fraction=float(split_cfg.get("val_fraction", 0.2)),
-        test_fraction=float(split_cfg.get("test_fraction", 0.2)),
-        seed=seed,
-    )
+    split_manifest = split_cfg.get("manifest_path") or split_cfg.get("manifest")
+    if split_manifest:
+        split_indices = split_indices_from_manifest(data.match_id, split_manifest)
+    else:
+        split_indices = split_indices_by_match(
+            data.match_id,
+            val_fraction=float(split_cfg.get("val_fraction", 0.2)),
+            test_fraction=float(split_cfg.get("test_fraction", 0.2)),
+            seed=seed,
+        )
     train_cfg = cfg.get("training", {})
     batch_size = int(train_cfg.get("batch_size", cfg.get("data", {}).get("batch_size", 64)))
     num_workers = int(train_cfg.get("num_workers", cfg.get("data", {}).get("num_workers", 0)))
@@ -260,8 +273,7 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
             train_examples += batch_size_now
             for key, value in losses.items():
                 train_totals[key] = (
-                    train_totals.get(key, 0.0)
-                    + float(value.detach().cpu().item()) * batch_size_now
+                    train_totals.get(key, 0.0) + float(value.detach().cpu().item()) * batch_size_now
                 )
             if hasattr(iterator, "set_postfix"):
                 iterator.set_postfix(total_loss=f"{losses['total_loss'].item():.4f}")
@@ -269,8 +281,7 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
                 break
 
         train_metrics = {
-            key: value / max(train_examples, 1)
-            for key, value in train_totals.items()
+            key: value / max(train_examples, 1) for key, value in train_totals.items()
         } | {"num_examples": train_examples}
         val_metrics = evaluate_td_model(model, loaders["val"], device, loss_cfg)
         _append_jsonl(

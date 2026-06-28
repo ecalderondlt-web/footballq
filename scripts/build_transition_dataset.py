@@ -12,7 +12,10 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from footballq.discovery.transitions import build_transition_dataset, transition_summary  # noqa: E402
+from footballq.discovery.transitions import (  # noqa: E402
+    build_transition_dataset,
+    transition_summary,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -22,6 +25,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--delta-steps", nargs="+", type=int, default=[2, 5, 10])
     parser.add_argument("--fps", type=float, default=10.0)
+    parser.add_argument("--split-manifest", type=Path, default=None)
+    parser.add_argument("--scientific-mode", action="store_true")
     return parser.parse_args()
 
 
@@ -33,6 +38,8 @@ def main() -> None:
         out=args.out,
         delta_steps=args.delta_steps,
         fps=args.fps,
+        split_manifest_path=args.split_manifest,
+        scientific_mode=args.scientific_mode,
     )
     summary = transition_summary(data)
     summary_path = args.out.with_name(f"{args.out.stem}_summary.json")

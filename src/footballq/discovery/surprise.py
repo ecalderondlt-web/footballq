@@ -1,17 +1,32 @@
-"""Tactical surprise metrics for latent transitions."""
+"""Latent residual metrics for transition diagnostics."""
 
 from __future__ import annotations
 
 import csv
 import json
-import math
+import warnings
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
 import torch
 
-from footballq.discovery.transitions import STRESS_FIELDS, TransitionDatasetData, load_transition_dataset
+from footballq.discovery.transitions import (
+    STRESS_FIELDS,
+    TransitionDatasetData,
+    load_transition_dataset,
+)
+
+NUISANCE_CORRELATION_FIELDS = {
+    "future_ball_displacement_m": "future_ball_displacement_corr",
+    "future_ball_dx_global_m": "future_ball_global_x_corr",
+    "future_ball_progression_m": "future_ball_progression_corr",
+    "ball_acceleration_mps2": "ball_acceleration_corr",
+    "ball_direction_change_rad": "ball_direction_change_corr",
+    "team_shape_change_m": "team_shape_change_corr",
+    "team_width_change_m": "team_width_change_corr",
+    "team_length_change_m": "team_length_change_corr",
+}
 
 
 def _mask_for_delta(data: TransitionDatasetData, delta_seconds: float | None) -> torch.Tensor:
@@ -24,7 +39,9 @@ def _mask_for_delta(data: TransitionDatasetData, delta_seconds: float | None) ->
 def _finite_stats(values: torch.Tensor, prefix: str) -> dict[str, float]:
     finite = values[torch.isfinite(values)]
     if finite.numel() == 0:
-        return {f"{prefix}_{name}": float("nan") for name in ["mean", "std", "p50", "p90", "p95", "p99"]}
+        return {
+            f"{prefix}_{name}": float("nan") for name in ["mean", "std", "p50", "p90", "p95", "p99"]
+        }
     return {
         f"{prefix}_mean": float(finite.mean().item()),
         f"{prefix}_std": float(finite.std().item()) if finite.numel() > 1 else 0.0,
@@ -35,19 +52,35 @@ def _finite_stats(values: torch.Tensor, prefix: str) -> dict[str, float]:
     }
 
 
-def compute_surprise(data: TransitionDatasetData) -> dict[str, torch.Tensor]:
+def compute_residual_scores(data: TransitionDatasetData) -> dict[str, torch.Tensor]:
+    """Compute latent prediction residuals without tactical interpretation."""
+
     z_next = torch.as_tensor(data.examples["z_next"]).float()
     z_t = torch.as_tensor(data.examples["z_t"]).float()
     z_prev = torch.as_tensor(data.examples["z_prev"]).float()
     has_prev = torch.as_tensor(data.examples["has_prev"]).bool()
-    surprise_last = torch.linalg.vector_norm(z_next - z_t, dim=1)
+    residual_last = torch.linalg.vector_norm(z_next - z_t, dim=1)
     z_pred_cv = z_t + (z_t - z_prev)
-    surprise_cv = torch.linalg.vector_norm(z_next - z_pred_cv, dim=1)
-    surprise_cv = surprise_cv.masked_fill(~has_prev, float("nan"))
+    residual_cv = torch.linalg.vector_norm(z_next - z_pred_cv, dim=1)
+    residual_cv = residual_cv.masked_fill(~has_prev, float("nan"))
     return {
-        "surprise_last": surprise_last,
-        "surprise_cv": surprise_cv,
+        "latent_residual_last": residual_last,
+        "latent_residual_cv": residual_cv,
+        "surprise_last": residual_last,
+        "surprise_cv": residual_cv,
     }
+
+
+def compute_surprise(data: TransitionDatasetData) -> dict[str, torch.Tensor]:
+    """Deprecated alias for latent residual scores."""
+
+    warnings.warn(
+        "compute_surprise is deprecated; use compute_residual_scores for latent residual "
+        "diagnostics.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return compute_residual_scores(data)
 
 
 def _corr(a: torch.Tensor, b: torch.Tensor) -> float:
@@ -89,6 +122,7 @@ def _example_rows(
             "frame_next": int(data.examples["frame_next"][idx].item()),
             "delta_seconds": float(data.examples["delta_seconds"][idx].item()),
             "actual_delta_seconds": float(data.examples["actual_delta_seconds"][idx].item()),
+            "latent_residual_score": float(scores[idx].item()),
             "surprise_score": float(scores[idx].item()),
             "cluster_id": "" if cluster_ids is None or idx not in cluster_ids else cluster_ids[idx],
         }
@@ -122,16 +156,16 @@ def analyze_surprise(
     assignments_path: str | Path | None = None,
     top_n: int = 100,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    surprise = compute_surprise(data)
+    residuals = compute_residual_scores(data)
     mask = _mask_for_delta(data, delta_seconds)
     selected = mask.nonzero(as_tuple=False).flatten()
     if selected.numel() == 0:
         raise ValueError(f"No transitions found for delta_seconds={delta_seconds}")
-    score_name = "surprise_cv"
-    score_all = surprise["surprise_cv"]
+    score_name = "latent_residual_cv"
+    score_all = residuals["latent_residual_cv"]
     if not bool(torch.isfinite(score_all[selected]).any()):
-        score_name = "surprise_last"
-        score_all = surprise["surprise_last"]
+        score_name = "latent_residual_last"
+        score_all = residuals["latent_residual_last"]
     selected_scores = score_all[selected]
     finite_selected = selected[torch.isfinite(selected_scores)]
     finite_scores = score_all[finite_selected]
@@ -155,7 +189,7 @@ def analyze_surprise(
     match_ids = data.examples["match_id"]
     for idx in finite_selected.tolist():
         by_match[str(match_ids[int(idx)])].append(float(score_all[int(idx)].item()))
-    surprise_by_match = {
+    residual_by_match = {
         match_id: {
             "count": len(values),
             "mean": float(sum(values) / max(1, len(values))),
@@ -165,25 +199,33 @@ def analyze_surprise(
     }
 
     correlations = {}
-    field_map = {
-        "future_ball_displacement_m": "future_ball_displacement_corr",
-        "ball_acceleration_mps2": "ball_acceleration_corr",
-        "team_shape_change_m": "team_shape_change_corr",
-    }
-    for field, name in field_map.items():
+    correlation_status = {}
+    for field, name in NUISANCE_CORRELATION_FIELDS.items():
         if field in meta:
-            values = torch.tensor([float(_row_value(meta[field], idx)) for idx in range(data.num_examples)])
+            values = torch.tensor(
+                [float(_row_value(meta[field], idx)) for idx in range(data.num_examples)]
+            )
             correlations[name] = _corr(score_all, values)
+            correlation_status[field] = "computed"
+        else:
+            correlation_status[field] = "not_available"
 
     stress_enrichment = {}
     for field in STRESS_FIELDS:
         if field not in meta:
             continue
-        values = torch.tensor([bool(_row_value(meta[field], idx)) for idx in range(data.num_examples)])
+        values = torch.tensor(
+            [bool(_row_value(meta[field], idx)) for idx in range(data.num_examples)]
+        )
         global_rate = float(values[selected].float().mean().item()) if selected.numel() else 0.0
-        high_rate = float(values[selected][high_selected].float().mean().item()) if bool(high_selected.any()) else 0.0
+        high_rate = (
+            float(values[selected][high_selected].float().mean().item())
+            if bool(high_selected.any())
+            else 0.0
+        )
         stress_enrichment[field] = {
             "global_rate": global_rate,
+            "high_latent_residual_rate": high_rate,
             "high_surprise_rate": high_rate,
             "enrichment_ratio": high_rate / max(global_rate, 1e-12),
         }
@@ -191,13 +233,20 @@ def analyze_surprise(
     summary = {
         "delta_seconds": delta_seconds,
         "score_name": score_name,
+        "score_semantics": "latent_prediction_residual",
         "num_examples": int(selected.numel()),
         "num_finite_scores": int(finite_selected.numel()),
+        "high_latent_residual_threshold": threshold,
         "high_surprise_threshold": threshold,
-        **_finite_stats(surprise["surprise_last"][selected], "surprise_last"),
-        **_finite_stats(surprise["surprise_cv"][selected], "surprise_cv"),
-        "surprise_by_match": surprise_by_match,
+        **_finite_stats(residuals["latent_residual_last"][selected], "latent_residual_last"),
+        **_finite_stats(residuals["latent_residual_cv"][selected], "latent_residual_cv"),
+        **_finite_stats(residuals["surprise_last"][selected], "surprise_last"),
+        **_finite_stats(residuals["surprise_cv"][selected], "surprise_cv"),
+        "latent_residual_by_match": residual_by_match,
+        "surprise_by_match": residual_by_match,
         "correlations": correlations,
+        "nuisance_correlation_fields": sorted(NUISANCE_CORRELATION_FIELDS),
+        "nuisance_correlation_status": correlation_status,
         "stress_enrichment": stress_enrichment,
     }
     if cluster_ids is not None:
@@ -206,7 +255,7 @@ def analyze_surprise(
             cluster_id = cluster_ids.get(int(idx))
             if cluster_id is not None:
                 cluster_scores[int(cluster_id)].append(float(score_all[int(idx)].item()))
-        summary["surprise_by_cluster"] = {
+        by_cluster = {
             str(cluster_id): {
                 "count": len(values),
                 "mean": sum(values) / max(1, len(values)),
@@ -214,6 +263,8 @@ def analyze_surprise(
             }
             for cluster_id, values in sorted(cluster_scores.items())
         }
+        summary["latent_residual_by_cluster"] = by_cluster
+        summary["surprise_by_cluster"] = by_cluster
     return rows, summary
 
 

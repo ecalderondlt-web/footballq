@@ -54,7 +54,12 @@ def _model_name(cfg: dict[str, Any]) -> str:
 
 def _residual_mode(cfg: dict[str, Any]) -> str:
     flow_cfg = cfg.get("flow", {})
-    return str(flow_cfg.get("residual_mode", cfg.get("model", {}).get("residual_mode", "last_latent")))
+    return str(
+        flow_cfg.get(
+            "residual_mode",
+            cfg.get("model", {}).get("residual_mode", "last_latent"),
+        )
+    )
 
 
 def _is_flow_model(model_name: str) -> bool:
@@ -76,7 +81,11 @@ def _supervised_mlp_loss(model: torch.nn.Module, batch: dict[str, Any]) -> torch
     return (error * mask.to(error.dtype)).sum() / denom
 
 
-def _residual_flow_target(batch: dict[str, Any], mean: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
+def _residual_flow_target(
+    batch: dict[str, Any],
+    mean: torch.Tensor,
+    std: torch.Tensor,
+) -> torch.Tensor:
     return normalize_residual(batch["residual_future_z"], mean, std)
 
 
@@ -160,6 +169,10 @@ def _save_checkpoint(
             "split_match_ids": data_meta["split_match_ids"],
             "residual_mode": data_meta.get("residual_mode"),
             "normalization": data_meta.get("normalization", {}),
+            "metadata": data_meta.get("metadata", {}),
+            "split_manifest_sha256": data_meta.get("metadata", {}).get("split_manifest_sha256"),
+            "feature_view": data_meta.get("metadata", {}).get("feature_view"),
+            "objective_mode": data_meta.get("metadata", {}).get("objective_mode"),
             "run_dir": str(run_dir),
             "epoch": epoch,
             "step": int(data_meta.get("step", 0)),
@@ -248,7 +261,9 @@ def train_latent_flow_from_config(
         residual_std = residual_std.to(device)
     flow_cfg = cfg.get("flow", {})
     sampling_cfg = cfg.get("sampling", {})
-    noise_scale = float(flow_cfg.get("noise_scale", cfg.get("sampling", {}).get("noise_scale", 1.0)))
+    noise_scale = float(
+        flow_cfg.get("noise_scale", cfg.get("sampling", {}).get("noise_scale", 1.0))
+    )
     val_sample_steps = int(flow_cfg.get("num_sampling_steps", sampling_cfg.get("num_steps", 20)))
     val_noise_scale = 0.0 if bool(flow_cfg.get("deterministic_mean_eval", False)) else noise_scale
     data_meta = {
@@ -258,6 +273,7 @@ def train_latent_flow_from_config(
         "split_match_ids": {
             key: value for key, value in data.splits.items() if key.endswith("_match_ids")
         },
+        "metadata": data.metadata,
     }
     if model_name == "residual_latent_flow_mlp":
         data_meta["residual_mode"] = _residual_mode(cfg)

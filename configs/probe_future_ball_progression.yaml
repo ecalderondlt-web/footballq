@@ -2,7 +2,7 @@ seed: 123
 data:
   probe_dataset: data/processed/skillcorner_probe_dataset.pt
 target:
-  name: future_ball_progression_bucket
+  name: future_ball_global_x_bucket
   task_type: classification
 features:
   source: td_jepa

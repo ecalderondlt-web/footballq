@@ -58,7 +58,9 @@ def _squared_distances(x: torch.Tensor, centroids: torch.Tensor) -> torch.Tensor
     return torch.cdist(x.float(), centroids.float(), p=2).pow(2)
 
 
-def _assign(x: torch.Tensor, centroids: torch.Tensor, chunk_size: int = 8192) -> tuple[torch.Tensor, torch.Tensor]:
+def _assign(
+    x: torch.Tensor, centroids: torch.Tensor, chunk_size: int = 8192
+) -> tuple[torch.Tensor, torch.Tensor]:
     assignments = []
     distances = []
     for start in range(0, x.shape[0], chunk_size):
@@ -131,7 +133,13 @@ def _entropy(counts: torch.Tensor) -> float:
     return float((-(selected * torch.log(selected)).sum() / math.log(max(len(counts), 2))).item())
 
 
-def _silhouette_proxy(x: torch.Tensor, labels: torch.Tensor, centroids: torch.Tensor, distances: torch.Tensor, seed: int = 123) -> float:
+def _centroid_margin_proxy(
+    x: torch.Tensor,
+    labels: torch.Tensor,
+    centroids: torch.Tensor,
+    distances: torch.Tensor,
+    seed: int = 123,
+) -> float:
     if x.shape[0] == 0 or centroids.shape[0] <= 1:
         return float("nan")
     generator = torch.Generator().manual_seed(int(seed))
@@ -176,7 +184,20 @@ def cluster_quality(
         "average_within_cluster_distance": float(distances.mean().item()),
         "centroid_separation_min": min_sep,
         "centroid_separation_mean": mean_sep,
-        "silhouette_proxy": _silhouette_proxy(x, assignments, centroids, distances, seed=seed),
+        "centroid_margin_proxy": _centroid_margin_proxy(
+            x,
+            assignments,
+            centroids,
+            distances,
+            seed=seed,
+        ),
+        "silhouette_proxy": _centroid_margin_proxy(
+            x,
+            assignments,
+            centroids,
+            distances,
+            seed=seed,
+        ),
         "cluster_size_entropy": _entropy(counts),
         "min_cluster_size": int(counts.min().item()),
         "max_cluster_size": int(counts.max().item()),
@@ -220,7 +241,17 @@ def _cluster_rows(
             "n_examples": int(counts[cluster_id].item()),
             "fraction": float(counts[cluster_id].item() / max(1, len(global_indices))),
             "mean_delta_norm": float(cluster_delta_norm.mean().item()) if local else float("nan"),
-            "median_delta_norm": float(cluster_delta_norm.median().item()) if local else float("nan"),
+            "median_delta_norm": float(cluster_delta_norm.median().item())
+            if local
+            else float("nan"),
+            "max_delta_norm": float(cluster_delta_norm.max().item()) if local else float("nan"),
+            "delta_norm_top_fraction": (
+                float(
+                    (cluster_delta_norm >= torch.quantile(delta_norm, 0.95)).float().mean().item()
+                )
+                if local and int(delta_norm.numel()) >= 1
+                else float("nan")
+            ),
             "centroid_norm": float(torch.linalg.vector_norm(centroids[cluster_id]).item()),
             "within_cluster_distance_mean": (
                 float(cluster_distances.mean().item()) if local else float("nan")
@@ -238,7 +269,9 @@ def _cluster_rows(
             if values is not None and global_rows:
                 tensor = torch.tensor([float(_value_at(values, idx)) for idx in global_rows])
                 finite = tensor[torch.isfinite(tensor)]
-                row[f"mean_{field}"] = float(finite.mean().item()) if finite.numel() else float("nan")
+                row[f"mean_{field}"] = (
+                    float(finite.mean().item()) if finite.numel() else float("nan")
+                )
             else:
                 row[f"mean_{field}"] = float("nan")
         rows.append(row)
@@ -255,6 +288,7 @@ def write_cluster_outputs(
     feature: str,
     delta_seconds: float | None,
     seed: int = 123,
+    assignment_protocol: str = "fit_all_assign_all",
 ) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     quality = cluster_quality(x, result, seed=seed)
@@ -275,6 +309,7 @@ def write_cluster_outputs(
             "distances": result["distances"],
             "centroids": result["centroids"],
             "quality": quality,
+            "assignment_protocol": assignment_protocol,
         },
         assignments_path,
     )
@@ -283,7 +318,63 @@ def write_cluster_outputs(
         "clusters_csv": str(clusters_path),
         "assignments": str(assignments_path),
         "quality": quality,
+        "assignment_protocol": assignment_protocol,
     }
+
+
+def _fit_train_assign_all(
+    data: TransitionDatasetData,
+    x: torch.Tensor,
+    global_indices: list[int],
+    k: int,
+    seed: int,
+    max_iter: int,
+    fit_sample_size: int,
+) -> tuple[dict[str, Any], str]:
+    source_split = data.examples.get("source_split", ["unknown"] * data.num_examples)
+    train_local = [
+        local_idx
+        for local_idx, global_idx in enumerate(global_indices)
+        if str(source_split[global_idx]).lower() == "train"
+    ]
+    if len(train_local) < int(k):
+        if data.metadata.get("scientific_mode"):
+            raise ValueError(
+                "Scientific discovery clustering requires at least k train examples for "
+                "train-fit/held-out assignment."
+            )
+        return (
+            kmeans(
+                x,
+                int(k),
+                seed=seed,
+                max_iter=max_iter,
+                fit_sample_size=fit_sample_size,
+            ),
+            "fit_all_assign_all_no_train_split",
+        )
+    train_idx = torch.tensor(train_local, dtype=torch.long)
+    train_result = kmeans(
+        x[train_idx],
+        int(k),
+        seed=seed,
+        max_iter=max_iter,
+        fit_sample_size=fit_sample_size,
+    )
+    centroids = torch.as_tensor(train_result["centroids"]).float()
+    assignments, distances_sq = _assign(x, centroids)
+    distances = torch.sqrt(distances_sq.clamp_min(0.0))
+    return (
+        {
+            "centroids": centroids.cpu(),
+            "assignments": assignments.cpu(),
+            "distances": distances.cpu(),
+            "distances_sq": distances_sq.cpu(),
+            "fit_indices": train_idx.cpu(),
+            "cluster_counts": torch.bincount(assignments, minlength=int(k)).cpu(),
+        },
+        "fit_train_assign_all",
+    )
 
 
 def cluster_transition_file(
@@ -297,16 +388,20 @@ def cluster_transition_file(
     fit_sample_size: int = 50000,
 ) -> dict[str, Any]:
     data = load_transition_dataset(dataset)
-    x, global_indices = transition_feature_matrix(data, feature=feature, delta_seconds=delta_seconds)
+    x, global_indices = transition_feature_matrix(
+        data, feature=feature, delta_seconds=delta_seconds
+    )
     out_dir = Path(out)
     outputs = []
     for k in k_values:
-        result = kmeans(
+        result, assignment_protocol = _fit_train_assign_all(
+            data,
             x,
+            global_indices,
             int(k),
-            seed=seed,
-            max_iter=max_iter,
-            fit_sample_size=fit_sample_size,
+            seed,
+            max_iter,
+            fit_sample_size,
         )
         outputs.append(
             write_cluster_outputs(
@@ -319,6 +414,7 @@ def cluster_transition_file(
                 feature=feature,
                 delta_seconds=delta_seconds,
                 seed=seed,
+                assignment_protocol=assignment_protocol,
             )
         )
     summary = {
@@ -329,6 +425,14 @@ def cluster_transition_file(
         "num_examples": int(x.shape[0]),
         "k_values": [int(value) for value in k_values],
         "clusters": outputs,
+        "assignment_default": "fit_train_assign_all_when_train_split_available",
+        "seed": int(seed),
+        "seed_stability": {
+            "status": "single_seed_result",
+            "required_for_validation": True,
+        },
+        "scientific_mode": bool(data.metadata.get("scientific_mode", False)),
+        "split_manifest_sha256": data.metadata.get("split_manifest_sha256"),
     }
     with (out_dir / "cluster_summary.json").open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2)

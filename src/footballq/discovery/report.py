@@ -7,13 +7,15 @@ import json
 from pathlib import Path
 from typing import Any
 
-import torch
-
 from footballq.discovery.clustering import cluster_transition_file
 from footballq.discovery.enrichment import write_enrichment_outputs
 from footballq.discovery.exemplars import write_exemplars
 from footballq.discovery.surprise import write_surprise_outputs
-from footballq.discovery.transitions import build_transition_dataset, save_transition_dataset, transition_summary
+from footballq.discovery.transitions import (
+    build_transition_dataset,
+    save_transition_dataset,
+    transition_summary,
+)
 
 
 def delta_label(delta_seconds: float) -> str:
@@ -37,12 +39,15 @@ def _write_report(summary: dict[str, Any], out: Path) -> Path:
         f"- transitions: {summary['transition_dataset']['num_examples']}",
         f"- matches: {summary['transition_dataset']['num_matches']}",
         "- delta horizons: "
-        + ", ".join(f"{value:.3g}s" for value in summary["transition_dataset"]["requested_delta_seconds"]),
+        + ", ".join(
+            f"{value:.3g}s" for value in summary["transition_dataset"]["requested_delta_seconds"]
+        ),
         f"- recommended inspection k: {summary['recommended_k']}",
         "",
         "## Cluster Quality",
         "",
-        "| delta | k | examples | avg distance | centroid sep | entropy | empty | silhouette proxy |",
+        "| delta | k | examples | avg distance | centroid sep | entropy | empty | "
+        "centroid margin |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for delta in summary["deltas"]:
@@ -52,7 +57,7 @@ def _write_report(summary: dict[str, Any], out: Path) -> Path:
                 f"| {delta['delta_label']} | {q['k']} | {q['num_examples']} | "
                 f"{q['average_within_cluster_distance']:.4f} | "
                 f"{q['centroid_separation_mean']:.4f} | {q['cluster_size_entropy']:.3f} | "
-                f"{q['empty_cluster_count']} | {q['silhouette_proxy']:.3f} |"
+                f"{q['empty_cluster_count']} | {q['centroid_margin_proxy']:.3f} |"
             )
     lines.extend(["", "## Top Enriched Associations", ""])
     for delta in summary["deltas"]:
@@ -65,13 +70,14 @@ def _write_report(summary: dict[str, Any], out: Path) -> Path:
             )
         if not delta.get("top_enriched"):
             lines.append("- no enrichment rows available")
-    lines.extend(["", "## Surprise", ""])
+    lines.extend(["", "## Latent Residual", ""])
     for delta in summary["deltas"]:
         surprise = delta["surprise_summary"]
         lines.append(
             f"- {delta['delta_label']}: score={surprise['score_name']} "
-            f"p95={surprise['high_surprise_threshold']:.4f}; "
-            f"future-ball corr={surprise.get('correlations', {}).get('future_ball_displacement_corr')}"
+            f"p95={surprise['high_latent_residual_threshold']:.4f}; "
+            "future-ball corr="
+            f"{surprise.get('correlations', {}).get('future_ball_displacement_corr')}"
         )
     lines.extend(
         [
@@ -79,14 +85,18 @@ def _write_report(summary: dict[str, Any], out: Path) -> Path:
             "## Limitations",
             "",
             "- Current SkillCorner-derived window metadata often has unknown phase/event labels.",
-            "- Possession streams may be sparse; missing labels are preserved as unknown rather than fabricated.",
-            "- Clusters are unsupervised and require human/video interpretation before tactical naming.",
-            "- No visualization, text alignment, counterfactuals, or TD-JEPA fine-tuning are included here.",
+            "- Possession streams may be sparse; missing labels are preserved as unknown "
+            "rather than fabricated.",
+            "- Clusters are unsupervised and require human/video interpretation before "
+            "tactical naming.",
+            "- No visualization, text alignment, counterfactuals, or TD-JEPA fine-tuning "
+            "are included here.",
             "",
             "## Recommended Next Step",
             "",
-            "Run lightweight top-down rendering for cluster exemplars and high-surprise windows, then begin "
-            "manual tactical label annotation for recurring latent transition types.",
+            "Run lightweight top-down rendering for cluster exemplars and high-residual "
+            "windows, then begin manual tactical label annotation for recurring latent "
+            "transition types.",
         ]
     )
     report_path = out / "report.md"
@@ -105,6 +115,8 @@ def run_discovery_suite(
     seed: int = 123,
     max_iter: int = 30,
     fit_sample_size: int = 50000,
+    split_manifest_path: str | Path | None = None,
+    scientific_mode: bool = False,
 ) -> dict[str, Any]:
     out_dir = Path(out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -115,6 +127,8 @@ def run_discovery_suite(
         out=dataset_path,
         delta_steps=delta_steps,
         fps=fps,
+        split_manifest_path=split_manifest_path,
+        scientific_mode=scientific_mode,
     )
     transition_summary_payload = transition_summary(data)
     transition_summary_path = out_dir / "transition_dataset_summary.json"

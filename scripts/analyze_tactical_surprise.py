@@ -1,4 +1,4 @@
-"""Analyze latent tactical surprise."""
+"""Analyze latent residual scores."""
 
 from __future__ import annotations
 
@@ -34,11 +34,11 @@ def main() -> None:
         top_n=args.top_n,
     )
     summary = result["summary"]
-    print(f"surprise_examples: {result['surprise_examples']}")
-    print(f"surprise_summary: {result['surprise_summary']}")
+    print(f"latent_residual_examples: {result['surprise_examples']}")
+    print(f"latent_residual_summary: {result['surprise_summary']}")
     print(f"score_name: {summary['score_name']}")
     print(f"num_examples: {summary['num_examples']}")
-    print(f"high_surprise_threshold: {summary['high_surprise_threshold']:.6f}")
+    print(f"high_latent_residual_threshold: {summary['high_latent_residual_threshold']:.6f}")
 
 
 if __name__ == "__main__":

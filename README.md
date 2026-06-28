@@ -1,14 +1,15 @@
 # footballq
 
-`footballq` is a Phase 1 baseline foundation for learning football game-state dynamics from
-structured tracking data. The long-term target is a temporal-difference latent world model for
-tactical soccer physics, but this phase deliberately stays with deterministic trajectory
-prediction baselines.
+`footballq` is a research codebase for learning football game-state dynamics from structured
+tracking data. It now contains Phase 1 trajectory foundations plus experimental TD-JEPA,
+probe, latent-flow, decoder, and discovery tooling.
 
-Phase 1 builds reproducible ingestion, normalization, 23-entity windowing, deterministic
-baselines, metrics, and training/evaluation scripts around canonical football tracking tables.
-It does not implement TD-JEPA, latent flow matching, text alignment, video processing, tactical
-discovery, or a UI.
+Current latent clusters, probe scores, and latent residual rankings are not validated tactical
+evidence. Before tactical claims or Experiment 6 work, read:
+
+- `docs/RESEARCH_STATUS.md`
+- `docs/EXPERIMENT_PROTOCOL.md`
+- `docs/RESEARCH_INTEGRITY_HANDOFF.md`
 
 ## Install
 
@@ -269,11 +270,11 @@ python scripts/build_probe_dataset.py `
   --embeddings data/processed/skillcorner_td_embeddings_all.pt `
   --windows data/processed/skillcorner_windows.pt `
   --out data/processed/skillcorner_probe_dataset_all.pt `
-  --targets possession_team has_ball_or_possession_available phase future_ball_progression_bucket future_ball_displacement_m team_shape_change_bucket
+  --targets possession_team has_ball_or_possession_available phase future_ball_global_x_bucket future_ball_displacement_m team_shape_change_bucket
 ```
 
-The builder aligns embeddings back to windows by `(match_id, frame_t)` and falls back to index
-ordering only when no key alignment is possible. Splits are by `match_id`; if only one or two
+The builder aligns embeddings back to windows by period-aware `sample_id`. Legacy alignment must
+be enabled explicitly for non-scientific inspection. Splits are by `match_id`; if only one or two
 matches are present, the dataset is marked as a smoke-evaluation split because fully disjoint
 train/val/test matches are impossible.
 
@@ -940,11 +941,11 @@ Interpretation:
 
 Do not commit raw SkillCorner data, processed windows, decoder datasets, checkpoints, or reports.
 
-## Experiment 5: latent transition discovery and tactical surprise
+## Experiment 5: latent transition discovery and residual diagnostics
 
 Experiment 5 freezes coordinate decoding as infrastructure and analyzes TD-JEPA latent transitions
 directly. It builds examples of `z_t`, `z_next`, `delta_z`, transition metadata, cluster labels,
-surprise scores, and representative exemplars for later visual inspection.
+latent residual scores, and representative exemplars for later visual inspection.
 
 Build a transition dataset from all-match TD-JEPA embeddings and prepared windows:
 
@@ -968,7 +969,7 @@ python scripts/cluster_latent_transitions.py \
   --feature normalized_delta_z
 ```
 
-Analyze tactical surprise:
+Analyze latent residual scores:
 
 ```bash
 python scripts/analyze_tactical_surprise.py \
@@ -986,14 +987,13 @@ python scripts/run_discovery_suite.py --config configs/discovery_suite_skillcorn
 The suite writes generated artifacts under `runs/discovery/experiment5_skillcorner/`, including
 per-delta cluster CSVs, `enrichment_k32.csv`, `exemplars_k32.csv`, `surprise_examples.csv`,
 `summary.json`, and `report.md`. Inspect `cluster_summary.json` for cluster quality, enrichment
-CSVs for label associations, and surprise examples for high-change latent windows.
+CSVs for label associations, and residual examples for high-change latent windows.
 
-Interpretation is deliberately conservative. Positive evidence would be recurring clusters that are
-not dominated by one match and are enriched for future ball displacement, team-shape change, or
-high-surprise/stress windows. Negative or weak evidence still leaves a useful harness for visual
-inspection and tactical annotation. Current limitations include sparse/unknown phase and event
-labels, no human tactical labels, no visualization in this experiment, and fully unsupervised
-cluster semantics.
+Interpretation is deliberately conservative. Positive diagnostic evidence would be recurring
+clusters that are not dominated by one match and are enriched for future ball displacement,
+team-shape change, or high-residual/stress windows. Negative or weak evidence still leaves a useful
+harness for visual inspection and blinded annotation. Current limitations include sparse/unknown
+phase and event labels, no human tactical labels, and fully unsupervised cluster semantics.
 
 ## Synthetic Demo
 

@@ -1,4 +1,4 @@
-"""Latent transition discovery and tactical surprise analysis."""
+"""Latent transition discovery and residual diagnostics."""
 
 from footballq.discovery.transitions import (
     TransitionDatasetData,

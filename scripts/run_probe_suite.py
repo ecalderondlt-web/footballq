@@ -17,9 +17,8 @@ from footballq.probes.dataset import load_probe_dataset  # noqa: E402
 from footballq.probes.io import save_json  # noqa: E402
 from footballq.probes.training import train_probe_from_config  # noqa: E402
 
-
 DEFAULT_TARGET_ORDER = [
-    "future_ball_progression_bucket",
+    "future_ball_global_x_bucket",
     "team_shape_change_bucket",
     "future_ball_displacement_m",
     "possession_team",
@@ -104,7 +103,9 @@ def main() -> None:
     ]
     targets = [target for target in requested if target in available]
     if not targets:
-        raise SystemExit(f"No requested targets are available. Dataset targets: {sorted(available)}")
+        raise SystemExit(
+            f"No requested targets are available. Dataset targets: {sorted(available)}"
+        )
     rows: list[dict[str, Any]] = []
     first_target = targets[0]
     for target in targets:

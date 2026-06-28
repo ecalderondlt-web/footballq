@@ -12,6 +12,16 @@ import torch
 from torch.utils.data import Dataset
 
 from footballq.latent_flow.baselines import residual_future
+from footballq.repro.identity import (
+    ensure_unique_sample_ids,
+    payload_periods,
+    payload_sample_ids,
+)
+from footballq.repro.splits import (
+    assert_split_hash_compatible,
+    named_split_indices_from_manifest,
+    split_manifest_metadata,
+)
 
 
 @dataclass
@@ -23,7 +33,7 @@ class LatentRolloutData:
     splits: dict[str, Any]
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "LatentRolloutData":
+    def from_dict(cls, payload: dict[str, Any]) -> LatentRolloutData:
         return cls(
             metadata=dict(payload["metadata"]),
             examples=dict(payload["examples"]),
@@ -80,14 +90,16 @@ class LatentRolloutDataset(Dataset):
             "past_z": self.data.examples["past_z"][row].float(),
             "future_z": self.data.examples["future_z"][row].float(),
             "future_mask": self.data.examples["future_mask"][row].bool(),
-            "baseline_future_z": self.data.examples.get("baseline_future_z", self.data.examples["future_z"])[
-                row
-            ].float(),
+            "baseline_future_z": self.data.examples.get(
+                "baseline_future_z", self.data.examples["future_z"]
+            )[row].float(),
             "residual_future_z": self.data.examples.get(
                 "residual_future_z",
                 torch.zeros_like(self.data.examples["future_z"]),
             )[row].float(),
             "match_id": self.data.examples["match_id"][row],
+            "period": int(self.data.examples["period"][row]),
+            "sample_id": self.data.examples["sample_id"][row],
             "start_index": int(self.data.examples["start_index"][row]),
             "frame_t": int(self.data.examples["frame_t"][row]),
             "source_split": self.data.examples["source_split"][row],
@@ -255,6 +267,8 @@ def build_latent_rollout_dataset(
     val_fraction: float = 0.2,
     test_fraction: float = 0.2,
     residual_mode: str | None = "constant_latent_velocity",
+    split_manifest_path: str | Path | None = None,
+    scientific_mode: bool = False,
 ) -> LatentRolloutData:
     """Build latent rollout examples without crossing match boundaries."""
 
@@ -272,25 +286,30 @@ def build_latent_rollout_dataset(
         raise ValueError("context_steps and horizon_steps must both be positive.")
 
     match_ids = [str(value) for value in payload["match_id"]]
+    periods = payload_periods(payload, n, default=None if scientific_mode else 1)
     frame_ts = [int(value) for value in payload.get("frame_t", list(range(n)))]
+    sample_ids = payload_sample_ids(payload, match_ids, periods, frame_ts)
+    ensure_unique_sample_ids(sample_ids, context="latent rollout embedding rows")
     source_splits = _source_split_values(payload.get("source_split", "unknown"), n)
-    by_match: dict[str, list[int]] = defaultdict(list)
-    for idx, match_id in enumerate(match_ids):
-        by_match[match_id].append(idx)
+    by_group: dict[tuple[str, int], list[int]] = defaultdict(list)
+    for idx, (match_id, period) in enumerate(zip(match_ids, periods, strict=True)):
+        by_group[(match_id, int(period))].append(idx)
 
     past_parts: list[torch.Tensor] = []
     future_parts: list[torch.Tensor] = []
     masks: list[torch.Tensor] = []
     example_match_ids: list[str] = []
+    example_periods: list[int] = []
+    example_sample_ids: list[str] = []
     start_indices: list[int] = []
     example_frame_ts: list[int] = []
     example_source_splits: list[str] = []
     dropped_short_matches: list[str] = []
     total_steps = context_steps + horizon_steps
-    for match_id, rows in sorted(by_match.items()):
+    for (match_id, period), rows in sorted(by_group.items()):
         ordered = sorted(rows, key=lambda idx: (frame_ts[idx], idx))
         if len(ordered) < total_steps:
-            dropped_short_matches.append(match_id)
+            dropped_short_matches.append(f"{match_id}:period{period}")
             continue
         for start in range(0, len(ordered) - total_steps + 1, stride_steps):
             past_idx = ordered[start : start + context_steps]
@@ -299,6 +318,8 @@ def build_latent_rollout_dataset(
             future_parts.append(z[future_idx])
             masks.append(torch.ones(horizon_steps, dtype=torch.bool))
             example_match_ids.append(match_id)
+            example_periods.append(int(period))
+            example_sample_ids.append(sample_ids[past_idx[0]])
             start_indices.append(int(past_idx[0]))
             example_frame_ts.append(int(frame_ts[past_idx[0]]))
             example_source_splits.append(str(source_splits[past_idx[0]]))
@@ -312,18 +333,29 @@ def build_latent_rollout_dataset(
     past_z = torch.stack(past_parts).float()
     future_z = torch.stack(future_parts).float()
     future_mask = torch.stack(masks).bool()
-    splits, split_warnings = split_latent_indices_by_match(
-        example_match_ids,
-        val_fraction=val_fraction,
-        test_fraction=test_fraction,
-        seed=seed,
-    )
+    if split_manifest_path is not None:
+        splits = named_split_indices_from_manifest(example_match_ids, split_manifest_path)
+        split_warnings: list[str] = []
+    else:
+        splits, split_warnings = split_latent_indices_by_match(
+            example_match_ids,
+            val_fraction=val_fraction,
+            test_fraction=test_fraction,
+            seed=seed,
+        )
     warnings = list(split_warnings)
     if dropped_short_matches:
         warnings.append(
             "dropped matches shorter than the requested rollout length: "
             + ", ".join(dropped_short_matches)
         )
+    repro_metadata = split_manifest_metadata(split_manifest_path, scientific_mode=scientific_mode)
+    assert_split_hash_compatible(
+        payload,
+        repro_metadata,
+        source_name="latent rollout embedding payload",
+        require_source_hash=scientific_mode,
+    )
     data = LatentRolloutData(
         metadata={
             "created_by": "build_latent_rollout_dataset.py",
@@ -336,12 +368,28 @@ def build_latent_rollout_dataset(
             "stride_steps": stride_steps,
             "warnings": warnings,
             "encoder_frozen": True,
+            "feature_view": str(
+                payload.get(
+                    "feature_view",
+                    payload.get("data_meta", {}).get("feature_view", "unknown"),
+                )
+            ),
+            "objective_mode": str(
+                payload.get(
+                    "objective_mode",
+                    payload.get("data_meta", {}).get("objective_mode", "unknown"),
+                )
+            ),
+            "legacy_alignment_allowed": False,
+            **repro_metadata,
         },
         examples={
             "past_z": past_z,
             "future_z": future_z,
             "future_mask": future_mask,
             "match_id": example_match_ids,
+            "period": torch.tensor(example_periods, dtype=torch.long),
+            "sample_id": example_sample_ids,
             "start_index": torch.tensor(start_indices, dtype=torch.long),
             "frame_t": torch.tensor(example_frame_ts, dtype=torch.long),
             "source_split": example_source_splits,

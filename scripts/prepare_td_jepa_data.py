@@ -33,6 +33,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--context-seconds", type=float, default=1.0)
     parser.add_argument("--delta-seconds", type=float, default=0.2)
     parser.add_argument("--stride-seconds", type=float, default=0.2)
+    parser.add_argument(
+        "--objective-mode",
+        choices=["legacy_shifted_overlap", "future_nonoverlap_context_only"],
+        default="legacy_shifted_overlap",
+    )
+    parser.add_argument("--prediction-gap-seconds", type=float, default=0.0)
+    parser.add_argument(
+        "--feature-view",
+        choices=[
+            "full_state_legacy",
+            "geometry_only",
+            "missingness_only_control",
+            "raw_kinematics_control",
+        ],
+        default="full_state_legacy",
+    )
+    parser.add_argument("--split-manifest", type=Path, default=None)
+    parser.add_argument("--scientific-mode", action="store_true")
     return parser.parse_args()
 
 
@@ -65,6 +83,11 @@ def main() -> None:
         context_seconds=args.context_seconds,
         delta_seconds=args.delta_seconds,
         stride_seconds=args.stride_seconds,
+        objective_mode=args.objective_mode,
+        prediction_gap_seconds=args.prediction_gap_seconds,
+        feature_view=args.feature_view,
+        split_manifest_path=args.split_manifest,
+        scientific_mode=args.scientific_mode,
     )
     if len(data.match_id) == 0:
         raise RuntimeError(
