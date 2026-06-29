@@ -7,9 +7,17 @@ probe, latent-flow, decoder, and discovery tooling.
 Current latent clusters, probe scores, and latent residual rankings are not validated tactical
 evidence. Before tactical claims or Experiment 6 work, read:
 
+- `docs/PAPER_FINAL_PATH.md`
 - `docs/RESEARCH_STATUS.md`
 - `docs/EXPERIMENT_PROTOCOL.md`
+- `docs/NEXT_WEEK_RUNBOOK.md`
+- `docs/AGENT_REVIEW_HANDOFF.md`
 - `docs/RESEARCH_INTEGRITY_HANDOFF.md`
+
+The fastest paper path is an integrity-controlled representation study:
+finish split/provenance controls, retrain the geometry-only non-overlap
+representation, run falsification and incremental probe controls, then use
+blinded visualization only as diagnostic evidence.
 
 ## Install
 
@@ -1052,4 +1060,3 @@ baseline scripts use Torch `.pt` windows shaped like:
 - `future_xy`: `[num_windows, H, 23, 2]`
 - `past_mask`: `[num_windows, L, 23]`
 - `future_mask`: `[num_windows, H, 23]`
-
