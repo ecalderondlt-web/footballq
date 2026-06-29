@@ -346,4 +346,3 @@ Emilio should first make the integrity branch reproducible, then retrain the
 geometry-only non-overlap representation, then run falsification and incremental
 probe controls. Visualization is useful after those gates, but it should be
 blinded diagnostic evidence, not the next scientific claim.
-

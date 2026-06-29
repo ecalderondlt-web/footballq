@@ -244,4 +244,3 @@ paper path only after:
 
 The fastest defensible path is an integrity-controlled representation study,
 not a larger model sweep.
-
