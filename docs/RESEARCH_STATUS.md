@@ -111,6 +111,16 @@ caution or fail. The comparison artifact
 shows the current tradeoff: slot reconstruction fixes slot controls, margin
 fixes no-motion, and the next redesign/tuning step must preserve both.
 
+A higher slot-reconstruction-weight combined diagnostic is recorded at
+`configs/td_jepa_nonoverlap_gap1p0_slot_recon_w0p25_margin_skillcorner.yaml`.
+Three one-epoch seeds were summarized at
+`runs/td_jepa/v2_nonoverlap_geometry_gap1p0_slot_recon_w0p25_margin_falsification_gate_extended/`.
+This preserves the no-motion pass (`ratio_min` 36.08) and improves player-slot
+and team-swap sensitivity relative to the first combined diagnostic, but the
+gate remains `blocked`: player-slot and team-swap controls are only caution, and
+context-side team-label swap remains fail (`ratio_min` 1.04). Do not proceed to
+downstream probes, discovery, or visualization from this diagnostic.
+
 Scientific validation still requires longer/stronger representation runs,
 stronger separation from no-motion and team/slot-invariance controls, discovery
 enrichment beyond raw/PCA/random controls, possession- or segment-level

@@ -180,6 +180,12 @@ adds a margin term requiring predicted latents to beat the no-motion latent.
 Current diagnostic result: the margin term clears no-motion, but the initial
 combined weights weaken context-side team/slot controls. Tune or redesign the
 combined objective before running downstream probes/discovery.
+The higher slot-reconstruction-weight variant
+`configs/td_jepa_nonoverlap_gap1p0_slot_recon_w0p25_margin_skillcorner.yaml`
+improves the tradeoff but still does not pass: no-motion remains a strong pass,
+player-slot and team-swap controls are only caution, and context-side
+team-label swap remains fail. Treat this as a design clue, not as a downstream
+green light.
 
 Expected outputs:
 

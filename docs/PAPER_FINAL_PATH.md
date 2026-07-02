@@ -107,6 +107,10 @@ These items block paper-quality claims:
   intended to test whether future prediction can separate from the `z_t`
   identity/no-motion baseline. The first combined diagnostic clears no-motion
   but weakens context-side team/slot controls, so it remains blocked.
+- A higher slot-reconstruction-weight combined diagnostic improves the tradeoff
+  while preserving the no-motion pass, but it still leaves player-slot/team-swap
+  controls below pass threshold and context-side team-label swap failed. This is
+  still blocked and is not a downstream-analysis gate pass.
 - No blinded annotation evidence exists yet.
 
 ## Final Path
