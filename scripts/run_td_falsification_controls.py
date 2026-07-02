@@ -34,8 +34,11 @@ DEFAULT_CONDITIONS = [
     "reversed_time_context",
     "masked_ball",
     "team_swap",
+    "team_label_swap",
+    "target_team_label_swap",
     "pitch_reflection",
     "consistent_player_slot_permutation",
+    "target_consistent_player_slot_permutation",
     "no_motion_predictor",
 ]
 
@@ -91,6 +94,7 @@ def _condition_losses(
     condition: str,
     loss_cfg: dict[str, Any],
     seed: int,
+    feature_names: list[str] | None = None,
 ) -> dict[str, torch.Tensor]:
     if condition == "no_motion_predictor":
         outputs = model(batch)
@@ -101,7 +105,12 @@ def _condition_losses(
             variance_weight=float(loss_cfg.get("variance_weight", 0.1)),
             variance_threshold=float(loss_cfg.get("variance_threshold", 1.0)),
         )
-    controlled = apply_td_falsification_control(batch, condition, seed=seed)
+    controlled = apply_td_falsification_control(
+        batch,
+        condition,
+        seed=seed,
+        feature_names=feature_names,
+    )
     outputs = model(controlled)
     return td_jepa_loss(
         outputs["z_pred"],
@@ -154,6 +163,7 @@ def main() -> None:
                         condition,
                         loss_cfg,
                         seed=int(args.seed) + batch_idx,
+                        feature_names=data.feature_names,
                     )
                 except ValueError:
                     skipped[condition] += 1

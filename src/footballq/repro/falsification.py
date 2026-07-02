@@ -13,8 +13,11 @@ CONTROL_CONDITIONS = {
     "reversed_time_context",
     "masked_ball",
     "team_swap",
+    "team_label_swap",
+    "target_team_label_swap",
     "pitch_reflection",
     "consistent_player_slot_permutation",
+    "target_consistent_player_slot_permutation",
 }
 
 
@@ -36,10 +39,31 @@ def consistent_player_slot_permutation(
     return state[..., perm, :].contiguous(), mask[..., perm].contiguous(), perm
 
 
+def _team_slot_swap(state: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    perm = torch.cat([torch.tensor([0]), torch.arange(12, 23), torch.arange(1, 12)])
+    return state[..., perm, :].contiguous(), mask[..., perm].contiguous()
+
+
+def _team_label_swap(state: torch.Tensor, feature_names: list[str] | None) -> torch.Tensor:
+    if feature_names is None:
+        raise ValueError("team_label_swap controls require feature_names.")
+    names = [str(value) for value in feature_names]
+    try:
+        home_idx = names.index("is_home")
+        away_idx = names.index("is_away")
+    except ValueError as exc:
+        raise ValueError("team_label_swap controls require is_home and is_away features.") from exc
+    swapped = state.clone()
+    swapped[..., home_idx] = state[..., away_idx]
+    swapped[..., away_idx] = state[..., home_idx]
+    return swapped
+
+
 def apply_td_falsification_control(
     batch: dict[str, Any],
     condition: str,
     seed: int = 123,
+    feature_names: list[str] | None = None,
 ) -> dict[str, Any]:
     """Return a controlled copy of a TD-JEPA batch with condition metadata."""
 
@@ -83,15 +107,34 @@ def apply_td_falsification_control(
         out["mask_t"][:, :, 0] = False
         return out
     if condition == "team_swap":
-        perm = torch.cat([torch.tensor([0]), torch.arange(12, 23), torch.arange(1, 12)])
-        out["state_t"] = out["state_t"][:, :, perm, :]
-        out["mask_t"] = out["mask_t"][:, :, perm]
-        out["control_permutation"] = perm
+        out["state_t"], out["mask_t"] = _team_slot_swap(out["state_t"], out["mask_t"])
+        out["control_permutation"] = torch.cat(
+            [torch.tensor([0]), torch.arange(12, 23), torch.arange(1, 12)]
+        )
+        return out
+    if condition == "team_label_swap":
+        out["state_t"] = _team_label_swap(out["state_t"], feature_names)
+        return out
+    if condition == "target_team_label_swap":
+        out["state_t_plus_delta"] = _team_label_swap(
+            out["state_t_plus_delta"],
+            feature_names,
+        )
         return out
     if condition == "pitch_reflection":
         reflected = out["state_t"].clone()
         reflected[..., 0] = -reflected[..., 0]
         out["state_t"] = reflected
+        return out
+    if condition == "target_consistent_player_slot_permutation":
+        state, mask, perm = consistent_player_slot_permutation(
+            out["state_t_plus_delta"],
+            out["mask_t_plus_delta"],
+            seed=seed,
+        )
+        out["state_t_plus_delta"] = state
+        out["mask_t_plus_delta"] = mask
+        out["control_permutation"] = perm
         return out
     state, mask, perm = consistent_player_slot_permutation(
         out["state_t"],

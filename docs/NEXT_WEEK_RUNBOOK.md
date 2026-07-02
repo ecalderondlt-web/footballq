@@ -168,9 +168,12 @@ Run TD controls:
 - reversed-time context
 - no-motion/no-future predictor
 - masked ball
-- team swap
+- team-slot swap
+- home/away label swap
+- target home/away label swap
 - pitch reflection
 - consistent player-slot permutation
+- target consistent player-slot permutation
 
 Expected comparison:
 
@@ -188,7 +191,7 @@ python scripts/summarize_td_falsification.py \
   --summary 7:runs/td_jepa/SEED7_RUN/falsification_val/td_falsification_summary.json \
   --summary 11:runs/td_jepa/SEED11_RUN/falsification_val/td_falsification_summary.json \
   --summary 23:runs/td_jepa/SEED23_RUN/falsification_val/td_falsification_summary.json \
-  --out runs/td_jepa/v2_nonoverlap_geometry_falsification_gate
+  --out runs/td_jepa/v2_nonoverlap_geometry_falsification_gate_extended
 ```
 
 Treat `scientific_claim_status: blocked` as a no-go for tactical claims.
@@ -320,10 +323,10 @@ gate status:
 
 ```bash
 python scripts/summarize_integrity_gates.py \
-  --falsification runs/td_jepa/v2_nonoverlap_geometry_falsification_gate/td_falsification_gate_summary.json \
+  --falsification runs/td_jepa/v2_nonoverlap_geometry_falsification_gate_extended/td_falsification_gate_summary.json \
   --probe runs/probe_suite/v2_nonoverlap_geometry_h2s_incremental_summary/probe_incremental_summary.json \
   --discovery runs/discovery/v2_nonoverlap_geometry_control_summary/discovery_control_summary.json \
-  --out runs/integrity/v2_nonoverlap_geometry_gate_summary.json
+  --out runs/integrity/v2_nonoverlap_geometry_gate_summary_extended.json
 ```
 
 Proceed toward a tactical representation paper only if most are true:

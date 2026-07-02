@@ -26,8 +26,9 @@ three one-epoch geometry-only non-overlap v2 seeds, exported embeddings, ran
 validation falsification controls, ran h2s incremental probes, ran normalized
 latent-delta discovery for three seeds, ran 0.2s discovery baselines, and
 generated a blinded annotation scaffold. These outputs are diagnostic only:
-no-motion remains close to learned prediction and team-swap/player-slot controls
-remain near-invariant.
+no-motion remains close to learned prediction, home/away label-swap controls
+separate from correct pairing, and team-slot/player-slot controls remain
+near-invariant.
 
 ## Review Purpose
 

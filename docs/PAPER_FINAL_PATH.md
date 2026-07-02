@@ -88,8 +88,10 @@ These items block paper-quality claims:
 - Representation v2 has only been retrained as one-epoch diagnostic seeds under
   the non-overlap, geometry-only protocol.
 - Falsification controls have a three-seed gate summary, and the gate remains
-  blocked by near-invariance to team swap and consistent player-slot
-  permutation plus a close no-motion control.
+  blocked by near-invariance to team-slot swap and context/target player-slot
+  permutation plus a close no-motion control. Home/away label-swap controls do
+  separate from correct pairing, so the current blocker is more specific than
+  complete team-label insensitivity.
 - A combined integrity gate summary exists for the current v2 diagnostics, and
   its overall claim status is blocked.
 - No blinded annotation evidence exists yet.
@@ -210,7 +212,7 @@ Required diagnostics:
 - correct vs wrong-match future loss
 - reversed-time control
 - masked-ball control
-- team-swap and pitch-reflection controls
+- team-slot, home/away label-swap, and pitch-reflection controls
 - player-slot permutation sensitivity
 
 Acceptance criteria:

@@ -32,10 +32,11 @@ for uncertainty diagnostics, and the current h2s v2 probe runs have been
 re-evaluated with those summaries.
 
 The three-seed geometry-only non-overlap falsification runs are now aggregated
-in `runs/td_jepa/v2_nonoverlap_geometry_falsification_gate/`. The gate status is
-`blocked`: shuffled future, wrong-match future, pitch reflection, reversed-time,
-and masked-ball controls pass the current ratio threshold, while team swap and
-consistent player-slot permutation fail and no-motion remains a caution.
+in `runs/td_jepa/v2_nonoverlap_geometry_falsification_gate_extended/`. The gate
+status is `blocked`: shuffled future, wrong-match future, pitch reflection,
+reversed-time, masked-ball, and home/away label-swap controls pass the current
+ratio threshold, while team-slot swap plus context/target player-slot
+permutation fail and no-motion remains a caution.
 
 The discovery control summary in
 `runs/discovery/v2_nonoverlap_geometry_control_summary/` now includes nuisance
@@ -54,7 +55,7 @@ diagnostic, but these are geometry/control targets with only two held-out test
 matches.
 
 The combined gate artifact at
-`runs/integrity/v2_nonoverlap_geometry_gate_summary.json` reports
+`runs/integrity/v2_nonoverlap_geometry_gate_summary_extended.json` reports
 `overall_claim_status: blocked`. The current next scientific action is to
 redesign or retrain the representation until falsification controls pass; any
 visualization remains blinded diagnostic material only.

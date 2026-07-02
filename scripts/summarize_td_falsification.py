@@ -15,8 +15,11 @@ CONTROL_EXPECTATIONS = {
     "reversed_time_context": "higher_than_correct",
     "masked_ball": "higher_than_correct",
     "team_swap": "higher_than_correct",
+    "team_label_swap": "higher_than_correct",
+    "target_team_label_swap": "higher_than_correct",
     "pitch_reflection": "higher_than_correct",
     "consistent_player_slot_permutation": "higher_than_correct",
+    "target_consistent_player_slot_permutation": "higher_than_correct",
     "no_motion_predictor": "higher_than_correct",
 }
 
