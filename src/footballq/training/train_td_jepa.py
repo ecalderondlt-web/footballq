@@ -62,6 +62,11 @@ def create_td_jepa_model(config: dict[str, Any], data: TDJEPAData) -> SoccerTDJE
         dropout=float(model_cfg.get("dropout", 0.1)),
         motion_hidden_dim=int(model_cfg.get("motion_hidden_dim", 256)),
         pooling=str(model_cfg.get("pooling", "mean")),
+        state_decoder_hidden_dim=(
+            int(model_cfg["state_decoder_hidden_dim"])
+            if model_cfg.get("state_decoder_hidden_dim") is not None
+            else None
+        ),
     )
 
 
@@ -89,6 +94,7 @@ def _append_jsonl(path: Path, row: dict[str, Any]) -> None:
 
 def _loss_from_outputs(
     outputs: dict[str, torch.Tensor],
+    batch: dict[str, Any],
     loss_cfg: dict[str, Any],
 ) -> dict[str, torch.Tensor]:
     return td_jepa_loss(
@@ -97,6 +103,10 @@ def _loss_from_outputs(
         outputs["z_t"],
         variance_weight=float(loss_cfg.get("variance_weight", 0.1)),
         variance_threshold=float(loss_cfg.get("variance_threshold", 1.0)),
+        state_reconstruction=outputs.get("state_reconstruction"),
+        state_target=batch.get("state_t_plus_delta"),
+        state_mask=batch.get("mask_t_plus_delta"),
+        slot_reconstruction_weight=float(loss_cfg.get("slot_reconstruction_weight", 0.0)),
     )
 
 
@@ -113,7 +123,7 @@ def evaluate_td_model(
         for batch in loader:
             batch = td_batch_to_device(batch, device)
             outputs = model(batch)
-            losses = _loss_from_outputs(outputs, loss_cfg)
+            losses = _loss_from_outputs(outputs, batch, loss_cfg)
             batch_size = int(batch["state_t"].shape[0])
             num_examples += batch_size
             for key, value in losses.items():
@@ -142,6 +152,9 @@ def _save_checkpoint(
             "online_encoder": model.online_encoder.state_dict(),
             "target_encoder": model.target_encoder.state_dict(),
             "motion_encoder": model.motion_encoder.state_dict(),
+            "state_decoder": (
+                model.state_decoder.state_dict() if model.state_decoder is not None else None
+            ),
             "optimizer": optimizer.state_dict(),
             "config": config,
             "epoch": epoch,
@@ -231,8 +244,13 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
 
     device = resolve_device(train_cfg.get("device", "auto"))
     model = create_td_jepa_model(cfg, data).to(device)
+    trainable_parameters = list(model.online_encoder.parameters()) + list(
+        model.motion_encoder.parameters()
+    )
+    if model.state_decoder is not None:
+        trainable_parameters += list(model.state_decoder.parameters())
     optimizer = torch.optim.AdamW(
-        list(model.online_encoder.parameters()) + list(model.motion_encoder.parameters()),
+        trainable_parameters,
         lr=float(train_cfg.get("learning_rate", 1e-3)),
         weight_decay=float(train_cfg.get("weight_decay", 1e-4)),
     )
@@ -263,10 +281,10 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
             batch = td_batch_to_device(batch, device)
             optimizer.zero_grad(set_to_none=True)
             outputs = model(batch)
-            losses = _loss_from_outputs(outputs, loss_cfg)
+            losses = _loss_from_outputs(outputs, batch, loss_cfg)
             losses["total_loss"].backward()
             torch.nn.utils.clip_grad_norm_(
-                list(model.online_encoder.parameters()) + list(model.motion_encoder.parameters()),
+                trainable_parameters,
                 max_norm=float(train_cfg.get("grad_clip_norm", 1.0)),
             )
             optimizer.step()

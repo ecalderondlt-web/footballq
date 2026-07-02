@@ -42,6 +42,8 @@ def load_td_checkpoint_model(
     model.online_encoder.load_state_dict(payload["online_encoder"])
     model.target_encoder.load_state_dict(payload["target_encoder"])
     model.motion_encoder.load_state_dict(payload["motion_encoder"])
+    if model.state_decoder is not None and payload.get("state_decoder") is not None:
+        model.state_decoder.load_state_dict(payload["state_decoder"])
     torch_device = resolve_device(device)
     model = model.to(torch_device)
     return model, data, cfg, payload, torch_device

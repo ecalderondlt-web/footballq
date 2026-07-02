@@ -48,30 +48,37 @@ def _finite_summary(values: list[float]) -> dict[str, float | int | None]:
     }
 
 
-def rows_from_summary(seed: str, path: Path) -> list[dict[str, Any]]:
+def rows_from_summary(seed: str, path: Path, metric: str = "td_loss") -> list[dict[str, Any]]:
     """Return normalized rows for one falsification summary."""
 
     payload = json.loads(path.read_text(encoding="utf-8"))
     results = payload["results"]
-    correct = float(results["correct_temporal_pairing"]["td_loss"])
+    correct = float(results["correct_temporal_pairing"][metric])
     rows = []
     for condition, metrics in sorted(results.items()):
+        metric_value = metrics.get(metric)
         td_loss = metrics.get("td_loss")
+        total_loss = metrics.get("total_loss")
+        slot_reconstruction = metrics.get("slot_reconstruction_loss")
         cosine = metrics.get("cosine_similarity")
-        if td_loss is None:
+        if metric_value is None:
             ratio = None
             margin = None
         else:
-            ratio = float(td_loss) / max(correct, 1e-12)
-            margin = float(td_loss) - correct
+            ratio = float(metric_value) / max(correct, 1e-12)
+            margin = float(metric_value) - correct
         rows.append(
             {
                 "seed": seed,
                 "condition": condition,
+                "gate_metric": metric,
+                "metric_value": metric_value,
                 "td_loss": td_loss,
+                "total_loss": total_loss,
+                "slot_reconstruction_loss": slot_reconstruction,
                 "cosine_similarity": cosine,
-                "td_loss_ratio_vs_correct": ratio,
-                "td_loss_margin_vs_correct": margin,
+                "metric_ratio_vs_correct": ratio,
+                "metric_margin_vs_correct": margin,
                 "num_examples": metrics.get("num_examples"),
                 "summary_path": str(path),
             }
@@ -94,6 +101,10 @@ def _status_for_ratio(
     return "fail"
 
 
+def _row_value(row: dict[str, Any], key: str, fallback: str) -> Any:
+    return row.get(key, row.get(fallback))
+
+
 def summarize_rows(
     rows: list[dict[str, Any]],
     pass_ratio: float = 1.25,
@@ -108,16 +119,18 @@ def summarize_rows(
     for condition, condition_rows in sorted(by_condition.items()):
         ratio_summary = _finite_summary(
             [
-                float(row["td_loss_ratio_vs_correct"])
+                float(_row_value(row, "metric_ratio_vs_correct", "td_loss_ratio_vs_correct"))
                 for row in condition_rows
-                if row["td_loss_ratio_vs_correct"] is not None
+                if _row_value(row, "metric_ratio_vs_correct", "td_loss_ratio_vs_correct")
+                is not None
             ]
         )
         margin_summary = _finite_summary(
             [
-                float(row["td_loss_margin_vs_correct"])
+                float(_row_value(row, "metric_margin_vs_correct", "td_loss_margin_vs_correct"))
                 for row in condition_rows
-                if row["td_loss_margin_vs_correct"] is not None
+                if _row_value(row, "metric_margin_vs_correct", "td_loss_margin_vs_correct")
+                is not None
             ]
         )
         status = (
@@ -132,6 +145,8 @@ def summarize_rows(
             "status": status,
             "td_loss_ratio_vs_correct": ratio_summary,
             "td_loss_margin_vs_correct": margin_summary,
+            "gate_metric_ratio_vs_correct": ratio_summary,
+            "gate_metric_margin_vs_correct": margin_summary,
             "seeds": sorted(str(row["seed"]) for row in condition_rows),
         }
     blocking = [
@@ -161,10 +176,14 @@ def write_rows_csv(rows: list[dict[str, Any]], path: Path) -> None:
     fieldnames = [
         "seed",
         "condition",
+        "gate_metric",
+        "metric_value",
         "td_loss",
+        "total_loss",
+        "slot_reconstruction_loss",
         "cosine_similarity",
-        "td_loss_ratio_vs_correct",
-        "td_loss_margin_vs_correct",
+        "metric_ratio_vs_correct",
+        "metric_margin_vs_correct",
         "num_examples",
         "summary_path",
     ]
@@ -180,6 +199,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--pass-ratio", type=float, default=1.25)
     parser.add_argument("--caution-ratio", type=float, default=1.05)
+    parser.add_argument("--metric", default="td_loss", choices=["td_loss", "total_loss"])
     return parser.parse_args()
 
 
@@ -188,13 +208,14 @@ def main() -> None:
     rows = [
         row
         for seed, path in [parse_summary_spec(spec) for spec in args.summary]
-        for row in rows_from_summary(seed, path)
+        for row in rows_from_summary(seed, path, metric=str(args.metric))
     ]
     summary = summarize_rows(
         rows,
         pass_ratio=float(args.pass_ratio),
         caution_ratio=float(args.caution_ratio),
     )
+    summary["gate_metric"] = str(args.metric)
     args.out.mkdir(parents=True, exist_ok=True)
     rows_csv = args.out / "td_falsification_rows.csv"
     summary_json = args.out / "td_falsification_gate_summary.json"

@@ -101,6 +101,34 @@ def test_td_jepa_forward_with_cls_pooling_is_finite():
     assert torch.isfinite(outputs["z_target"]).all()
 
 
+def test_td_jepa_forward_with_state_decoder_outputs_slot_reconstruction():
+    state, mask, delta, delta_mask = _batch()
+    model = SoccerTDJEPA(
+        context_steps=3,
+        delta_steps=2,
+        n_entities=23,
+        n_features=10,
+        z_dim=16,
+        d_model=32,
+        n_heads=4,
+        n_layers=1,
+        motion_hidden_dim=32,
+        state_decoder_hidden_dim=32,
+    )
+    outputs = model(
+        {
+            "state_t": state,
+            "mask_t": mask,
+            "state_t_plus_delta": state + 0.01,
+            "mask_t_plus_delta": mask,
+            "delta_state": delta,
+            "delta_mask": delta_mask,
+        }
+    )
+    assert outputs["state_reconstruction"].shape == state.shape
+    assert model.decode_state(outputs["z_t"]).shape == state.shape
+
+
 def test_target_encoder_has_no_grad_and_ema_updates():
     model = SoccerTDJEPA(3, 2, 23, 10, z_dim=16, d_model=32, n_heads=4, n_layers=1)
     assert not any(parameter.requires_grad for parameter in model.target_encoder.parameters())

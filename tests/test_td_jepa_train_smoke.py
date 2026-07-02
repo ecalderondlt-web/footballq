@@ -33,9 +33,14 @@ def test_td_jepa_one_batch_train_eval_and_export(tmp_path):
             "n_heads": 4,
             "dropout": 0.0,
             "motion_hidden_dim": 32,
+            "state_decoder_hidden_dim": 32,
         },
         "ema": {"momentum": 0.9},
-        "loss": {"variance_weight": 0.05, "variance_threshold": 0.2},
+        "loss": {
+            "variance_weight": 0.05,
+            "variance_threshold": 0.2,
+            "slot_reconstruction_weight": 0.1,
+        },
         "training": {
             "seed": 7,
             "batch_size": 8,
@@ -52,6 +57,7 @@ def test_td_jepa_one_batch_train_eval_and_export(tmp_path):
     assert result["latest_checkpoint"].exists()
     metrics = evaluate_td_checkpoint(result["latest_checkpoint"], split="test", device="cpu")
     assert torch.isfinite(torch.tensor(metrics["metrics"]["total_loss"]))
+    assert "slot_reconstruction_loss" in metrics["metrics"]
     out = export_td_embeddings(
         result["latest_checkpoint"],
         data_path,

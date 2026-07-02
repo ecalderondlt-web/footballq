@@ -165,6 +165,15 @@ The next non-scaling redesign scaffold is CLS-token encoder pooling:
 `configs/td_jepa_nonoverlap_gap1p0_cls_skillcorner.yaml`.
 Current one-seed smoke result: CLS pooling remains blocked and does not fix
 slot-control failures.
+The next stronger diagnostic is optional slot-aligned target reconstruction:
+`configs/td_jepa_nonoverlap_gap1p0_slot_recon_skillcorner.yaml`. This adds
+slot-level pressure and must still pass falsification before any downstream
+interpretation.
+Current diagnostic result: slot reconstruction fixes slot-control sensitivity
+under `total_loss` gating, but remains blocked by no-motion and weak context
+team-label sensitivity. The next redesign should combine slot-level pressure
+with a stronger future/non-smoothness objective rather than moving to
+visualization.
 
 Expected outputs:
 

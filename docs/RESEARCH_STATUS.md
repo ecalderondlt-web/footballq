@@ -81,6 +81,21 @@ as `runs/td_jepa/20260702_171902`; its extended falsification gate remains
 `blocked`, with stronger label-swap separation but no improvement on team-slot
 or player-slot controls.
 
+Optional slot-aligned target reconstruction is implemented via
+`model.state_decoder_hidden_dim` and `loss.slot_reconstruction_weight`, with a
+diagnostic config at
+`configs/td_jepa_nonoverlap_gap1p0_slot_recon_skillcorner.yaml`. This is intended
+to test whether explicit slot-level pressure can address slot-control failures;
+it is not evidence until falsification gates pass. Three one-epoch diagnostic
+seeds were run and summarized at
+`runs/td_jepa/v2_nonoverlap_geometry_gap1p0_slot_recon_falsification_gate_extended/`
+using `total_loss` as the gate metric. Slot reconstruction makes team-slot and
+context/target player-slot controls pass, but the run remains `blocked` because
+no-motion fails and context-side team-label swap is only caution.
+The comparison artifact
+`runs/td_jepa/v2_nonoverlap_geometry_gap1p0_slot_recon_comparison/` records this
+as a partial redesign result, not a paper-quality pass.
+
 Scientific validation still requires longer/stronger representation runs,
 stronger separation from no-motion and team/slot-invariance controls, discovery
 enrichment beyond raw/PCA/random controls, possession- or segment-level

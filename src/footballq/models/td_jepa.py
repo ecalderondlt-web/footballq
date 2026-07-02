@@ -63,8 +63,12 @@ class SoccerTDJEPA(nn.Module):
         dropout: float = 0.1,
         motion_hidden_dim: int = 256,
         pooling: str = "mean",
+        state_decoder_hidden_dim: int | None = None,
     ) -> None:
         super().__init__()
+        self.context_steps = int(context_steps)
+        self.n_entities = int(n_entities)
+        self.n_features = int(n_features)
         self.online_encoder = SoccerStateEncoder(
             context_steps=context_steps,
             n_entities=n_entities,
@@ -86,6 +90,28 @@ class SoccerTDJEPA(nn.Module):
             z_dim=z_dim,
             hidden_dim=motion_hidden_dim,
         )
+        self.state_decoder = None
+        if state_decoder_hidden_dim is not None:
+            hidden_dim = int(state_decoder_hidden_dim)
+            self.state_decoder = nn.Sequential(
+                nn.Linear(z_dim, hidden_dim),
+                nn.GELU(),
+                nn.LayerNorm(hidden_dim),
+                nn.Linear(hidden_dim, context_steps * n_entities * n_features),
+            )
+
+    def decode_state(self, z: torch.Tensor) -> torch.Tensor:
+        """Decode a latent into a slot-aligned target context tensor."""
+
+        if self.state_decoder is None:
+            raise RuntimeError("State decoder is not configured for this TD-JEPA model.")
+        decoded = self.state_decoder(z)
+        return decoded.view(
+            z.shape[0],
+            self.context_steps,
+            self.n_entities,
+            self.n_features,
+        )
 
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         z_t = self.online_encoder(batch["state_t"], batch["mask_t"])
@@ -96,9 +122,12 @@ class SoccerTDJEPA(nn.Module):
                 batch["state_t_plus_delta"],
                 batch["mask_t_plus_delta"],
             )
-        return {
+        outputs = {
             "z_t": z_t,
             "delta_z": delta_z,
             "z_pred": z_pred,
             "z_target": z_target,
         }
+        if self.state_decoder is not None:
+            outputs["state_reconstruction"] = self.decode_state(z_pred)
+        return outputs

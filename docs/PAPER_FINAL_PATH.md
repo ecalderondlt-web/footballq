@@ -99,6 +99,10 @@ These items block paper-quality claims:
 - A CLS-token encoder-pooling diagnostic config exists as the next non-scaling
   representation redesign candidate. One seed remains blocked, so CLS pooling
   alone is not evidence of a fix.
+- Optional slot-aligned target reconstruction is implemented as the next
+  diagnostic redesign candidate. It fixes slot-control sensitivity under
+  `total_loss` gating, but remains blocked by no-motion and weak context
+  team-label sensitivity, so it is still not a paper result.
 - No blinded annotation evidence exists yet.
 
 ## Final Path

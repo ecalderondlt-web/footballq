@@ -98,12 +98,19 @@ def _condition_losses(
 ) -> dict[str, torch.Tensor]:
     if condition == "no_motion_predictor":
         outputs = model(batch)
+        state_reconstruction = None
+        if getattr(model, "state_decoder", None) is not None:
+            state_reconstruction = model.decode_state(outputs["z_t"])
         return td_jepa_loss(
             outputs["z_t"],
             outputs["z_target"],
             outputs["z_t"],
             variance_weight=float(loss_cfg.get("variance_weight", 0.1)),
             variance_threshold=float(loss_cfg.get("variance_threshold", 1.0)),
+            state_reconstruction=state_reconstruction,
+            state_target=batch["state_t_plus_delta"],
+            state_mask=batch["mask_t_plus_delta"],
+            slot_reconstruction_weight=float(loss_cfg.get("slot_reconstruction_weight", 0.0)),
         )
     controlled = apply_td_falsification_control(
         batch,
@@ -118,6 +125,10 @@ def _condition_losses(
         outputs["z_t"],
         variance_weight=float(loss_cfg.get("variance_weight", 0.1)),
         variance_threshold=float(loss_cfg.get("variance_threshold", 1.0)),
+        state_reconstruction=outputs.get("state_reconstruction"),
+        state_target=controlled["state_t_plus_delta"],
+        state_mask=controlled["mask_t_plus_delta"],
+        slot_reconstruction_weight=float(loss_cfg.get("slot_reconstruction_weight", 0.0)),
     )
 
 

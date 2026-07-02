@@ -1,4 +1,6 @@
-from scripts.summarize_td_falsification import parse_summary_spec, summarize_rows
+import json
+
+from scripts.summarize_td_falsification import parse_summary_spec, rows_from_summary, summarize_rows
 
 
 def test_parse_summary_spec():
@@ -41,3 +43,22 @@ def test_summarize_rows_marks_blocking_controls():
     assert summary["conditions"]["masked_ball"]["status"] == "fail"
     assert summary["blocking_conditions"] == ["team_swap"]
     assert summary["scientific_claim_status"] == "blocked"
+
+
+def test_rows_from_summary_can_use_total_loss_gate_metric(tmp_path):
+    summary_path = tmp_path / "summary.json"
+    summary_path.write_text(
+        json.dumps(
+            {
+                "results": {
+                    "correct_temporal_pairing": {"td_loss": 1.0, "total_loss": 2.0},
+                    "team_swap": {"td_loss": 1.0, "total_loss": 4.0},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    rows = rows_from_summary("7", summary_path, metric="total_loss")
+    team_swap = [row for row in rows if row["condition"] == "team_swap"][0]
+    assert team_swap["gate_metric"] == "total_loss"
+    assert team_swap["metric_ratio_vs_correct"] == 2.0
