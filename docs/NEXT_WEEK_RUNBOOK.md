@@ -174,6 +174,12 @@ under `total_loss` gating, but remains blocked by no-motion and weak context
 team-label sensitivity. The next redesign should combine slot-level pressure
 with a stronger future/non-smoothness objective rather than moving to
 visualization.
+The combined diagnostic config is
+`configs/td_jepa_nonoverlap_gap1p0_slot_recon_margin_skillcorner.yaml`, which
+adds a margin term requiring predicted latents to beat the no-motion latent.
+Current diagnostic result: the margin term clears no-motion, but the initial
+combined weights weaken context-side team/slot controls. Tune or redesign the
+combined objective before running downstream probes/discovery.
 
 Expected outputs:
 

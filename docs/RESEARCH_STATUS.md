@@ -96,6 +96,21 @@ The comparison artifact
 `runs/td_jepa/v2_nonoverlap_geometry_gap1p0_slot_recon_comparison/` records this
 as a partial redesign result, not a paper-quality pass.
 
+An optional no-motion margin loss is implemented via
+`loss.no_motion_margin_weight` and `loss.no_motion_margin`, with a combined
+diagnostic config at
+`configs/td_jepa_nonoverlap_gap1p0_slot_recon_margin_skillcorner.yaml`. This is
+intended to test whether slot-level pressure plus explicit no-motion separation
+can clear the remaining falsification blockers. Three one-epoch diagnostic seeds
+were run and summarized at
+`runs/td_jepa/v2_nonoverlap_geometry_gap1p0_slot_recon_margin_falsification_gate_extended/`.
+The margin term clears no-motion decisively under `total_loss` gating, but the
+gate remains `blocked` because context-side team/slot controls fall back to
+caution or fail. The comparison artifact
+`runs/td_jepa/v2_nonoverlap_geometry_gap1p0_slot_recon_margin_comparison/`
+shows the current tradeoff: slot reconstruction fixes slot controls, margin
+fixes no-motion, and the next redesign/tuning step must preserve both.
+
 Scientific validation still requires longer/stronger representation runs,
 stronger separation from no-motion and team/slot-invariance controls, discovery
 enrichment beyond raw/PCA/random controls, possession- or segment-level

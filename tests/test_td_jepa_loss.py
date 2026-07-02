@@ -29,3 +29,18 @@ def test_slot_reconstruction_loss_adds_to_total():
     )
     assert with_reconstruction["slot_reconstruction_loss"].item() == 1.0
     assert with_reconstruction["total_loss"].item() > without["total_loss"].item()
+
+
+def test_no_motion_margin_loss_adds_to_total_when_prediction_matches_online():
+    z = torch.randn(4, 8)
+    without = td_jepa_loss(z, z, z, variance_weight=0.0)
+    with_margin = td_jepa_loss(
+        z,
+        z,
+        z,
+        variance_weight=0.0,
+        no_motion_margin_weight=2.0,
+        no_motion_margin=0.25,
+    )
+    assert round(with_margin["no_motion_margin_loss"].item(), 6) == 0.25
+    assert with_margin["total_loss"].item() > without["total_loss"].item()

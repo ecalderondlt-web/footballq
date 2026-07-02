@@ -103,6 +103,10 @@ These items block paper-quality claims:
   diagnostic redesign candidate. It fixes slot-control sensitivity under
   `total_loss` gating, but remains blocked by no-motion and weak context
   team-label sensitivity, so it is still not a paper result.
+- A no-motion margin loss is available as the next diagnostic pressure term,
+  intended to test whether future prediction can separate from the `z_t`
+  identity/no-motion baseline. The first combined diagnostic clears no-motion
+  but weakens context-side team/slot controls, so it remains blocked.
 - No blinded annotation evidence exists yet.
 
 ## Final Path

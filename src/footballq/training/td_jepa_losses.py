@@ -25,12 +25,21 @@ def td_jepa_loss(
     state_target: torch.Tensor | None = None,
     state_mask: torch.Tensor | None = None,
     slot_reconstruction_weight: float = 0.0,
+    no_motion_margin_weight: float = 0.0,
+    no_motion_margin: float = 0.01,
 ) -> dict[str, torch.Tensor]:
     """Compute normalized TD prediction loss and diagnostics."""
 
     pred_norm = F.normalize(z_pred, dim=-1)
     target_norm = F.normalize(z_target.detach(), dim=-1)
-    td_loss = F.mse_loss(pred_norm, target_norm)
+    online_norm = F.normalize(z_online, dim=-1)
+    pred_dist = (pred_norm - target_norm).pow(2).mean(dim=-1)
+    online_dist = (online_norm - target_norm).pow(2).mean(dim=-1)
+    td_loss = pred_dist.mean()
+    no_motion_td_loss = online_dist.mean()
+    no_motion_margin_loss = F.relu(
+        float(no_motion_margin) + pred_dist - online_dist
+    ).mean()
     online_var = variance_loss(z_online, threshold=variance_threshold)
     target_var = variance_loss(z_target.detach(), threshold=variance_threshold)
     anti_collapse = online_var + target_var
@@ -50,8 +59,11 @@ def td_jepa_loss(
         slot_reconstruction = diff_sq.sum() / denom
     total_loss = td_loss + variance_weight * anti_collapse
     total_loss = total_loss + float(slot_reconstruction_weight) * slot_reconstruction
+    total_loss = total_loss + float(no_motion_margin_weight) * no_motion_margin_loss
     return {
         "td_loss": td_loss,
+        "no_motion_td_loss": no_motion_td_loss,
+        "no_motion_margin_loss": no_motion_margin_loss,
         "anti_collapse_loss": anti_collapse,
         "slot_reconstruction_loss": slot_reconstruction,
         "total_loss": total_loss,

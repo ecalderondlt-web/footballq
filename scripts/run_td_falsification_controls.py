@@ -111,6 +111,8 @@ def _condition_losses(
             state_target=batch["state_t_plus_delta"],
             state_mask=batch["mask_t_plus_delta"],
             slot_reconstruction_weight=float(loss_cfg.get("slot_reconstruction_weight", 0.0)),
+            no_motion_margin_weight=float(loss_cfg.get("no_motion_margin_weight", 0.0)),
+            no_motion_margin=float(loss_cfg.get("no_motion_margin", 0.01)),
         )
     controlled = apply_td_falsification_control(
         batch,
@@ -129,6 +131,8 @@ def _condition_losses(
         state_target=controlled["state_t_plus_delta"],
         state_mask=controlled["mask_t_plus_delta"],
         slot_reconstruction_weight=float(loss_cfg.get("slot_reconstruction_weight", 0.0)),
+        no_motion_margin_weight=float(loss_cfg.get("no_motion_margin_weight", 0.0)),
+        no_motion_margin=float(loss_cfg.get("no_motion_margin", 0.01)),
     )
 
 
