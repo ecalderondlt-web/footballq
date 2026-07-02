@@ -180,6 +180,19 @@ correct pairing loss < wrong-match future loss
 non-overlap predictor beats identity/no-motion controls
 ```
 
+After running the controls for all seeds, aggregate them into an explicit gate
+artifact:
+
+```bash
+python scripts/summarize_td_falsification.py \
+  --summary 7:runs/td_jepa/SEED7_RUN/falsification_val/td_falsification_summary.json \
+  --summary 11:runs/td_jepa/SEED11_RUN/falsification_val/td_falsification_summary.json \
+  --summary 23:runs/td_jepa/SEED23_RUN/falsification_val/td_falsification_summary.json \
+  --out runs/td_jepa/v2_nonoverlap_geometry_falsification_gate
+```
+
+Treat `scientific_claim_status: blocked` as a no-go for tactical claims.
+
 Build leakage-controlled probes with the same split manifest:
 
 ```bash

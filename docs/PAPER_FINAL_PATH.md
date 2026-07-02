@@ -86,8 +86,9 @@ These items block paper-quality claims:
   artifact coverage and alignment still need final audit.
 - Representation v2 has only been retrained as one-epoch diagnostic seeds under
   the non-overlap, geometry-only protocol.
-- Falsification controls still show near-invariance to team swap and consistent
-  player-slot permutation, and no-motion remains close to the learned predictor.
+- Falsification controls have a three-seed gate summary, and the gate remains
+  blocked by near-invariance to team swap and consistent player-slot
+  permutation plus a close no-motion control.
 - No blinded annotation evidence exists yet.
 
 ## Final Path

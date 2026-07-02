@@ -31,6 +31,12 @@ Probe evaluation now records match-level grouped metrics in `eval_test.json`
 for uncertainty diagnostics, and the current h2s v2 probe runs have been
 re-evaluated with those summaries.
 
+The three-seed geometry-only non-overlap falsification runs are now aggregated
+in `runs/td_jepa/v2_nonoverlap_geometry_falsification_gate/`. The gate status is
+`blocked`: shuffled future, wrong-match future, pitch reflection, reversed-time,
+and masked-ball controls pass the current ratio threshold, while team swap and
+consistent player-slot permutation fail and no-motion remains a caution.
+
 Scientific validation still requires longer/stronger representation runs,
 stronger separation from no-motion and team/slot-invariance controls, full
 held-out discovery baseline summaries across seeds, possession- or segment-level
