@@ -395,7 +395,7 @@ Run:
 ```bash
 python -m pytest -q
 python -m ruff check .
-python -c "import footballq; from footballq.data.td_jepa_dataset import build_td_jepa_examples; from footballq.discovery.surprise import compute_surprise; print('imports-ok')"
+python -c "import footballq; from footballq.data.td_jepa_dataset import build_td_jepa_examples; from footballq.discovery.surprise import compute_residual_scores; print('imports-ok')"
 ```
 
 Synthetic smoke:

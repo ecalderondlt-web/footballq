@@ -10,6 +10,25 @@ the integrity sprint changes.
 - Commit reviewed: `f4d250714fce942703c4342eda8cc39be973d759`
 - Local worktree used for review: `/private/tmp/footballq_integrity_sprint`
 
+## Follow-Up Status
+
+After the original review, the branch was advanced to `295d9e6` and then updated
+with reproducibility cleanup: scientific paper-path entry points now write run
+manifests, README commands use split/scientific flags, split validation rejects
+unknown dataset names, and default residual diagnostic files use
+`latent_residual_*` names. The scientific gates remain unchanged: verify local
+SkillCorner data, retrain geometry-only non-overlap representation v2, run
+falsification/probe/discovery controls, and use blinded visualization only after
+those controls.
+
+Subsequent local diagnostics verified the ten SkillCorner split folders, trained
+three one-epoch geometry-only non-overlap v2 seeds, exported embeddings, ran
+validation falsification controls, ran h2s incremental probes, ran normalized
+latent-delta discovery for three seeds, ran 0.2s discovery baselines, and
+generated a blinded annotation scaffold. These outputs are diagnostic only:
+no-motion remains close to learned prediction and team-swap/player-slot controls
+remain near-invariant.
+
 ## Review Purpose
 
 The project is being prepared for a paper. The reviewer should evaluate whether
@@ -138,9 +157,9 @@ Reviewer task:
 - Require raw transition, PCA raw transition, handcrafted, and random encoder
   controls before any tactical cluster interpretation.
 
-### 4. README has stale scientific commands
+### 4. README had stale scientific commands in the original review
 
-Evidence:
+Original evidence:
 
 - The Experiment 5 README commands build transitions and run discovery without
   `--split-manifest` or `--scientific-mode`.
@@ -151,7 +170,12 @@ Scientific impact:
 - A collaborator could generate outputs that look scientific but lack split
   lineage.
 
-Reviewer task:
+Follow-up status:
+
+- README paper-path commands now include split/scientific flags for TD-JEPA,
+  probe, latent rollout, decoder, transition, and discovery builders.
+
+Remaining reviewer task:
 
 - Update or flag every README command that can produce paper-relevant artifacts.
 
@@ -171,19 +195,25 @@ Reviewer task:
 
 - Add a dataset allow-list or schema validation.
 
-### 6. Residual-score rename is partial
+### 6. Residual-score rename was partial in the original review
 
-Evidence:
+Original evidence:
 
 - `src/footballq/discovery/surprise.py` now computes `latent_residual_*`.
-- Output files and compatibility fields still use `surprise_examples.csv`,
+- Output files and compatibility fields used `surprise_examples.csv`,
   `surprise_summary.json`, and `surprise_score`.
 
 Scientific impact:
 
 - Old tactical-surprise language can leak back into reports.
 
-Reviewer task:
+Follow-up status:
+
+- Default residual outputs now use `latent_residual_examples.csv` and
+  `latent_residual_summary.json`; deprecated aliases remain only through
+  compatibility APIs.
+
+Remaining reviewer task:
 
 - Rename default artifact filenames and report fields, keeping old aliases only
   behind explicit compatibility labels.

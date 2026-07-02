@@ -10,7 +10,7 @@ from typing import Any
 from footballq.discovery.clustering import cluster_transition_file
 from footballq.discovery.enrichment import write_enrichment_outputs
 from footballq.discovery.exemplars import write_exemplars
-from footballq.discovery.surprise import write_surprise_outputs
+from footballq.discovery.surprise import write_latent_residual_outputs
 from footballq.discovery.transitions import (
     build_transition_dataset,
     save_transition_dataset,
@@ -72,12 +72,12 @@ def _write_report(summary: dict[str, Any], out: Path) -> Path:
             lines.append("- no enrichment rows available")
     lines.extend(["", "## Latent Residual", ""])
     for delta in summary["deltas"]:
-        surprise = delta["surprise_summary"]
+        residual = delta["latent_residual_summary"]
         lines.append(
-            f"- {delta['delta_label']}: score={surprise['score_name']} "
-            f"p95={surprise['high_latent_residual_threshold']:.4f}; "
+            f"- {delta['delta_label']}: score={residual['score_name']} "
+            f"p95={residual['high_latent_residual_threshold']:.4f}; "
             "future-ball corr="
-            f"{surprise.get('correlations', {}).get('future_ball_displacement_corr')}"
+            f"{residual.get('correlations', {}).get('future_ball_displacement_corr')}"
         )
     lines.extend(
         [
@@ -161,7 +161,7 @@ def run_discovery_suite(
             delta_dir / f"enrichment_k{chosen_k}.csv",
             delta_dir / "enrichment_summary.json",
         )
-        surprise = write_surprise_outputs(
+        residual = write_latent_residual_outputs(
             dataset_path,
             delta_dir,
             delta_seconds=float(delta_seconds),
@@ -180,7 +180,7 @@ def run_discovery_suite(
                 "out_dir": str(delta_dir),
                 "cluster_summary": cluster_summary,
                 "enrichment_summary": enrichment,
-                "surprise_summary": surprise["summary"],
+                "latent_residual_summary": residual["summary"],
                 "exemplars": str(exemplars_path),
                 "top_enriched": _read_csv(delta_dir / f"enrichment_k{chosen_k}.csv", limit=20),
             }

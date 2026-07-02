@@ -52,6 +52,8 @@ The current branch contains a first pass of research-integrity infrastructure:
   `src/footballq/repro/feature_views.py`
 - Run-manifest utility:
   `src/footballq/repro/manifest.py`
+- Run-manifest writing for scientific TD-JEPA preparation/training/export,
+  probe, latent-rollout, decoder, transition, and discovery entry points
 - TD-JEPA objective modes:
   `legacy_shifted_overlap`
   and `future_nonoverlap_context_only`
@@ -63,6 +65,8 @@ The current branch contains a first pass of research-integrity infrastructure:
   latent rollout data, and transition datasets
 - Train-fit / held-out assignment scaffolding for discovery clustering
 - Latent residual naming and nuisance-correlation diagnostics
+- Default residual diagnostic files:
+  `latent_residual_examples.csv` and `latent_residual_summary.json`
 - Blinded diagnostic rendering scaffold
 - Focused integrity tests
 
@@ -70,21 +74,20 @@ The current branch contains a first pass of research-integrity infrastructure:
 
 These items block paper-quality claims:
 
-- Run manifests are not yet written by every experimental entry point.
-- Documentation is not yet complete enough for independent reproduction.
-- README still contains some legacy commands that omit `--split-manifest` and
-  `--scientific-mode`.
 - Full repo lint is not clean.
 - Full test collection depends on a complete local dev environment.
 - Discovery controls are incomplete: raw/PCA/random/handcrafted baselines and
   multi-seed stability are not fully implemented.
-- Split validation does not yet reject unknown dataset names.
-- Residual-score files still use some legacy `surprise_*` names.
+- Documentation still needs to be rechecked against a fresh install and real
+  SkillCorner availability.
 - Team-shape labels remain all-visible-player stretch diagnostics, not a clean
   team tactical target.
-- The real SkillCorner ten-match split has not been reverified from local files.
-- Representation v2 has not been retrained under the non-overlap, geometry-only
-  protocol.
+- The real SkillCorner ten-match split has been located locally, but processed
+  artifact coverage and alignment still need final audit.
+- Representation v2 has only been retrained as one-epoch diagnostic seeds under
+  the non-overlap, geometry-only protocol.
+- Falsification controls still show near-invariance to team swap and consistent
+  player-slot permutation, and no-motion remains close to the learned predictor.
 - No blinded annotation evidence exists yet.
 
 ## Final Path

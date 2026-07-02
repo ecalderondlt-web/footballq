@@ -14,6 +14,7 @@ if str(SRC) not in sys.path:
 
 from footballq.discovery.report import run_discovery_suite  # noqa: E402
 from footballq.latent_flow.io import load_yaml  # noqa: E402
+from footballq.repro.manifest import build_run_manifest, write_run_manifest  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,11 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--delta-steps", nargs="+", type=int)
     parser.add_argument("--k", nargs="+", type=int)
     parser.add_argument("--fps", type=float)
-    parser.add_argument(
-        "--feature",
-        choices=["raw_delta_z", "normalized_delta_z", "z_t_delta_z"],
-        default=None,
-    )
+    parser.add_argument("--feature", default=None)
     parser.add_argument("--seed", type=int)
     parser.add_argument("--max-iter", type=int)
     parser.add_argument("--fit-sample-size", type=int)
@@ -80,6 +77,29 @@ def main() -> None:
         split_manifest_path=Path(split_manifest) if split_manifest is not None else None,
         scientific_mode=bool(args.scientific_mode or suite_cfg.get("scientific_mode", False)),
     )
+    scientific_mode = bool(args.scientific_mode or suite_cfg.get("scientific_mode", False))
+    if scientific_mode:
+        manifest_path = Path(out) / "run_manifest.json"
+        manifest = build_run_manifest(
+            command=sys.argv,
+            config_path=args.config,
+            split_manifest_path=Path(split_manifest),
+            evaluation_protocol="inductive",
+            feature_view=str(result.get("transition_dataset", {}).get("feature_view", "unknown")),
+            objective_mode=str(
+                result.get("transition_dataset", {}).get("objective_mode", "discovery_suite")
+            ),
+            dataset_paths={"embeddings": Path(embeddings), "windows": Path(windows)},
+            output_paths={
+                "out": Path(out),
+                "summary": result["summary_json"],
+                "report": result["report_md"],
+                "transition_dataset": result["transition_dataset_path"],
+                "run_manifest": manifest_path,
+            },
+            warnings=list(result.get("transition_dataset", {}).get("warnings", [])),
+        )
+        write_run_manifest(manifest_path, manifest)
     print(f"summary_json: {result['summary_json']}")
     print(f"report_md: {result['report_md']}")
     print(f"transition_dataset: {result['transition_dataset_path']}")

@@ -19,10 +19,19 @@ Legacy artifacts may be inspected only when explicitly marked legacy.
 The research integrity sprint infrastructure is implemented and smoke-tested for
 review as engineering scaffolding. This does not validate tactical claims.
 
-Scientific validation still requires local SkillCorner split ID verification,
-representation v2 retraining with `future_nonoverlap_context_only`,
-leakage-controlled probes, held-out discovery controls across multiple seeds,
-stability checks, and blinded annotation against matched controls.
+Current reproducibility cleanup adds dataset-name validation for split manifests,
+scientific run-manifest writing on the main paper-path entry points, README
+command alignment for split/scientific modes, and default
+`latent_residual_*` diagnostic artifact names.
+
+Local SkillCorner split folders have been verified for the ten-match manifest,
+and one-epoch geometry-only non-overlap v2 diagnostics have been run for three
+seeds. These runs are still diagnostics, not paper-quality evidence.
+
+Scientific validation still requires longer/stronger representation runs,
+stronger separation from no-motion and team/slot-invariance controls, full
+held-out discovery baseline summaries across seeds, match/possession-level
+uncertainty, and blinded annotation against matched controls.
 
 Current focused verification:
 
@@ -31,7 +40,7 @@ Current focused verification:
   future non-overlap modes
 - focused invariant tests and touched-file Ruff: passed
 
-Known lint exception: repo-wide `python -m ruff check .` still reports 48
+Known lint exception: repo-wide `python -m ruff check . --statistics` reports 45
 pre-existing issues in older decoder, latent-flow, probe, script, and legacy
 test files outside the integrity-sprint edits. Touched sprint files are expected
 to remain Ruff-clean unless a final repo-wide lint cleanup is explicitly chosen.

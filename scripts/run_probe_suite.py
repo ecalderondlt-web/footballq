@@ -38,6 +38,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="auto")
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--run-root", type=Path, default=Path("runs"))
+    parser.add_argument("--linear-only", action="store_true")
     return parser.parse_args()
 
 
@@ -112,11 +113,24 @@ def main() -> None:
         task_type = data.target_types[target]
         combos = [
             ("td_jepa", "linear"),
+            ("td_jepa_zscore", "linear"),
             ("random_same_shape", "linear"),
             ("raw_state_summary", "linear"),
+            ("raw_state_summary_zscore", "linear"),
+            ("raw_plus_td_jepa", "linear"),
+            ("raw_plus_td_jepa_zscore", "linear"),
         ]
-        if target == first_target:
-            combos.extend([("td_jepa", "mlp"), ("raw_state_summary", "mlp")])
+        if target == first_target and not args.linear_only:
+            combos.extend(
+                [
+                    ("td_jepa", "mlp"),
+                    ("td_jepa_zscore", "mlp"),
+                    ("raw_state_summary", "mlp"),
+                    ("raw_state_summary_zscore", "mlp"),
+                    ("raw_plus_td_jepa", "mlp"),
+                    ("raw_plus_td_jepa_zscore", "mlp"),
+                ]
+            )
         for feature_source, probe_type in combos:
             cfg = {
                 "seed": args.seed,

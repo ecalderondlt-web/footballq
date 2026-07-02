@@ -501,6 +501,8 @@ def _feature_payload(
     train_mean = train_delta.mean(dim=0)
     train_std = train_delta.std(dim=0, unbiased=False).clamp_min(1e-6)
     normalized_delta_z = (delta_z - train_mean) / train_std
+    pca_delta_z, pca_diag = _pca_projection(normalized_delta_z, train_indices)
+    random_delta_z = _random_projection(normalized_delta_z, output_dim=normalized_delta_z.shape[1])
     features = {
         "delta_norm": delta_norm,
         "z_t_norm": z_t_norm,
@@ -509,14 +511,115 @@ def _feature_payload(
         "latent_velocity": latent_velocity,
         "latent_velocity_norm": latent_velocity_norm,
         "normalized_delta_z": normalized_delta_z,
+        "pca_delta_z": pca_delta_z,
+        "random_encoder_delta_z": random_delta_z,
         "delta_z_train_mean": train_mean,
         "delta_z_train_std": train_std,
     }
     diagnostics = {
         "normalization_train_rows": len(train_indices),
         "normalization_source": "source_split=train" if train_indices else "all_rows",
+        **pca_diag,
     }
     return features, diagnostics
+
+
+def _train_indices(source_split: list[str], n: int) -> list[int]:
+    train_indices = [idx for idx, split in enumerate(source_split) if str(split).lower() == "train"]
+    return train_indices or list(range(n))
+
+
+def _standardize_feature_matrix(
+    matrix: torch.Tensor,
+    source_split: list[str],
+) -> tuple[torch.Tensor, dict[str, Any]]:
+    train_indices = _train_indices(source_split, int(matrix.shape[0]))
+    train_values = matrix[train_indices]
+    train_mean = train_values.mean(dim=0, keepdim=True)
+    train_std = train_values.std(dim=0, unbiased=False, keepdim=True).clamp_min(1e-6)
+    return (matrix - train_mean) / train_std, {"standardization_train_rows": len(train_indices)}
+
+
+def _fill_nan_with_train_mean(matrix: torch.Tensor, source_split: list[str]) -> torch.Tensor:
+    train_indices = _train_indices(source_split, int(matrix.shape[0]))
+    train_values = matrix[train_indices]
+    finite = torch.isfinite(train_values)
+    filled = torch.where(finite, train_values, torch.zeros_like(train_values))
+    counts = finite.float().sum(dim=0).clamp_min(1.0)
+    train_mean = filled.sum(dim=0) / counts
+    return torch.where(torch.isfinite(matrix), matrix, train_mean.unsqueeze(0))
+
+
+def _pca_projection(
+    standardized: torch.Tensor,
+    train_indices: list[int],
+    max_components: int = 8,
+) -> tuple[torch.Tensor, dict[str, Any]]:
+    train_values = standardized[train_indices]
+    n_components = max(
+        1,
+        min(int(max_components), int(train_values.shape[0]), int(train_values.shape[1])),
+    )
+    try:
+        _u, _s, vh = torch.linalg.svd(train_values, full_matrices=False)
+        components = vh[:n_components].T.contiguous()
+        projected = standardized @ components
+    except RuntimeError:
+        projected = standardized[:, :n_components].contiguous()
+    return projected, {"pca_delta_z_components": n_components}
+
+
+def _random_projection(
+    matrix: torch.Tensor,
+    output_dim: int,
+    seed: int = 123,
+) -> torch.Tensor:
+    generator = torch.Generator(device="cpu").manual_seed(int(seed))
+    projection = torch.randn(
+        matrix.shape[1],
+        int(output_dim),
+        generator=generator,
+        dtype=matrix.dtype,
+    ) / math.sqrt(max(1, int(matrix.shape[1])))
+    return matrix @ projection
+
+
+def _handcrafted_feature_payload(
+    metadata_acc: dict[str, list[Any]],
+    source_split: list[str],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    fields = [
+        "future_ball_displacement_m",
+        "future_ball_dx_global_m",
+        "team_shape_change_m",
+        "team_width_change_m",
+        "team_length_change_m",
+        "stretch_index_change_m",
+        "ball_acceleration_mps2",
+        "ball_direction_change_rad",
+    ]
+    columns = [
+        torch.tensor([float(value) for value in metadata_acc.get(field, [])], dtype=torch.float32)
+        for field in fields
+    ]
+    if not columns:
+        return {}, {"handcrafted_feature_fields": []}
+    matrix = torch.stack(columns, dim=1)
+    filled = _fill_nan_with_train_mean(matrix, source_split)
+    standardized, diag = _standardize_feature_matrix(filled, source_split)
+    train_indices = _train_indices(source_split, int(standardized.shape[0]))
+    pca_features, pca_diag = _pca_projection(standardized, train_indices, max_components=4)
+    return (
+        {
+            "handcrafted_structure_metrics": standardized,
+            "pca_handcrafted_structure_metrics": pca_features,
+        },
+        {
+            **diag,
+            **pca_diag,
+            "handcrafted_feature_fields": fields,
+        },
+    )
 
 
 def build_transition_dataset(
@@ -627,6 +730,12 @@ def build_transition_dataset(
         actual_seconds,
         source_split_rows,
     )
+    handcrafted_features, handcrafted_diag = _handcrafted_feature_payload(
+        metadata_acc,
+        source_split_rows,
+    )
+    features.update(handcrafted_features)
+    feature_diag.update(handcrafted_diag)
     repro_metadata = split_manifest_metadata(split_manifest_path, scientific_mode=scientific_mode)
     assert_split_hash_compatible(
         payload,
@@ -706,6 +815,9 @@ def transition_summary(data: TransitionDatasetData) -> dict[str, Any]:
         "requested_delta_steps": data.metadata.get("requested_delta_steps", []),
         "requested_delta_seconds": data.metadata.get("requested_delta_seconds", []),
         "actual_delta_seconds": data.metadata.get("actual_delta_seconds", []),
+        "feature_view": data.metadata.get("feature_view", "unknown"),
+        "objective_mode": data.metadata.get("objective_mode", "unknown"),
+        "split_manifest_sha256": data.metadata.get("split_manifest_sha256"),
         "missing_metadata_fields": data.metadata.get("missing_metadata_fields", []),
         "unmatched_metadata_rows": data.metadata.get("unmatched_metadata_rows", 0),
         "pairing_diagnostics": data.metadata.get("pairing_diagnostics", []),

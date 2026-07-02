@@ -66,8 +66,6 @@ def compute_residual_scores(data: TransitionDatasetData) -> dict[str, torch.Tens
     return {
         "latent_residual_last": residual_last,
         "latent_residual_cv": residual_cv,
-        "surprise_last": residual_last,
-        "surprise_cv": residual_cv,
     }
 
 
@@ -80,7 +78,12 @@ def compute_surprise(data: TransitionDatasetData) -> dict[str, torch.Tensor]:
         DeprecationWarning,
         stacklevel=2,
     )
-    return compute_residual_scores(data)
+    scores = compute_residual_scores(data)
+    return {
+        **scores,
+        "surprise_last": scores["latent_residual_last"],
+        "surprise_cv": scores["latent_residual_cv"],
+    }
 
 
 def _corr(a: torch.Tensor, b: torch.Tensor) -> float:
@@ -123,7 +126,7 @@ def _example_rows(
             "delta_seconds": float(data.examples["delta_seconds"][idx].item()),
             "actual_delta_seconds": float(data.examples["actual_delta_seconds"][idx].item()),
             "latent_residual_score": float(scores[idx].item()),
-            "surprise_score": float(scores[idx].item()),
+            "deprecated_surprise_score_alias": float(scores[idx].item()),
             "cluster_id": "" if cluster_ids is None or idx not in cluster_ids else cluster_ids[idx],
         }
         for field in [
@@ -151,6 +154,26 @@ def _load_cluster_ids(assignments_path: str | Path | None) -> dict[int, int] | N
 
 
 def analyze_surprise(
+    data: TransitionDatasetData,
+    delta_seconds: float | None = None,
+    assignments_path: str | Path | None = None,
+    top_n: int = 100,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    warnings.warn(
+        "analyze_surprise is deprecated; use analyze_latent_residuals for latent residual "
+        "diagnostics.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return analyze_latent_residuals(
+        data,
+        delta_seconds=delta_seconds,
+        assignments_path=assignments_path,
+        top_n=top_n,
+    )
+
+
+def analyze_latent_residuals(
     data: TransitionDatasetData,
     delta_seconds: float | None = None,
     assignments_path: str | Path | None = None,
@@ -226,7 +249,6 @@ def analyze_surprise(
         stress_enrichment[field] = {
             "global_rate": global_rate,
             "high_latent_residual_rate": high_rate,
-            "high_surprise_rate": high_rate,
             "enrichment_ratio": high_rate / max(global_rate, 1e-12),
         }
 
@@ -237,17 +259,17 @@ def analyze_surprise(
         "num_examples": int(selected.numel()),
         "num_finite_scores": int(finite_selected.numel()),
         "high_latent_residual_threshold": threshold,
-        "high_surprise_threshold": threshold,
         **_finite_stats(residuals["latent_residual_last"][selected], "latent_residual_last"),
         **_finite_stats(residuals["latent_residual_cv"][selected], "latent_residual_cv"),
-        **_finite_stats(residuals["surprise_last"][selected], "surprise_last"),
-        **_finite_stats(residuals["surprise_cv"][selected], "surprise_cv"),
         "latent_residual_by_match": residual_by_match,
-        "surprise_by_match": residual_by_match,
         "correlations": correlations,
         "nuisance_correlation_fields": sorted(NUISANCE_CORRELATION_FIELDS),
         "nuisance_correlation_status": correlation_status,
         "stress_enrichment": stress_enrichment,
+        "deprecated_aliases": {
+            "analyze_surprise": "analyze_latent_residuals",
+            "compute_surprise": "compute_residual_scores",
+        },
     }
     if cluster_ids is not None:
         cluster_scores: dict[int, list[float]] = defaultdict(list)
@@ -264,8 +286,38 @@ def analyze_surprise(
             for cluster_id, values in sorted(cluster_scores.items())
         }
         summary["latent_residual_by_cluster"] = by_cluster
-        summary["surprise_by_cluster"] = by_cluster
     return rows, summary
+
+
+def write_latent_residual_outputs(
+    dataset: str | Path,
+    out: str | Path,
+    delta_seconds: float | None = None,
+    assignments: str | Path | None = None,
+    top_n: int = 100,
+) -> dict[str, Any]:
+    data = load_transition_dataset(dataset)
+    rows, summary = analyze_latent_residuals(
+        data,
+        delta_seconds=delta_seconds,
+        assignments_path=assignments,
+        top_n=top_n,
+    )
+    out_dir = Path(out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    examples_path = out_dir / "latent_residual_examples.csv"
+    with examples_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+    summary_path = out_dir / "latent_residual_summary.json"
+    with summary_path.open("w", encoding="utf-8") as handle:
+        json.dump(summary, handle, indent=2)
+    return {
+        "latent_residual_examples": str(examples_path),
+        "latent_residual_summary": str(summary_path),
+        "summary": summary,
+    }
 
 
 def write_surprise_outputs(
@@ -275,25 +327,22 @@ def write_surprise_outputs(
     assignments: str | Path | None = None,
     top_n: int = 100,
 ) -> dict[str, Any]:
-    data = load_transition_dataset(dataset)
-    rows, summary = analyze_surprise(
-        data,
+    """Deprecated alias that writes latent residual outputs."""
+
+    warnings.warn(
+        "write_surprise_outputs is deprecated; use write_latent_residual_outputs.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    result = write_latent_residual_outputs(
+        dataset,
+        out,
         delta_seconds=delta_seconds,
-        assignments_path=assignments,
+        assignments=assignments,
         top_n=top_n,
     )
-    out_dir = Path(out)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    examples_path = out_dir / "surprise_examples.csv"
-    with examples_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
-    summary_path = out_dir / "surprise_summary.json"
-    with summary_path.open("w", encoding="utf-8") as handle:
-        json.dump(summary, handle, indent=2)
     return {
-        "surprise_examples": str(examples_path),
-        "surprise_summary": str(summary_path),
-        "summary": summary,
+        **result,
+        "surprise_examples": result["latent_residual_examples"],
+        "surprise_summary": result["latent_residual_summary"],
     }

@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+ALLOWED_SPLIT_DATASETS = {"idsse", "metrica", "skillcorner", "synthetic"}
+
 
 @dataclass(frozen=True)
 class SplitManifest:
@@ -91,6 +93,11 @@ def validate_split_manifest(payload: dict[str, Any], min_scientific_matches: int
     missing = [key for key in required if key not in payload]
     if missing:
         raise ValueError(f"Split manifest is missing required fields: {', '.join(missing)}")
+
+    dataset = str(payload["dataset"])
+    if dataset not in ALLOWED_SPLIT_DATASETS:
+        allowed = ", ".join(sorted(ALLOWED_SPLIT_DATASETS))
+        raise ValueError(f"Split manifest dataset {dataset!r} is not allowed. Expected: {allowed}.")
 
     train = [str(value) for value in payload["train_match_ids"]]
     val = [str(value) for value in payload["val_match_ids"]]

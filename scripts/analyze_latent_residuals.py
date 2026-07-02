@@ -1,4 +1,4 @@
-"""Deprecated wrapper for latent residual diagnostics."""
+"""Analyze latent prediction residual scores."""
 
 from __future__ import annotations
 
@@ -34,7 +34,6 @@ def main() -> None:
         top_n=args.top_n,
     )
     summary = result["summary"]
-    print("warning: analyze_tactical_surprise.py is deprecated; use analyze_latent_residuals.py")
     print(f"latent_residual_examples: {result['latent_residual_examples']}")
     print(f"latent_residual_summary: {result['latent_residual_summary']}")
     print(f"score_name: {summary['score_name']}")

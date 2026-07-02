@@ -57,16 +57,39 @@ def write_blinded_annotation_files(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--annotator-csv", type=Path, required=True)
-    parser.add_argument("--key-csv", type=Path, required=True)
+    parser.add_argument("--examples", type=Path, default=None)
+    parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument("--max-rows", type=int, default=40)
+    parser.add_argument("--blinded", action="store_true")
+    parser.add_argument("--annotator-csv", type=Path, default=None)
+    parser.add_argument("--key-csv", type=Path, default=None)
     return parser.parse_args()
+
+
+def _read_examples(path: Path, max_rows: int) -> list[dict[str, object]]:
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    return rows[: int(max_rows)]
 
 
 def main() -> None:
     args = parse_args()
-    write_blinded_annotation_files([], args.annotator_csv, args.key_csv)
-    print(f"annotator_csv: {args.annotator_csv}")
-    print(f"key_csv: {args.key_csv}")
+    if args.examples is not None:
+        if args.out is None:
+            raise ValueError("--examples requires --out.")
+        rows = _read_examples(args.examples, args.max_rows)
+        annotator_csv = args.out / "annotator" / "annotations.csv"
+        key_csv = args.out / "private" / "annotation_key.csv"
+    else:
+        if args.annotator_csv is None or args.key_csv is None:
+            raise ValueError("Set --examples/--out or --annotator-csv/--key-csv.")
+        rows = []
+        annotator_csv = args.annotator_csv
+        key_csv = args.key_csv
+    write_blinded_annotation_files(rows, annotator_csv, key_csv)
+    print(f"annotator_csv: {annotator_csv}")
+    print(f"key_csv: {key_csv}")
+    print(f"rows: {len(rows)}")
 
 
 if __name__ == "__main__":

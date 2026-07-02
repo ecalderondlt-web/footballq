@@ -25,7 +25,15 @@ def probe_feature_matrix(
         return random_same_shape_features(torch.as_tensor(examples["z"]).float(), seed=seed)
     if feature_source == "raw_state_summary":
         return torch.as_tensor(examples["raw_state_summary"]).float()
+    if feature_source == "raw_plus_td_jepa":
+        return torch.cat(
+            [
+                torch.as_tensor(examples["raw_state_summary"]).float(),
+                torch.as_tensor(examples["z"]).float(),
+            ],
+            dim=1,
+        )
     raise ValueError(
         f"Unknown feature source {feature_source!r}. "
-        "Expected td_jepa, random_same_shape, or raw_state_summary."
+        "Expected td_jepa, random_same_shape, raw_state_summary, or raw_plus_td_jepa."
     )

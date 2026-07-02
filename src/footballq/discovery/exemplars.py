@@ -10,8 +10,12 @@ from typing import Any
 
 import torch
 
-from footballq.discovery.surprise import compute_surprise
-from footballq.discovery.transitions import STRESS_FIELDS, TransitionDatasetData, load_transition_dataset
+from footballq.discovery.surprise import compute_residual_scores
+from footballq.discovery.transitions import (
+    STRESS_FIELDS,
+    TransitionDatasetData,
+    load_transition_dataset,
+)
 
 
 def _value(values: Any, idx: int) -> Any:
@@ -29,10 +33,10 @@ def export_exemplars(
     global_indices = [int(value) for value in assignments_payload["global_indices"]]
     assignments = [int(value) for value in assignments_payload["assignments"].tolist()]
     distances = [float(value) for value in assignments_payload["distances"].tolist()]
-    surprise = compute_surprise(data)
-    surprise_score = surprise["surprise_cv"]
-    if not bool(torch.isfinite(surprise_score).any()):
-        surprise_score = surprise["surprise_last"]
+    residuals = compute_residual_scores(data)
+    residual_score = residuals["latent_residual_cv"]
+    if not bool(torch.isfinite(residual_score).any()):
+        residual_score = residuals["latent_residual_last"]
     meta = data.examples.get("metadata", {})
     ball_disp = meta.get("future_ball_displacement_m")
     by_cluster: dict[int, list[int]] = defaultdict(list)
@@ -53,7 +57,7 @@ def export_exemplars(
             "delta_seconds": float(data.examples["delta_seconds"][global_idx].item()),
             "actual_delta_seconds": float(data.examples["actual_delta_seconds"][global_idx].item()),
             "distance_to_centroid": distances[local_idx],
-            "surprise_score": float(surprise_score[global_idx].item()),
+            "latent_residual_score": float(residual_score[global_idx].item()),
         }
         for field in [
             "future_ball_displacement_m",
@@ -70,13 +74,13 @@ def export_exemplars(
         local_indices = by_cluster[cluster_id]
         centroid_idx = min(local_indices, key=lambda idx: distances[idx])
         add_row(cluster_id, "centroid", centroid_idx)
-        high_surprise_idx = max(
+        high_residual_idx = max(
             local_indices,
-            key=lambda idx: float(surprise_score[global_indices[idx]].item())
-            if torch.isfinite(surprise_score[global_indices[idx]])
+            key=lambda idx: float(residual_score[global_indices[idx]].item())
+            if torch.isfinite(residual_score[global_indices[idx]])
             else -float("inf"),
         )
-        add_row(cluster_id, "high_surprise", high_surprise_idx)
+        add_row(cluster_id, "high_latent_residual", high_residual_idx)
         if ball_disp is not None:
             high_ball_idx = max(
                 local_indices,

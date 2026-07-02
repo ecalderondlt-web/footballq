@@ -44,3 +44,11 @@ def test_split_manifest_requires_minimum_scientific_match_count():
     }
     with pytest.raises(ValueError, match="at least 3"):
         validate_split_manifest(payload)
+
+
+def test_split_manifest_rejects_unknown_dataset_name():
+    split = load_split_manifest("splits/skillcorner_10match_inductive_v1.json")
+    payload = copy.deepcopy(split.payload)
+    payload["dataset"] = "mystery_provider"
+    with pytest.raises(ValueError, match="dataset"):
+        validate_split_manifest(payload)

@@ -1,6 +1,7 @@
+import pytest
 import torch
 
-from footballq.discovery.surprise import analyze_surprise, compute_residual_scores
+from footballq.discovery.surprise import analyze_latent_residuals, compute_residual_scores
 from footballq.discovery.transitions import TransitionDatasetData
 
 
@@ -29,8 +30,20 @@ def _data():
 def test_residual_score_uses_non_tactical_names():
     scores = compute_residual_scores(_data())
     assert "latent_residual_last" in scores
-    rows, summary = analyze_surprise(_data(), top_n=1)
+    assert "surprise_last" not in scores
+    rows, summary = analyze_latent_residuals(_data(), top_n=1)
     assert "latent_residual_score" in rows[0]
+    assert "deprecated_surprise_score_alias" in rows[0]
     assert summary["score_semantics"] == "latent_prediction_residual"
     assert "high_latent_residual_threshold" in summary
+    assert "high_surprise_threshold" not in summary
     assert summary["nuisance_correlation_status"]["future_ball_displacement_m"] == "not_available"
+
+
+def test_analyze_surprise_alias_is_deprecated():
+    from footballq.discovery.surprise import analyze_surprise
+
+    with pytest.warns(DeprecationWarning):
+        rows, summary = analyze_surprise(_data(), top_n=1)
+    assert rows[0]["latent_residual_score"] >= 0.0
+    assert summary["deprecated_aliases"]["analyze_surprise"] == "analyze_latent_residuals"

@@ -47,6 +47,7 @@ def test_discovery_suite_smoke_runs_on_tiny_synthetic_data(tmp_path):
     assert (delta_dir / "clusters_k2.csv").exists()
     assert (delta_dir / "enrichment_k2.csv").exists()
     assert (delta_dir / "exemplars_k2.csv").exists()
-    assert (delta_dir / "surprise_examples.csv").exists()
+    assert (delta_dir / "latent_residual_examples.csv").exists()
     summary = json.loads((tmp_path / "suite" / "summary.json").read_text())
     assert summary["recommended_k"] == 2
+    assert "latent_residual_summary" in summary["deltas"][0]

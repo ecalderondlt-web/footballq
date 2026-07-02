@@ -19,6 +19,8 @@ def test_transition_features_are_train_normalized():
     )
     assert features["delta_norm"].tolist() == [1.0, 2.0, 3.0]
     assert features["latent_velocity"].shape == delta_z.shape
+    assert features["pca_delta_z"].shape[0] == delta_z.shape[0]
+    assert features["random_encoder_delta_z"].shape == delta_z.shape
     assert diagnostics["normalization_train_rows"] == 2
     assert torch.isfinite(features["normalized_delta_z"]).all()
 

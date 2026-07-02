@@ -1,6 +1,7 @@
+import pytest
 import torch
 
-from footballq.discovery.surprise import analyze_surprise, compute_surprise
+from footballq.discovery.surprise import analyze_latent_residuals, compute_surprise
 from footballq.discovery.transitions import TransitionDatasetData
 
 
@@ -33,9 +34,15 @@ def _surprise_data():
 
 def test_surprise_ranks_injected_high_change_example():
     data = _surprise_data()
-    surprise = compute_surprise(data)
+    with pytest.warns(DeprecationWarning):
+        surprise = compute_surprise(data)
     assert int(torch.argmax(surprise["surprise_last"]).item()) == 2
-    rows, summary = analyze_surprise(data, delta_seconds=0.2, top_n=1)
+    rows, summary = analyze_latent_residuals(data, delta_seconds=0.2, top_n=1)
     assert rows[0]["frame_t"] == 2
     assert summary["num_examples"] == 5
-    assert summary["stress_enrichment"]["high_future_ball_displacement"]["high_surprise_rate"] == 1.0
+    assert (
+        summary["stress_enrichment"]["high_future_ball_displacement"][
+            "high_latent_residual_rate"
+        ]
+        == 1.0
+    )

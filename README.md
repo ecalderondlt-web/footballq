@@ -220,17 +220,22 @@ then run:
 python scripts/prepare_td_jepa_data.py `
   --source skillcorner `
   --raw data/raw/skillcorner `
-  --out data/processed/skillcorner_td_jepa.pt `
+  --out data/processed/skillcorner_td_jepa_nonoverlap.pt `
   --fps-out 10 `
   --context-seconds 1.0 `
   --delta-seconds 0.2 `
-  --stride-seconds 0.2
+  --stride-seconds 0.2 `
+  --objective-mode future_nonoverlap_context_only `
+  --prediction-gap-seconds 0.5 `
+  --feature-view geometry_only `
+  --split-manifest splits/skillcorner_10match_inductive_v1.json `
+  --scientific-mode
 
-python scripts/train_td_jepa.py --config configs/td_jepa_skillcorner.yaml
+python scripts/train_td_jepa.py --config configs/td_jepa_nonoverlap_skillcorner.yaml
 python scripts/eval_td_jepa.py --checkpoint runs/td_jepa/latest.pt --split test
 python scripts/export_td_embeddings.py `
   --checkpoint runs/td_jepa/latest.pt `
-  --data data/processed/skillcorner_td_jepa.pt `
+  --data data/processed/skillcorner_td_jepa_nonoverlap.pt `
   --out data/processed/skillcorner_td_embeddings_all.pt `
   --split all
 ```
@@ -243,6 +248,7 @@ TD-JEPA run directories are written to `runs/td_jepa/<timestamp>/` and include:
 - `best.pt`
 - `latest.pt`
 - `embeddings_sample.pt`
+- `run_manifest.json` when the config uses a split manifest
 
 Stable convenience copies are also written to `runs/td_jepa/latest.pt`,
 `runs/td_jepa/best.pt`, and `runs/td_jepa/embeddings_sample.pt`.
@@ -251,9 +257,12 @@ The embedding export payload contains:
 
 - `z`: `[num_examples, z_dim]`
 - `match_id`
+- `period`
 - `frame_t`
+- `sample_id`
 - `delta_frames`
 - `source_split`
+- `split_manifest_sha256`
 - `config`
 
 Downloaded raw data, processed `.pt` files, embeddings, and run artifacts stay local and must not
@@ -278,7 +287,9 @@ python scripts/build_probe_dataset.py `
   --embeddings data/processed/skillcorner_td_embeddings_all.pt `
   --windows data/processed/skillcorner_windows.pt `
   --out data/processed/skillcorner_probe_dataset_all.pt `
-  --targets possession_team has_ball_or_possession_available phase future_ball_global_x_bucket future_ball_displacement_m team_shape_change_bucket
+  --targets possession_team has_ball_or_possession_available phase future_ball_global_x_bucket future_ball_displacement_m team_shape_change_bucket `
+  --split-manifest splits/skillcorner_10match_inductive_v1.json `
+  --scientific-mode
 ```
 
 The builder aligns embeddings back to windows by period-aware `sample_id`. Legacy alignment must
@@ -360,7 +371,9 @@ python scripts/build_latent_rollout_dataset.py `
   --out data/processed/skillcorner_latent_rollout_dataset.pt `
   --context-steps 5 `
   --horizon-steps 5 `
-  --stride-steps 1
+  --stride-steps 1 `
+  --split-manifest splits/skillcorner_10match_inductive_v1.json `
+  --scientific-mode
 ```
 
 The builder creates examples shaped like:
@@ -465,7 +478,9 @@ python scripts/build_latent_rollout_dataset.py `
   --context-steps 5 `
   --horizon-steps 5 `
   --stride-steps 1 `
-  --residual-mode constant_latent_velocity
+  --residual-mode constant_latent_velocity `
+  --split-manifest splits/skillcorner_10match_inductive_v1.json `
+  --scientific-mode
 ```
 
 Train residual flow:
@@ -608,7 +623,9 @@ python scripts/build_decoder_dataset.py `
   --embeddings data/processed/skillcorner_td_embeddings_all.pt `
   --windows data/processed/skillcorner_windows.pt `
   --out data/processed/skillcorner_decoder_dataset.pt `
-  --horizon-steps 20
+  --horizon-steps 20 `
+  --split-manifest splits/skillcorner_10match_inductive_v1.json `
+  --scientific-mode
 ```
 
 Train current-state reconstruction:
@@ -710,7 +727,9 @@ python scripts/build_decoder_dataset.py `
   --embeddings data/processed/skillcorner_td_embeddings_all.pt `
   --windows data/processed/skillcorner_windows.pt `
   --out data/processed/skillcorner_decoder_dataset.pt `
-  --horizon-steps 20
+  --horizon-steps 20 `
+  --split-manifest splits/skillcorner_10match_inductive_v1.json `
+  --scientific-mode
 ```
 
 Run the learning curve:
@@ -807,9 +826,9 @@ test are disjoint by `match_id`.
 Build decoder datasets for each horizon:
 
 ```powershell
-python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h2s.pt --out data/processed/skillcorner_decoder_dataset_h2s.pt --horizon-steps 20
-python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h4s.pt --out data/processed/skillcorner_decoder_dataset_h4s.pt --horizon-steps 40
-python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h6s.pt --out data/processed/skillcorner_decoder_dataset_h6s.pt --horizon-steps 60
+python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h2s.pt --out data/processed/skillcorner_decoder_dataset_h2s.pt --horizon-steps 20 --split-manifest splits/skillcorner_10match_inductive_v1.json --scientific-mode
+python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h4s.pt --out data/processed/skillcorner_decoder_dataset_h4s.pt --horizon-steps 40 --split-manifest splits/skillcorner_10match_inductive_v1.json --scientific-mode
+python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h6s.pt --out data/processed/skillcorner_decoder_dataset_h6s.pt --horizon-steps 60 --split-manifest splits/skillcorner_10match_inductive_v1.json --scientific-mode
 ```
 
 The embeddings only need to be regenerated if their `match_id`/`frame_t` rows do not align with the
@@ -901,9 +920,9 @@ resume. Use `--combined-load` only when you explicitly want a one-shot raw load.
 Build decoder datasets:
 
 ```powershell
-python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h2s.pt --out data/processed/skillcorner_decoder_dataset_h2s.pt --horizon-steps 20
-python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h4s.pt --out data/processed/skillcorner_decoder_dataset_h4s.pt --horizon-steps 40
-python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h6s.pt --out data/processed/skillcorner_decoder_dataset_h6s.pt --horizon-steps 60
+python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h2s.pt --out data/processed/skillcorner_decoder_dataset_h2s.pt --horizon-steps 20 --split-manifest splits/skillcorner_10match_inductive_v1.json --scientific-mode
+python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h4s.pt --out data/processed/skillcorner_decoder_dataset_h4s.pt --horizon-steps 40 --split-manifest splits/skillcorner_10match_inductive_v1.json --scientific-mode
+python scripts/build_decoder_dataset.py --embeddings data/processed/skillcorner_td_embeddings_all.pt --windows data/processed/skillcorner_windows_h6s.pt --out data/processed/skillcorner_decoder_dataset_h6s.pt --horizon-steps 60 --split-manifest splits/skillcorner_10match_inductive_v1.json --scientific-mode
 ```
 
 If a new raw match has windows but no TD-JEPA embeddings, the decoder builder fails clearly instead
@@ -963,7 +982,9 @@ python scripts/build_transition_dataset.py \
   --windows data/processed/skillcorner_windows_h2s.pt \
   --out data/processed/skillcorner_transition_dataset.pt \
   --delta-steps 2 5 10 \
-  --fps 10
+  --fps 10 \
+  --split-manifest splits/skillcorner_10match_inductive_v1.json \
+  --scientific-mode
 ```
 
 Cluster one transition horizon:
@@ -980,20 +1001,24 @@ python scripts/cluster_latent_transitions.py \
 Analyze latent residual scores:
 
 ```bash
-python scripts/analyze_tactical_surprise.py \
+python scripts/analyze_latent_residuals.py \
   --dataset data/processed/skillcorner_transition_dataset.pt \
-  --out runs/discovery/surprise_h2 \
+  --out runs/discovery/latent_residual_h2 \
   --delta-seconds 0.2
 ```
 
 Run the full discovery suite:
 
 ```bash
-python scripts/run_discovery_suite.py --config configs/discovery_suite_skillcorner.yaml
+python scripts/run_discovery_suite.py \
+  --config configs/discovery_suite_skillcorner.yaml \
+  --split-manifest splits/skillcorner_10match_inductive_v1.json \
+  --scientific-mode
 ```
 
 The suite writes generated artifacts under `runs/discovery/experiment5_skillcorner/`, including
-per-delta cluster CSVs, `enrichment_k32.csv`, `exemplars_k32.csv`, `surprise_examples.csv`,
+per-delta cluster CSVs, `enrichment_k32.csv`, `exemplars_k32.csv`,
+`latent_residual_examples.csv`,
 `summary.json`, and `report.md`. Inspect `cluster_summary.json` for cluster quality, enrichment
 CSVs for label associations, and residual examples for high-change latent windows.
 

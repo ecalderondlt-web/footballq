@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import platform
 import subprocess
 import sys
@@ -41,6 +42,12 @@ def file_sha256(path: str | Path) -> str:
     return digest.hexdigest()
 
 
+def _optional_file_sha256(path: str | Path | None) -> str | None:
+    if path is None:
+        return None
+    return file_sha256(path)
+
+
 def _git_value(args: list[str]) -> str | None:
     try:
         return subprocess.check_output(["git", *args], text=True, stderr=subprocess.DEVNULL).strip()
@@ -63,7 +70,7 @@ def git_metadata() -> dict[str, Any]:
 def build_run_manifest(
     *,
     command: list[str] | str,
-    config_path: str | Path,
+    config_path: str | Path | None,
     split_manifest_path: str | Path,
     evaluation_protocol: str,
     feature_view: str,
@@ -79,8 +86,8 @@ def build_run_manifest(
         "created_at_utc": datetime.now(UTC).replace(microsecond=0).isoformat(),
         "command": command if isinstance(command, str) else " ".join(command),
         "git": git_metadata(),
-        "config_path": str(config_path),
-        "config_sha256": file_sha256(config_path),
+        "config_path": None if config_path is None else str(config_path),
+        "config_sha256": _optional_file_sha256(config_path),
         **split.metadata(),
         "evaluation_protocol": str(evaluation_protocol),
         "feature_view": str(feature_view),
@@ -95,6 +102,16 @@ def build_run_manifest(
     }
     validate_run_manifest(manifest)
     return manifest
+
+
+def write_run_manifest(path: str | Path, manifest: dict[str, Any]) -> Path:
+    """Write a validated run manifest as JSON."""
+
+    validate_run_manifest(manifest)
+    manifest_path = Path(path)
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest, indent=2, default=str) + "\n", encoding="utf-8")
+    return manifest_path
 
 
 def validate_run_manifest(manifest: dict[str, Any]) -> None:

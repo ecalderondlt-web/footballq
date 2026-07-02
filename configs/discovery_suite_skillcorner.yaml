@@ -2,6 +2,7 @@ experiment: discovery_suite_skillcorner
 data:
   embeddings: data/processed/skillcorner_td_embeddings_all.pt
   windows: data/processed/skillcorner_windows_h2s.pt
+  split_manifest: splits/skillcorner_10match_inductive_v1.json
 suite:
   out: runs/discovery/experiment5_skillcorner
   delta_steps: [2, 5, 10]
@@ -11,3 +12,4 @@ suite:
   seed: 123
   max_iter: 12
   fit_sample_size: 20000
+  scientific_mode: true

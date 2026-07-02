@@ -20,11 +20,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--delta-seconds", type=float, default=None)
     parser.add_argument("--k", nargs="+", type=int, default=[8, 16, 32, 64])
-    parser.add_argument(
-        "--feature",
-        choices=["raw_delta_z", "normalized_delta_z", "z_t_delta_z"],
-        default="normalized_delta_z",
-    )
+    parser.add_argument("--feature", default="normalized_delta_z")
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--max-iter", type=int, default=30)
     parser.add_argument("--fit-sample-size", type=int, default=50000)

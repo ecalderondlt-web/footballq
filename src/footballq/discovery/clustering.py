@@ -44,10 +44,15 @@ def transition_feature_matrix(
             ],
             dim=1,
         )
+    elif feature in data.features:
+        x = torch.as_tensor(data.features[feature]).float()[idx]
+        if x.ndim == 1:
+            x = x.unsqueeze(1)
     else:
+        available = sorted(["raw_delta_z", "z_t_delta_z", *data.features.keys()])
         raise ValueError(
-            f"Unknown transition feature {feature!r}. Expected raw_delta_z, "
-            "normalized_delta_z, or z_t_delta_z."
+            f"Unknown transition feature {feature!r}. Available features: "
+            f"{', '.join(available)}."
         )
     if not bool(torch.isfinite(x).all()):
         raise ValueError(f"Transition feature matrix {feature!r} contains non-finite values.")

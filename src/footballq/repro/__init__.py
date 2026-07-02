@@ -5,7 +5,7 @@ from footballq.repro.identity import (
     make_sample_id,
     sample_ids_from_components,
 )
-from footballq.repro.manifest import build_run_manifest, validate_run_manifest
+from footballq.repro.manifest import build_run_manifest, validate_run_manifest, write_run_manifest
 from footballq.repro.splits import SplitManifest, load_split_manifest
 
 __all__ = [
@@ -16,4 +16,5 @@ __all__ = [
     "make_sample_id",
     "sample_ids_from_components",
     "validate_run_manifest",
+    "write_run_manifest",
 ]

@@ -17,6 +17,7 @@ from footballq.data.td_jepa_dataset import build_td_jepa_examples, save_td_jepa_
 from footballq.io.idsse import IDSSEAdapter  # noqa: E402
 from footballq.io.metrica import MetricaAdapter  # noqa: E402
 from footballq.io.skillcorner import SkillCornerAdapter  # noqa: E402
+from footballq.repro.manifest import build_run_manifest, write_run_manifest  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -95,6 +96,20 @@ def main() -> None:
             "visible tracking frames for the requested context and delta settings."
         )
     out = save_td_jepa_data(data, args.out)
+    if args.scientific_mode:
+        manifest_path = out.with_name(f"{out.stem}_run_manifest.json")
+        manifest = build_run_manifest(
+            command=sys.argv,
+            config_path=None,
+            split_manifest_path=args.split_manifest,
+            evaluation_protocol="inductive",
+            feature_view=args.feature_view,
+            objective_mode=args.objective_mode,
+            dataset_paths={"raw": args.raw},
+            output_paths={"td_jepa": out, "run_manifest": manifest_path},
+            warnings=list((data.metadata or {}).get("warnings", [])),
+        )
+        write_run_manifest(manifest_path, manifest)
     print(
         f"wrote {len(data.match_id):,} TD-JEPA examples to {out} "
         f"with state_t={tuple(data.state_t.shape)} delta_state={tuple(data.delta_state.shape)}"

@@ -81,7 +81,7 @@ class ProbeDataset(Dataset):
         self.data = data
         self.target_name = target_name
         self.feature_source = feature_source
-        self.features = probe_feature_matrix(data.examples, feature_source, seed=random_seed)
+        self.features = self._features_for_source(data, feature_source, random_seed)
         target = torch.as_tensor(data.examples["targets"][target_name])
         mask = torch.as_tensor(data.examples["target_masks"][target_name]).bool()
         if indices is None:
@@ -93,6 +93,25 @@ class ProbeDataset(Dataset):
         self.indices = [int(idx) for idx in indices if bool(mask[int(idx)].item())]
         self.target = target
         self.task_type = data.target_types[target_name]
+
+    @staticmethod
+    def _features_for_source(
+        data: ProbeDatasetData,
+        feature_source: str,
+        random_seed: int,
+    ) -> torch.Tensor:
+        zscore_suffix = "_zscore"
+        if not feature_source.endswith(zscore_suffix):
+            return probe_feature_matrix(data.examples, feature_source, seed=random_seed)
+        base_source = feature_source[: -len(zscore_suffix)]
+        features = probe_feature_matrix(data.examples, base_source, seed=random_seed)
+        train_indices = [int(value) for value in data.splits.get("train_indices", [])]
+        if not train_indices:
+            raise ValueError("Z-scored probe features require train_indices.")
+        train_features = features[train_indices]
+        mean = train_features.mean(dim=0, keepdim=True)
+        std = train_features.std(dim=0, unbiased=False, keepdim=True).clamp_min(1e-6)
+        return (features - mean) / std
 
     def __len__(self) -> int:
         return len(self.indices)

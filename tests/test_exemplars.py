@@ -33,5 +33,10 @@ def test_exemplars_include_expected_types():
     }
     rows = export_exemplars(data, payload, seed=3)
     types = {row["exemplar_type"] for row in rows}
-    assert {"centroid", "high_surprise", "high_future_ball_displacement", "random"}.issubset(types)
+    assert {
+        "centroid",
+        "high_latent_residual",
+        "high_future_ball_displacement",
+        "random",
+    }.issubset(types)
     assert {row["cluster_id"] for row in rows} == {0, 1}

@@ -16,6 +16,7 @@ from footballq.discovery.transitions import (  # noqa: E402
     build_transition_dataset,
     transition_summary,
 )
+from footballq.repro.manifest import build_run_manifest, write_run_manifest  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -44,6 +45,24 @@ def main() -> None:
     summary = transition_summary(data)
     summary_path = args.out.with_name(f"{args.out.stem}_summary.json")
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    if args.scientific_mode:
+        manifest_path = args.out.with_name(f"{args.out.stem}_run_manifest.json")
+        manifest = build_run_manifest(
+            command=sys.argv,
+            config_path=None,
+            split_manifest_path=args.split_manifest,
+            evaluation_protocol="inductive",
+            feature_view=str(data.metadata.get("feature_view", "unknown")),
+            objective_mode=str(data.metadata.get("objective_mode", "transition_dataset")),
+            dataset_paths={"embeddings": args.embeddings, "windows": args.windows},
+            output_paths={
+                "transition_dataset": args.out,
+                "summary": summary_path,
+                "run_manifest": manifest_path,
+            },
+            warnings=list(data.metadata.get("warnings", [])),
+        )
+        write_run_manifest(manifest_path, manifest)
     print(f"transition_dataset: {args.out}")
     print(f"summary: {summary_path}")
     print(f"num_examples: {data.num_examples}")

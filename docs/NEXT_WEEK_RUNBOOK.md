@@ -73,7 +73,7 @@ Do not claim:
 
 Purpose: close the remaining engineering gaps before running expensive jobs.
 
-Tasks:
+Verify or complete:
 
 1. Make every scientific entry point write a run manifest.
 2. Update README commands to use `--split-manifest` and `--scientific-mode`.

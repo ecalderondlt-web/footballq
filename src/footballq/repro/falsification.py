@@ -9,6 +9,7 @@ import torch
 CONTROL_CONDITIONS = {
     "correct_temporal_pairing",
     "shuffled_future_within_batch",
+    "future_from_another_match",
     "reversed_time_context",
     "masked_ball",
     "team_swap",
@@ -52,6 +53,21 @@ def apply_td_falsification_control(
         n = int(out["state_t_plus_delta"].shape[0])
         generator = torch.Generator(device="cpu").manual_seed(int(seed))
         perm = torch.randperm(n, generator=generator)
+        out["state_t_plus_delta"] = out["state_t_plus_delta"][perm]
+        out["mask_t_plus_delta"] = out["mask_t_plus_delta"][perm]
+        out["control_permutation"] = perm
+        return out
+    if condition == "future_from_another_match":
+        match_ids = [str(value) for value in out.get("match_id", [])]
+        if not match_ids:
+            raise ValueError("future_from_another_match requires batch match_id values.")
+        perm_rows = []
+        for row_idx, match_id in enumerate(match_ids):
+            candidates = [idx for idx, other in enumerate(match_ids) if other != match_id]
+            if not candidates:
+                raise ValueError("future_from_another_match requires at least two match IDs.")
+            perm_rows.append(candidates[(row_idx + int(seed)) % len(candidates)])
+        perm = torch.tensor(perm_rows, dtype=torch.long)
         out["state_t_plus_delta"] = out["state_t_plus_delta"][perm]
         out["mask_t_plus_delta"] = out["mask_t_plus_delta"][perm]
         out["control_permutation"] = perm

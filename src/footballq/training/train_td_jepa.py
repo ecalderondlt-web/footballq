@@ -6,6 +6,7 @@ import json
 import math
 import random
 import shutil
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,7 @@ except ImportError:  # pragma: no cover - minimal environments
 
 from footballq.data.td_jepa_dataset import TDJEPAData, TDJEPADataset, load_td_jepa_data
 from footballq.models.td_jepa import SoccerTDJEPA
+from footballq.repro.manifest import build_run_manifest, write_run_manifest
 from footballq.repro.splits import split_indices_from_manifest
 from footballq.training.ema import update_ema
 from footballq.training.td_jepa_losses import td_jepa_loss
@@ -238,7 +240,8 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
     run_root = Path(train_cfg.get("run_root", "runs"))
     run_dir = run_root / "td_jepa" / datetime.now().strftime("%Y%m%d_%H%M%S")
     run_dir.mkdir(parents=True, exist_ok=True)
-    with (run_dir / "config.yaml").open("w", encoding="utf-8") as handle:
+    run_config_path = run_dir / "config.yaml"
+    with run_config_path.open("w", encoding="utf-8") as handle:
         yaml.safe_dump(cfg, handle, sort_keys=False)
 
     latest_path = run_dir / "latest.pt"
@@ -322,6 +325,26 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
             )
 
     _save_embedding_sample(run_dir / "embeddings_sample.pt", model, loaders["test"], device)
+    if split_manifest:
+        manifest_path = run_dir / "run_manifest.json"
+        manifest = build_run_manifest(
+            command=sys.argv,
+            config_path=run_config_path,
+            split_manifest_path=split_manifest,
+            evaluation_protocol=str(split_cfg.get("protocol", "inductive")),
+            feature_view=data.feature_view,
+            objective_mode=data.objective_mode,
+            dataset_paths={"td_jepa": data_path},
+            output_paths={
+                "run_dir": run_dir,
+                "latest_checkpoint": latest_path,
+                "best_checkpoint": best_path,
+                "embeddings_sample": run_dir / "embeddings_sample.pt",
+                "run_manifest": manifest_path,
+            },
+            warnings=list((data.metadata or {}).get("warnings", [])),
+        )
+        write_run_manifest(manifest_path, manifest)
     model_root = run_root / "td_jepa"
     shutil.copy2(latest_path, model_root / "latest.pt")
     shutil.copy2(best_path, model_root / "best.pt")
