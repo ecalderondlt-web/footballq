@@ -76,8 +76,9 @@ These items block paper-quality claims:
 
 - Full repo lint is not clean.
 - Full test collection depends on a complete local dev environment.
-- Discovery controls are incomplete: raw/PCA/random/handcrafted baselines and
-  multi-seed stability are not fully implemented.
+- Discovery controls now have a first raw/PCA/random/handcrafted multi-seed
+  summary, but latent-delta discovery has not separated itself from those
+  controls or shown blinded enrichment.
 - Documentation still needs to be rechecked against a fresh install and real
   SkillCorner availability.
 - Team-shape labels remain all-visible-player stretch diagnostics, not a clean

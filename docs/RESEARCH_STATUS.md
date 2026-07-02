@@ -37,9 +37,17 @@ in `runs/td_jepa/v2_nonoverlap_geometry_falsification_gate/`. The gate status is
 and masked-ball controls pass the current ratio threshold, while team swap and
 consistent player-slot permutation fail and no-motion remains a caution.
 
+The discovery control summary in
+`runs/discovery/v2_nonoverlap_geometry_control_summary/` now includes nuisance
+fields for match concentration, transition-magnitude concentration, and minimum
+held-out examples per cluster. The current k=32 summaries are not obviously
+one-match dominated, but latent-delta quality/concentration remains similar to
+raw, PCA, and random-encoder controls, so the discovery outputs remain
+diagnostic partitions only.
+
 Scientific validation still requires longer/stronger representation runs,
-stronger separation from no-motion and team/slot-invariance controls, full
-held-out discovery baseline summaries across seeds, possession- or segment-level
+stronger separation from no-motion and team/slot-invariance controls, discovery
+enrichment beyond raw/PCA/random controls, possession- or segment-level
 uncertainty, and blinded annotation against matched controls.
 
 Current focused verification:

@@ -264,6 +264,20 @@ Required discovery controls:
 - train-fit / val-test assignment
 - match concentration and transition-magnitude concentration
 
+After all baseline cluster summaries exist, aggregate the comparison with:
+
+```bash
+python scripts/summarize_discovery_controls.py \
+  --cluster-summary normalized_delta_z:7:runs/discovery/SEED7_LATENT/delta_0p2s/cluster_summary.json \
+  --cluster-summary raw_delta_z:7:runs/discovery/SEED7_BASELINES/raw_delta_z_h02/cluster_summary.json \
+  --cluster-summary pca_delta_z:7:runs/discovery/SEED7_BASELINES/pca_delta_z_h02/cluster_summary.json \
+  --cluster-summary random_encoder_delta_z:7:runs/discovery/SEED7_BASELINES/random_encoder_delta_z_h02/cluster_summary.json \
+  --out runs/discovery/v2_nonoverlap_geometry_control_summary
+```
+
+Repeat the `--cluster-summary` entries for all seeds and feature families before
+using the summary as a gate.
+
 Render diagnostics only after control summaries are available:
 
 ```bash

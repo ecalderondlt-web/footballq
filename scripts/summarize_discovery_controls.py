@@ -24,6 +24,14 @@ QUALITY_FIELDS = [
     "max_cluster_size_fraction",
 ]
 
+NUISANCE_FIELDS = [
+    "max_cluster_top_match_fraction",
+    "mean_cluster_top_match_fraction",
+    "max_delta_norm_top_fraction",
+    "mean_delta_norm_top_fraction",
+    "min_heldout_examples_per_cluster",
+]
+
 
 def parse_summary_spec(spec: str) -> tuple[str, str, Path]:
     """Parse feature:seed:path summary specs."""
@@ -52,6 +60,60 @@ def _finite_summary(values: list[float]) -> dict[str, float | int | None]:
     }
 
 
+def _empty_nuisance_fields() -> dict[str, float | int | None]:
+    return {field: None for field in NUISANCE_FIELDS}
+
+
+def _cluster_csv_path(summary_path: Path, cluster: dict[str, Any]) -> Path | None:
+    raw_path = cluster.get("clusters_csv")
+    if raw_path is None:
+        return None
+    path = Path(str(raw_path))
+    if path.exists():
+        return path
+    fallback = summary_path.parent / path.name
+    if fallback.exists():
+        return fallback
+    return path
+
+
+def _cluster_csv_nuisance_fields(summary_path: Path, cluster: dict[str, Any]) -> dict[str, Any]:
+    clusters_csv = _cluster_csv_path(summary_path, cluster)
+    if clusters_csv is None or not clusters_csv.exists():
+        return _empty_nuisance_fields()
+
+    top_match_fractions = []
+    delta_top_fractions = []
+    heldout_counts = []
+    with clusters_csv.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            cluster_size = int(float(row.get("n_examples", 0) or 0))
+            if cluster_size <= 0:
+                continue
+            match_counts = json.loads(row.get("match_id_counts", "{}") or "{}")
+            if match_counts:
+                top_match = max(int(value) for value in match_counts.values())
+                top_match_fractions.append(top_match / cluster_size)
+            delta_top = row.get("delta_norm_top_fraction")
+            if delta_top not in {None, ""}:
+                delta_top_fractions.append(float(delta_top))
+            val_count = int(float(row.get("val_count", 0) or 0))
+            test_count = int(float(row.get("test_count", 0) or 0))
+            heldout_counts.append(val_count + test_count)
+
+    top_match_summary = _finite_summary(top_match_fractions)
+    delta_top_summary = _finite_summary(delta_top_fractions)
+    heldout_summary = _finite_summary([float(value) for value in heldout_counts])
+    return {
+        "max_cluster_top_match_fraction": top_match_summary["max"],
+        "mean_cluster_top_match_fraction": top_match_summary["mean"],
+        "max_delta_norm_top_fraction": delta_top_summary["max"],
+        "mean_delta_norm_top_fraction": delta_top_summary["mean"],
+        "min_heldout_examples_per_cluster": heldout_summary["min"],
+    }
+
+
 def row_from_cluster_summary(feature: str, seed: str, path: Path, k: int) -> dict[str, Any]:
     """Return one normalized row from a cluster summary JSON."""
 
@@ -63,6 +125,7 @@ def row_from_cluster_summary(feature: str, seed: str, path: Path, k: int) -> dic
     cluster = matches[0]
     quality = dict(cluster["quality"])
     num_examples = int(quality["num_examples"])
+    nuisance_fields = _cluster_csv_nuisance_fields(path, cluster)
     return {
         "feature": feature,
         "seed": seed,
@@ -81,6 +144,7 @@ def row_from_cluster_summary(feature: str, seed: str, path: Path, k: int) -> dic
             1,
             num_examples,
         ),
+        **nuisance_fields,
     }
 
 
@@ -92,8 +156,10 @@ def summarize_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
         by_feature.setdefault(str(row["feature"]), []).append(row)
     return {
         feature: {
-            field: _finite_summary([float(row[field]) for row in feature_rows])
-            for field in QUALITY_FIELDS
+            field: _finite_summary(
+                [float(row[field]) for row in feature_rows if row.get(field) is not None]
+            )
+            for field in [*QUALITY_FIELDS, *NUISANCE_FIELDS]
         }
         | {
             "seeds": sorted(str(row["seed"]) for row in feature_rows),
@@ -119,6 +185,7 @@ def write_rows_csv(rows: list[dict[str, Any]], path: Path) -> None:
         "scientific_mode",
         "split_manifest_sha256",
         *QUALITY_FIELDS,
+        *NUISANCE_FIELDS,
         "path",
     ]
     with path.open("w", encoding="utf-8", newline="") as handle:
