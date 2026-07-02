@@ -74,6 +74,13 @@ The comparison artifact at
 improves the worst no-motion ratio but does not materially change slot
 sensitivity, and it weakens label-swap separation.
 
+CLS-token encoder pooling is implemented behind `model.pooling: cls` and has a
+gap-1.0 diagnostic config at
+`configs/td_jepa_nonoverlap_gap1p0_cls_skillcorner.yaml`. One seed was trained
+as `runs/td_jepa/20260702_171902`; its extended falsification gate remains
+`blocked`, with stronger label-swap separation but no improvement on team-slot
+or player-slot controls.
+
 Scientific validation still requires longer/stronger representation runs,
 stronger separation from no-motion and team/slot-invariance controls, discovery
 enrichment beyond raw/PCA/random controls, possession- or segment-level

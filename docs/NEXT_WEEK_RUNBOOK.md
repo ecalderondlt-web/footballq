@@ -161,6 +161,10 @@ caution, not pass, and do not fix player-slot or team-slot invariance. Treat thi
 as a redesign hint, not a paper result.
 Use `scripts/compare_td_falsification_gates.py` to compare gate summaries across
 gap variants before choosing the next representation change.
+The next non-scaling redesign scaffold is CLS-token encoder pooling:
+`configs/td_jepa_nonoverlap_gap1p0_cls_skillcorner.yaml`.
+Current one-seed smoke result: CLS pooling remains blocked and does not fix
+slot-control failures.
 
 Expected outputs:
 

@@ -19,13 +19,20 @@ class SoccerStateEncoder(nn.Module):
         n_heads: int = 4,
         n_layers: int = 2,
         dropout: float = 0.1,
+        pooling: str = "mean",
     ) -> None:
         super().__init__()
         self.context_steps = int(context_steps)
         self.n_entities = int(n_entities)
+        self.pooling = str(pooling)
+        if self.pooling not in {"mean", "cls"}:
+            raise ValueError("SoccerStateEncoder pooling must be 'mean' or 'cls'.")
         self.feature_projection = nn.Linear(n_features, d_model)
         self.temporal_pos = nn.Parameter(torch.zeros(1, context_steps, 1, d_model))
         self.entity_pos = nn.Parameter(torch.zeros(1, 1, n_entities, d_model))
+        self.cls_token = (
+            nn.Parameter(torch.zeros(1, 1, d_model)) if self.pooling == "cls" else None
+        )
         layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=n_heads,
@@ -50,11 +57,18 @@ class SoccerStateEncoder(nn.Module):
         x = self.feature_projection(x) + self.temporal_pos + self.entity_pos
         x = x.reshape(batch, self.context_steps * self.n_entities, -1)
         valid = mask.reshape(batch, self.context_steps * self.n_entities)
+        if self.pooling == "cls":
+            cls = self.cls_token.expand(batch, -1, -1)
+            x = torch.cat([cls, x], dim=1)
+            cls_valid = torch.ones(batch, 1, dtype=torch.bool, device=valid.device)
+            valid = torch.cat([cls_valid, valid], dim=1)
         valid_safe = valid.clone()
         empty = valid_safe.sum(dim=1) == 0
         if bool(empty.any()):
             valid_safe[empty, 0] = True
         encoded = self.encoder(x, src_key_padding_mask=~valid_safe)
+        if self.pooling == "cls":
+            return self.projection(encoded[:, 0])
         weights = valid_safe.unsqueeze(-1).to(encoded.dtype)
         pooled = (encoded * weights).sum(dim=1) / weights.sum(dim=1).clamp_min(1.0)
         return self.projection(pooled)

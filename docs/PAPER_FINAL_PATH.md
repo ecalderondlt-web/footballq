@@ -96,6 +96,9 @@ These items block paper-quality claims:
   its overall claim status is blocked.
 - A gap-1.0 geometry-only diagnostic reduces the worst no-motion failure but
   remains blocked across seeds, so longer horizon alone is not sufficient.
+- A CLS-token encoder-pooling diagnostic config exists as the next non-scaling
+  representation redesign candidate. One seed remains blocked, so CLS pooling
+  alone is not evidence of a fix.
 - No blinded annotation evidence exists yet.
 
 ## Final Path

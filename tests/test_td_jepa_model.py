@@ -24,6 +24,27 @@ def test_state_and_motion_encoder_shapes():
     assert delta_z.shape == (4, 16)
 
 
+def test_state_encoder_cls_pooling_shapes_and_rejects_bad_pooling():
+    state, mask, _, _ = _batch()
+    encoder = SoccerStateEncoder(
+        3,
+        23,
+        10,
+        z_dim=16,
+        d_model=32,
+        n_heads=4,
+        n_layers=1,
+        pooling="cls",
+    )
+    assert encoder(state, mask).shape == (4, 16)
+    try:
+        SoccerStateEncoder(3, 23, 10, pooling="unknown")
+    except ValueError as exc:
+        assert "pooling" in str(exc)
+    else:  # pragma: no cover - defensive
+        raise AssertionError("Expected invalid pooling to raise ValueError.")
+
+
 def test_td_jepa_forward_and_loss_are_finite():
     state, mask, delta, delta_mask = _batch()
     model = SoccerTDJEPA(
@@ -50,6 +71,34 @@ def test_td_jepa_forward_and_loss_are_finite():
     losses = td_jepa_loss(outputs["z_pred"], outputs["z_target"], outputs["z_t"])
     assert {"total_loss", "td_loss", "anti_collapse_loss"}.issubset(losses)
     assert all(torch.isfinite(value) for value in losses.values())
+
+
+def test_td_jepa_forward_with_cls_pooling_is_finite():
+    state, mask, delta, delta_mask = _batch()
+    model = SoccerTDJEPA(
+        context_steps=3,
+        delta_steps=2,
+        n_entities=23,
+        n_features=10,
+        z_dim=16,
+        d_model=32,
+        n_heads=4,
+        n_layers=1,
+        motion_hidden_dim=32,
+        pooling="cls",
+    )
+    outputs = model(
+        {
+            "state_t": state,
+            "mask_t": mask,
+            "state_t_plus_delta": state + 0.01,
+            "mask_t_plus_delta": mask,
+            "delta_state": delta,
+            "delta_mask": delta_mask,
+        }
+    )
+    assert torch.isfinite(outputs["z_pred"]).all()
+    assert torch.isfinite(outputs["z_target"]).all()
 
 
 def test_target_encoder_has_no_grad_and_ema_updates():

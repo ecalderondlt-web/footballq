@@ -61,6 +61,7 @@ def create_td_jepa_model(config: dict[str, Any], data: TDJEPAData) -> SoccerTDJE
         n_layers=int(model_cfg.get("n_layers", 2)),
         dropout=float(model_cfg.get("dropout", 0.1)),
         motion_hidden_dim=int(model_cfg.get("motion_hidden_dim", 256)),
+        pooling=str(model_cfg.get("pooling", "mean")),
     )
 
 

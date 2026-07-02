@@ -62,6 +62,7 @@ class SoccerTDJEPA(nn.Module):
         n_layers: int = 2,
         dropout: float = 0.1,
         motion_hidden_dim: int = 256,
+        pooling: str = "mean",
     ) -> None:
         super().__init__()
         self.online_encoder = SoccerStateEncoder(
@@ -73,6 +74,7 @@ class SoccerTDJEPA(nn.Module):
             n_heads=n_heads,
             n_layers=n_layers,
             dropout=dropout,
+            pooling=pooling,
         )
         self.target_encoder = copy.deepcopy(self.online_encoder)
         for parameter in self.target_encoder.parameters():
