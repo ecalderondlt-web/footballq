@@ -124,7 +124,7 @@ Primary non-overlap geometry-only dataset:
 python scripts/prepare_td_jepa_data.py \
   --source skillcorner \
   --raw data/raw/skillcorner \
-  --out data/processed/skillcorner_td_jepa_nonoverlap_geometry.pt \
+  --out data/processed/skillcorner_td_jepa_nonoverlap.pt \
   --objective-mode future_nonoverlap_context_only \
   --prediction-gap-seconds 0.5 \
   --feature-view geometry_only \
@@ -138,6 +138,27 @@ three seeds before interpreting stability:
 ```bash
 python scripts/train_td_jepa.py --config configs/td_jepa_nonoverlap_skillcorner.yaml
 ```
+
+If no-motion remains close, run the same geometry-only protocol with a longer
+prediction gap before scaling the model:
+
+```bash
+python scripts/prepare_td_jepa_data.py \
+  --source skillcorner \
+  --raw data/raw/skillcorner \
+  --out data/processed/skillcorner_td_jepa_nonoverlap_gap1p0.pt \
+  --objective-mode future_nonoverlap_context_only \
+  --prediction-gap-seconds 1.0 \
+  --feature-view geometry_only \
+  --split-manifest splits/skillcorner_10match_inductive_v1.json \
+  --scientific-mode
+
+python scripts/train_td_jepa.py --config configs/td_jepa_nonoverlap_gap1p0_skillcorner.yaml
+```
+
+Current diagnostic result: the gap-1.0 one-epoch seeds improve no-motion to
+caution, not pass, and do not fix player-slot or team-slot invariance. Treat this
+as a redesign hint, not a paper result.
 
 Expected outputs:
 

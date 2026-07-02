@@ -60,6 +60,16 @@ The combined gate artifact at
 redesign or retrain the representation until falsification controls pass; any
 visualization remains blinded diagnostic material only.
 
+A geometry-only gap-1.0 diagnostic config is available at
+`configs/td_jepa_nonoverlap_gap1p0_skillcorner.yaml`, and three one-epoch
+diagnostic seeds were run against
+`data/processed/skillcorner_td_jepa_nonoverlap_gap1p0.pt`. The extended
+falsification summary at
+`runs/td_jepa/v2_nonoverlap_geometry_gap1p0_falsification_gate_extended/` remains
+`blocked`: no-motion improves to caution rather than fail, but team-slot and
+context/target player-slot controls still fail, and home/away label-swap
+controls are only caution across seeds.
+
 Scientific validation still requires longer/stronger representation runs,
 stronger separation from no-motion and team/slot-invariance controls, discovery
 enrichment beyond raw/PCA/random controls, possession- or segment-level

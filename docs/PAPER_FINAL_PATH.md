@@ -94,6 +94,8 @@ These items block paper-quality claims:
   complete team-label insensitivity.
 - A combined integrity gate summary exists for the current v2 diagnostics, and
   its overall claim status is blocked.
+- A gap-1.0 geometry-only diagnostic reduces the worst no-motion failure but
+  remains blocked across seeds, so longer horizon alone is not sufficient.
 - No blinded annotation evidence exists yet.
 
 ## Final Path
@@ -194,7 +196,7 @@ Run at least two representation protocols:
    python scripts/prepare_td_jepa_data.py \
      --source skillcorner \
      --raw data/raw/skillcorner \
-     --out data/processed/skillcorner_td_jepa_nonoverlap_geometry.pt \
+     --out data/processed/skillcorner_td_jepa_nonoverlap.pt \
      --objective-mode future_nonoverlap_context_only \
      --prediction-gap-seconds 0.5 \
      --feature-view geometry_only \
