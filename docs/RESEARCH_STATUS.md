@@ -27,10 +27,13 @@ command alignment for split/scientific modes, and default
 Local SkillCorner split folders have been verified for the ten-match manifest,
 and one-epoch geometry-only non-overlap v2 diagnostics have been run for three
 seeds. These runs are still diagnostics, not paper-quality evidence.
+Probe evaluation now records match-level grouped metrics in `eval_test.json`
+for uncertainty diagnostics, and the current h2s v2 probe runs have been
+re-evaluated with those summaries.
 
 Scientific validation still requires longer/stronger representation runs,
 stronger separation from no-motion and team/slot-invariance controls, full
-held-out discovery baseline summaries across seeds, match/possession-level
+held-out discovery baseline summaries across seeds, possession- or segment-level
 uncertainty, and blinded annotation against matched controls.
 
 Current focused verification:

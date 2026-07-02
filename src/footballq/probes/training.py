@@ -127,6 +127,71 @@ def evaluate_probe_model(
     return metrics
 
 
+def _metric_summary(values: list[float]) -> dict[str, float | int | None]:
+    finite = [float(value) for value in values if math.isfinite(float(value))]
+    if not finite:
+        return {"count": 0, "mean": None, "std": None, "min": None, "max": None}
+    tensor = torch.tensor(finite, dtype=torch.float32)
+    return {
+        "count": len(finite),
+        "mean": float(tensor.mean().item()),
+        "std": float(tensor.std(unbiased=False).item()) if len(finite) > 1 else 0.0,
+        "min": float(tensor.min().item()),
+        "max": float(tensor.max().item()),
+    }
+
+
+def _evaluate_match_level_metrics(
+    model: torch.nn.Module,
+    loader: DataLoader,
+    data: ProbeDatasetData,
+    task_type: str,
+    device: torch.device,
+    num_classes: int | None,
+) -> dict[str, Any]:
+    model.eval()
+    rows: dict[str, dict[str, list[Any]]] = {}
+    match_ids = [str(value) for value in data.examples.get("match_id", [])]
+    with torch.no_grad():
+        for batch in loader:
+            batch = _batch_to_device(batch, device)
+            output = model(batch["x"])
+            indices = [int(value) for value in batch["index"].detach().cpu().tolist()]
+            if task_type == "classification":
+                prediction = output.argmax(dim=1).detach().cpu().long().tolist()
+                target = batch["y"].detach().cpu().long().tolist()
+            else:
+                prediction = output.view(-1).detach().cpu().float().tolist()
+                target = batch["y"].float().view(-1).detach().cpu().tolist()
+            for idx, y_true, y_pred in zip(indices, target, prediction, strict=True):
+                match_id = match_ids[idx] if idx < len(match_ids) else "unknown"
+                bucket = rows.setdefault(match_id, {"y_true": [], "y_pred": []})
+                bucket["y_true"].append(y_true)
+                bucket["y_pred"].append(y_pred)
+
+    groups: dict[str, dict[str, Any]] = {}
+    primary_values: list[float] = []
+    primary_metric = "macro_f1" if task_type == "classification" else "rmse"
+    for match_id, values in sorted(rows.items()):
+        y_true = torch.tensor(values["y_true"])
+        y_pred = torch.tensor(values["y_pred"])
+        if task_type == "classification":
+            assert num_classes is not None
+            metrics = classification_metrics(y_true.long(), y_pred.long(), num_classes=num_classes)
+        else:
+            metrics = regression_metrics(y_true.float(), y_pred.float())
+        groups[match_id] = metrics
+        metric_value = metrics.get(primary_metric)
+        if isinstance(metric_value, (int, float)):
+            primary_values.append(float(metric_value))
+    return {
+        "group_key": "match_id",
+        "primary_metric": primary_metric,
+        "summary": _metric_summary(primary_values),
+        "groups": groups,
+    }
+
+
 def _is_better(task_type: str, current: float, best: float) -> bool:
     if math.isnan(current):
         return False
@@ -439,6 +504,14 @@ def evaluate_probe_checkpoint(
     metrics = evaluate_probe_model(
         model,
         loader,
+        task_type,
+        torch_device,
+        num_classes=int(payload["output_dim"]) if task_type == "classification" else None,
+    )
+    metrics["match_level"] = _evaluate_match_level_metrics(
+        model,
+        loader,
+        data,
         task_type,
         torch_device,
         num_classes=int(payload["output_dim"]) if task_type == "classification" else None,

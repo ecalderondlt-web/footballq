@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 import torch
 
@@ -9,7 +11,12 @@ from footballq.synthetic.generate import generate_synthetic_tracking
 
 def _probe_dataset_path(tmp_path):
     frames = [
-        generate_synthetic_tracking(match_id=f"probe_smoke_{idx}", duration_s=4.0, fps=5.0, seed=idx)
+        generate_synthetic_tracking(
+            match_id=f"probe_smoke_{idx}",
+            duration_s=4.0,
+            fps=5.0,
+            seed=idx,
+        )
         for idx in range(3)
     ]
     windows = build_tracking_windows(
@@ -77,6 +84,9 @@ def test_probe_train_smoke_classification(tmp_path):
     )
     assert result["best_checkpoint"].exists()
     assert (result["run_dir"] / "eval_test.json").exists()
+    metrics = json.loads((result["run_dir"] / "eval_test.json").read_text())
+    assert metrics["match_level"]["group_key"] == "match_id"
+    assert metrics["match_level"]["summary"]["count"] >= 1
 
 
 def test_probe_train_smoke_regression(tmp_path):
