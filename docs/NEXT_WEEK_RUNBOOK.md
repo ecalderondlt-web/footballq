@@ -159,6 +159,8 @@ python scripts/train_td_jepa.py --config configs/td_jepa_nonoverlap_gap1p0_skill
 Current diagnostic result: the gap-1.0 one-epoch seeds improve no-motion to
 caution, not pass, and do not fix player-slot or team-slot invariance. Treat this
 as a redesign hint, not a paper result.
+Use `scripts/compare_td_falsification_gates.py` to compare gate summaries across
+gap variants before choosing the next representation change.
 
 Expected outputs:
 

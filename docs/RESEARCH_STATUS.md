@@ -69,6 +69,10 @@ falsification summary at
 `blocked`: no-motion improves to caution rather than fail, but team-slot and
 context/target player-slot controls still fail, and home/away label-swap
 controls are only caution across seeds.
+The comparison artifact at
+`runs/td_jepa/v2_nonoverlap_geometry_gap_comparison/` shows the longer gap
+improves the worst no-motion ratio but does not materially change slot
+sensitivity, and it weakens label-swap separation.
 
 Scientific validation still requires longer/stronger representation runs,
 stronger separation from no-motion and team/slot-invariance controls, discovery
