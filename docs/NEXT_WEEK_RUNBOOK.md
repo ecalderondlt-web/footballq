@@ -315,6 +315,17 @@ Do not claim:
 
 ## Go / No-Go Criteria
 
+After falsification, probe, and discovery summaries exist, write the combined
+gate status:
+
+```bash
+python scripts/summarize_integrity_gates.py \
+  --falsification runs/td_jepa/v2_nonoverlap_geometry_falsification_gate/td_falsification_gate_summary.json \
+  --probe runs/probe_suite/v2_nonoverlap_geometry_h2s_incremental_summary/probe_incremental_summary.json \
+  --discovery runs/discovery/v2_nonoverlap_geometry_control_summary/discovery_control_summary.json \
+  --out runs/integrity/v2_nonoverlap_geometry_gate_summary.json
+```
+
 Proceed toward a tactical representation paper only if most are true:
 
 1. The inductive split is used through encoder pretraining and downstream

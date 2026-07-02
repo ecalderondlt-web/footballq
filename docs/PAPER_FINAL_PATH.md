@@ -90,6 +90,8 @@ These items block paper-quality claims:
 - Falsification controls have a three-seed gate summary, and the gate remains
   blocked by near-invariance to team swap and consistent player-slot
   permutation plus a close no-motion control.
+- A combined integrity gate summary exists for the current v2 diagnostics, and
+  its overall claim status is blocked.
 - No blinded annotation evidence exists yet.
 
 ## Final Path

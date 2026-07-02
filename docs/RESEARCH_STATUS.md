@@ -53,6 +53,12 @@ and consistent z-scored raw-plus-`z` gains for the all-player team-shape
 diagnostic, but these are geometry/control targets with only two held-out test
 matches.
 
+The combined gate artifact at
+`runs/integrity/v2_nonoverlap_geometry_gate_summary.json` reports
+`overall_claim_status: blocked`. The current next scientific action is to
+redesign or retrain the representation until falsification controls pass; any
+visualization remains blinded diagnostic material only.
+
 Scientific validation still requires longer/stronger representation runs,
 stronger separation from no-motion and team/slot-invariance controls, discovery
 enrichment beyond raw/PCA/random controls, possession- or segment-level

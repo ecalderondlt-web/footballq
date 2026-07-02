@@ -1,0 +1,45 @@
+from scripts.summarize_integrity_gates import combine_gates
+
+
+def test_combine_gates_blocks_diagnostic_outputs():
+    summary = combine_gates(
+        {
+            "scientific_claim_status": "blocked",
+            "blocking_conditions": ["team_swap"],
+            "pass_ratio": 1.25,
+            "caution_ratio": 1.05,
+        },
+        {
+            "claim_status": "diagnostic_only",
+            "contrasts": {
+                "target|linear|raw_plus_td_jepa_vs_raw": {
+                    "target": "future_ball_global_x_bucket",
+                    "contrast": "raw_plus_td_jepa_vs_raw",
+                    "metric_name": "macro_f1",
+                    "signed_improvement": {
+                        "all_positive": True,
+                        "mean": 0.1,
+                        "min": 0.05,
+                    },
+                    "match_level_signed_improvement": {"mean": 0.09},
+                }
+            },
+        },
+        {
+            "features": {
+                "normalized_delta_z": {
+                    "cluster_size_entropy": {"mean": 0.87},
+                    "max_cluster_top_match_fraction": {"max": 0.16},
+                },
+                "raw_delta_z": {"cluster_size_entropy": {"mean": 0.88}},
+                "pca_delta_z": {},
+                "random_encoder_delta_z": {"cluster_size_entropy": {"mean": 0.86}},
+                "handcrafted_structure_metrics": {},
+                "pca_handcrafted_structure_metrics": {},
+            }
+        },
+    )
+    assert summary["overall_claim_status"] == "blocked"
+    assert summary["gates"]["falsification"]["blocking_conditions"] == ["team_swap"]
+    assert summary["gates"]["probe_incremental"]["status"] == "diagnostic_only"
+    assert summary["gates"]["discovery_controls"]["missing_required_features"] == []
