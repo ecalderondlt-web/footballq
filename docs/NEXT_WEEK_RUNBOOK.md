@@ -214,6 +214,16 @@ performance(raw + z)
 incremental_value = performance(raw + z) - performance(raw)
 ```
 
+After all seeds finish, aggregate probe increments and match-level uncertainty:
+
+```bash
+python scripts/summarize_probe_incremental.py \
+  --suite 7:runs/probe_suite/SEED7/results.json \
+  --suite 11:runs/probe_suite/SEED11/results.json \
+  --suite 23:runs/probe_suite/SEED23/results.json \
+  --out runs/probe_suite/v2_nonoverlap_geometry_h2s_incremental_summary
+```
+
 Expected outputs:
 
 - possession probes are separated as leakage sanity checks

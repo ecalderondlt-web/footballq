@@ -45,6 +45,14 @@ one-match dominated, but latent-delta quality/concentration remains similar to
 raw, PCA, and random-encoder controls, so the discovery outputs remain
 diagnostic partitions only.
 
+The h2s incremental probe suites are aggregated in
+`runs/probe_suite/v2_nonoverlap_geometry_h2s_incremental_summary/` with signed
+raw-plus-`z` improvements and match-level deltas. Current diagnostics show
+consistent raw-plus-`z` gains for global-x bucket and future ball displacement,
+and consistent z-scored raw-plus-`z` gains for the all-player team-shape
+diagnostic, but these are geometry/control targets with only two held-out test
+matches.
+
 Scientific validation still requires longer/stronger representation runs,
 stronger separation from no-motion and team/slot-invariance controls, discovery
 enrichment beyond raw/PCA/random controls, possession- or segment-level
