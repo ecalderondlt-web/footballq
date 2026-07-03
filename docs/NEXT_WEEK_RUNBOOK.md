@@ -400,8 +400,10 @@ Current-candidate example:
 ```bash
 python scripts/render_diagnostic_clips.py \
   --examples runs/discovery/v2_context_w0p05_slot_recon_margin_seed7/normalized_delta_z_h02/latent_residual_examples.csv \
-  --out runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02 \
-  --max-rows 40 \
+  --out runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02 \
+  --positive-rows 20 \
+  --controls-per-positive 1 \
+  --shuffle-seed 123 \
   --blinded \
   --windows data/processed/skillcorner_windows_h2s.pt \
   --clip-fps 5
@@ -421,6 +423,8 @@ Expected outputs:
 - separate private key file
 - `render_manifest.json` with source paths, rendered/reused/missing counts, and
   `claim_status: diagnostic_only`
+- for balanced scaffolds, hidden key fields for `positive_control`,
+  `control_group`, and `control_match_reason`
 - media coverage count; blank `clip_path` values must be explained by missing
   matched tracking windows, not silently ignored
 

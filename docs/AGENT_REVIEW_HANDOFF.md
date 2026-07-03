@@ -62,6 +62,10 @@ completed blinded annotation evidence exists yet.
 The SkillCorner availability report now exposes processed-window period
 coverage; current h2s output reports `periods=1`, `window_count=315400`, and no
 processed period-2 windows.
+A balanced diagnostic scaffold was also generated at
+`runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
+with 20 high-residual rows and 20 hidden low-residual controls. The private key
+stores row status and control-match metadata; the annotator CSV does not.
 
 ## Review Purpose
 

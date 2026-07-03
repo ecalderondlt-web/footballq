@@ -130,6 +130,10 @@ These items block paper-quality claims:
   available period-1 processed window tensors; 15 period-2 rows still have blank
   `clip_path` values because the current processed SkillCorner window artifacts
   do not include period 2. No completed blinded annotation evidence exists yet.
+- A separate balanced diagnostic scaffold adds hidden low-residual controls:
+  `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
+  contains 20 high-residual rows and 20 low-residual controls, with status stored
+  only in the private key. This is still not blinded annotation evidence.
 
 ## Final Path
 
@@ -351,6 +355,8 @@ Current diagnostic scaffold:
   period-2 rows not covered by the available processed window tensors.
 - `render_manifest.json` records source paths, media coverage, missing window
   identities, and `claim_status: diagnostic_only`.
+- Balanced diagnostic scaffolds can be generated with `--positive-rows` and
+  `--controls-per-positive`; the annotator CSV must still hide the row status.
 
 Blinding rules:
 

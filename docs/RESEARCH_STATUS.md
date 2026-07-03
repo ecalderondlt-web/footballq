@@ -85,6 +85,14 @@ partial media scaffold is not blinded annotation evidence.
 coverage; on the current h2s artifacts it confirms `periods=1`,
 `window_count=315400`, and no processed period-2 windows.
 
+A balanced diagnostic scaffold was also generated at
+`runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
+using 20 high-residual rows and 20 hidden low-residual controls selected from
+the same examples file. The annotator CSV remains blinded; the private key
+stores `positive_control`, `rank_source`, `control_group`, and
+`control_match_reason`. Media coverage is again 25 rendered GIFs and 15 blank
+period-2 rows because the processed h2s windows are period 1 only.
+
 A geometry-only gap-1.0 diagnostic config is available at
 `configs/td_jepa_nonoverlap_gap1p0_skillcorner.yaml`, and three one-epoch
 diagnostic seeds were run against

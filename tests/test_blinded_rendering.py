@@ -42,6 +42,64 @@ def test_blinded_renderer_separates_annotator_file_from_key(tmp_path):
     assert key_rows[0]["cluster_id"] == "7"
 
 
+def test_blinded_renderer_can_select_hidden_low_residual_controls(tmp_path):
+    module = _load_renderer()
+    rows = [
+        {
+            "rank_source": "latent_residual_cv",
+            "match_id": "m1",
+            "period": 1,
+            "frame_t": 10,
+            "cluster_id": 2,
+            "latent_residual_score": 9.0,
+        },
+        {
+            "rank_source": "latent_residual_cv",
+            "match_id": "m2",
+            "period": 1,
+            "frame_t": 20,
+            "cluster_id": 3,
+            "latent_residual_score": 8.0,
+        },
+        {
+            "rank_source": "low_latent_residual_cv",
+            "match_id": "m3",
+            "period": 1,
+            "frame_t": 30,
+            "cluster_id": 2,
+            "latent_residual_score": 0.1,
+        },
+        {
+            "rank_source": "low_latent_residual_cv",
+            "match_id": "m4",
+            "period": 1,
+            "frame_t": 40,
+            "cluster_id": 3,
+            "latent_residual_score": 0.2,
+        },
+    ]
+    selected = module.select_rows_with_low_residual_controls(
+        rows,
+        positive_rows=2,
+        controls_per_positive=1,
+        shuffle_seed=None,
+    )
+    assert [row["positive_control"] for row in selected] == [True, False, True, False]
+    assert selected[1]["control_match_reason"] == "same_cluster"
+    assert selected[3]["control_group"] == "group_00001"
+
+    annotator, key = module.write_blinded_annotation_files(
+        selected,
+        tmp_path / "annotator.csv",
+        tmp_path / "key.csv",
+    )
+    annotator_rows = list(csv.DictReader(annotator.open("r", encoding="utf-8")))
+    key_rows = list(csv.DictReader(key.open("r", encoding="utf-8")))
+    assert "positive_control" not in annotator_rows[0]
+    assert "control_group" not in annotator_rows[0]
+    assert [row["positive_control"] for row in key_rows] == ["True", "False", "True", "False"]
+
+
 def test_blinded_renderer_attaches_processed_window_gif(tmp_path):
     module = _load_renderer()
     n_entities = 3

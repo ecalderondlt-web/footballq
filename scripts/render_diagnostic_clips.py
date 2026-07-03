@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import random
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -52,7 +53,15 @@ def write_blinded_annotation_files(
     annotator_path.parent.mkdir(parents=True, exist_ok=True)
     key_path.parent.mkdir(parents=True, exist_ok=True)
     annotator_fields = ["blind_id", "match_id", "period", "frame_t", "clip_path", "annotation"]
-    key_fields = ["blind_id", "cluster_id", "latent_residual_score", "positive_control"]
+    key_fields = [
+        "blind_id",
+        "cluster_id",
+        "latent_residual_score",
+        "positive_control",
+        "rank_source",
+        "control_group",
+        "control_match_reason",
+    ]
     with annotator_path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=annotator_fields)
         writer.writeheader()
@@ -77,9 +86,80 @@ def write_blinded_annotation_files(
                     "cluster_id": row.get("cluster_id", ""),
                     "latent_residual_score": row.get("latent_residual_score", ""),
                     "positive_control": row.get("positive_control", ""),
+                    "rank_source": row.get("rank_source", ""),
+                    "control_group": row.get("control_group", ""),
+                    "control_match_reason": row.get("control_match_reason", ""),
                 }
             )
     return annotator_path, key_path
+
+
+def _is_low_residual_control(row: dict[str, object]) -> bool:
+    return str(row.get("rank_source", "")).startswith("low_")
+
+
+def _same_values(
+    left: dict[str, object],
+    right: dict[str, object],
+    keys: tuple[str, ...],
+) -> bool:
+    return all(str(left.get(key, "")).strip() == str(right.get(key, "")).strip() for key in keys)
+
+
+def _choose_control_row(
+    positive: dict[str, object],
+    controls: list[dict[str, object]],
+    used: set[int],
+) -> tuple[int | None, str]:
+    strategies: list[tuple[str, tuple[str, ...]]] = [
+        ("same_cluster_match_period", ("cluster_id", "match_id", "period")),
+        ("same_cluster", ("cluster_id",)),
+        ("same_match_period", ("match_id", "period")),
+        ("lowest_available", ()),
+    ]
+    for reason, keys in strategies:
+        for idx, control in enumerate(controls):
+            if idx in used:
+                continue
+            if keys and not _same_values(positive, control, keys):
+                continue
+            return idx, reason
+    return None, "none_available"
+
+
+def select_rows_with_low_residual_controls(
+    rows: list[dict[str, object]],
+    *,
+    positive_rows: int,
+    controls_per_positive: int,
+    shuffle_seed: int | None = 123,
+) -> list[dict[str, object]]:
+    """Select high-residual rows plus hidden low-residual controls for annotation."""
+
+    positives = [row for row in rows if not _is_low_residual_control(row)]
+    controls = [row for row in rows if _is_low_residual_control(row)]
+    selected: list[dict[str, object]] = []
+    used_controls: set[int] = set()
+    for idx, positive in enumerate(positives[: int(positive_rows)]):
+        group = f"group_{idx:05d}"
+        positive_out = dict(positive)
+        positive_out["positive_control"] = True
+        positive_out["control_group"] = group
+        positive_out["control_match_reason"] = "positive"
+        selected.append(positive_out)
+        for _ in range(max(0, int(controls_per_positive))):
+            control_idx, reason = _choose_control_row(positive, controls, used_controls)
+            if control_idx is None:
+                break
+            used_controls.add(control_idx)
+            control_out = dict(controls[control_idx])
+            control_out["positive_control"] = False
+            control_out["control_group"] = group
+            control_out["control_match_reason"] = reason
+            selected.append(control_out)
+    if shuffle_seed is not None:
+        random.Random(int(shuffle_seed)).shuffle(selected)
+    return selected
 
 
 def _parse_int(value: object, *, field: str) -> int:
@@ -344,10 +424,17 @@ def write_render_manifest(
             "cluster_id",
             "latent_residual_score",
             "positive_control",
+            "rank_source",
+            "control_group",
+            "control_match_reason",
         ],
         "rows": len(rows),
         "rows_with_clip_path": sum(bool(row.get("clip_path", "")) for row in rows),
         "rows_without_clip_path": sum(not bool(row.get("clip_path", "")) for row in rows),
+        "positive_control_counts": {
+            str(value): sum(str(row.get("positive_control", "")) == str(value) for row in rows)
+            for value in sorted({str(row.get("positive_control", "")) for row in rows})
+        },
         "render_stats": stats,
     }
     with manifest_path.open("w", encoding="utf-8") as handle:
@@ -369,13 +456,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--clip-fps", type=float, default=5.0)
     parser.add_argument("--manifest-json", type=Path, default=None)
     parser.add_argument("--reuse-existing-media", action="store_true")
+    parser.add_argument("--positive-rows", type=int, default=None)
+    parser.add_argument("--controls-per-positive", type=int, default=0)
+    parser.add_argument("--shuffle-seed", type=int, default=123)
     return parser.parse_args()
 
 
-def _read_examples(path: Path, max_rows: int) -> list[dict[str, object]]:
+def _read_examples(path: Path, max_rows: int | None = None) -> list[dict[str, object]]:
     with path.open("r", encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
-    return rows[: int(max_rows)]
+    return rows[: int(max_rows)] if max_rows is not None else rows
 
 
 def main() -> None:
@@ -383,7 +473,19 @@ def main() -> None:
     if args.examples is not None:
         if args.out is None:
             raise ValueError("--examples requires --out.")
-        rows = _read_examples(args.examples, args.max_rows)
+        needs_control_pool = args.positive_rows is not None or int(args.controls_per_positive) > 0
+        rows = _read_examples(args.examples, None if needs_control_pool else args.max_rows)
+        if needs_control_pool:
+            rows = select_rows_with_low_residual_controls(
+                rows,
+                positive_rows=args.positive_rows
+                if args.positive_rows is not None
+                else args.max_rows,
+                controls_per_positive=args.controls_per_positive,
+                shuffle_seed=args.shuffle_seed,
+            )
+        else:
+            rows = rows[: int(args.max_rows)]
         annotator_csv = args.out / "annotator" / "annotations.csv"
         key_csv = args.out / "private" / "annotation_key.csv"
     else:
