@@ -61,7 +61,10 @@ def _ball_values(data: DecoderDatasetData) -> dict[str, torch.Tensor]:
         acceleration_mag = torch.linalg.vector_norm(acceleration, dim=-1)
         acceleration_mag = acceleration_mag.masked_fill(~acceleration_mask, float("nan"))
         ball_acceleration = torch.nan_to_num(acceleration_mag, nan=-float("inf")).max(dim=1).values
-        ball_acceleration = ball_acceleration.masked_fill(~torch.isfinite(ball_acceleration), float("nan"))
+        ball_acceleration = ball_acceleration.masked_fill(
+            ~torch.isfinite(ball_acceleration),
+            float("nan"),
+        )
 
         v1 = velocities[:, :-1]
         v2 = velocities[:, 1:]
@@ -94,7 +97,12 @@ def _team_selector(data: DecoderDatasetData, team_code: int) -> torch.Tensor:
     )
 
 
-def _team_stat(xy_m: torch.Tensor, mask: torch.Tensor, selector: torch.Tensor, stat: str) -> torch.Tensor:
+def _team_stat(
+    xy_m: torch.Tensor,
+    mask: torch.Tensor,
+    selector: torch.Tensor,
+    stat: str,
+) -> torch.Tensor:
     valid = mask & selector
     valid_f = valid.unsqueeze(-1).float()
     count = valid_f.sum(dim=1).clamp_min(1.0)
@@ -192,10 +200,16 @@ def compute_stress_slices(
     thresholds: dict[str, Any] = {
         "percentile": float(percentile),
         "definitions": {
-            "high_future_ball_displacement": "top percentile of final future ball displacement from current ball position",
+            "high_future_ball_displacement": (
+                "top percentile of final future ball displacement from current ball position"
+            ),
             "high_ball_acceleration": "top percentile of max future ball acceleration magnitude",
-            "high_ball_direction_change": "top percentile of max future ball velocity direction change",
-            "high_team_shape_change": "top percentile of final team centroid/width/length/stretch change sum",
+            "high_ball_direction_change": (
+                "top percentile of max future ball velocity direction change"
+            ),
+            "high_team_shape_change": (
+                "top percentile of final team centroid/width/length/stretch change sum"
+            ),
             "high_team_width_change": "top percentile of final team width change",
             "high_team_length_change": "top percentile of final team length change",
             "high_stretch_index_change": "top percentile of final team stretch-index change",
@@ -227,4 +241,3 @@ def compute_stress_slices(
         name: int(mask.sum().item()) for name, mask in masks.items()
     }
     return masks, thresholds
-

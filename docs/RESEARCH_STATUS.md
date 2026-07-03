@@ -181,10 +181,8 @@ Current focused verification:
   future non-overlap modes
 - focused invariant tests and touched-file Ruff: passed
 - blinded renderer focused tests and touched-file Ruff: passed
-- full test suite: `152 passed`
+- repo-wide Ruff: passed
+- full test suite: `156 passed`
 
-Known lint exception: repo-wide `python -m ruff check . --statistics` currently
-reports 42 issues in older decoder, latent-flow, script, and legacy test files
-outside the integrity-sprint edits. The exact current debt is tracked in
-`docs/LINT_DEBT.md`. Touched sprint files are expected to remain Ruff-clean
-unless a final repo-wide lint cleanup is explicitly chosen.
+The former repo-wide Ruff debt is retired and the current status is tracked in
+`docs/LINT_STATUS.md`.

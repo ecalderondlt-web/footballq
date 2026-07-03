@@ -78,7 +78,10 @@ def test_subset_smoke_split_warns_with_one_match(tmp_path):
 
 
 def test_decoder_learning_curve_writes_results(tmp_path):
-    dataset_path = save_decoder_dataset(_decoder_dataset(tmp_path, matches=3), tmp_path / "decoder.pt")
+    dataset_path = save_decoder_dataset(
+        _decoder_dataset(tmp_path, matches=3),
+        tmp_path / "decoder.pt",
+    )
     result = run_decoder_learning_curve(
         dataset_path,
         tmp_path / "learning_curve",

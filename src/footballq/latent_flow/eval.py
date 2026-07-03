@@ -218,7 +218,12 @@ def evaluate_latent_checkpoint(
         target_all = torch.cat(futures, dim=0)
         mask_all = torch.cat(masks, dim=0)
         last = past_all[:, -1:, :]
-        delta_metrics = compute_latent_rollout_metrics(pred_all - last.unsqueeze(1) if pred_all.ndim == 4 else pred_all - last, target_all - last, mask_all)
+        pred_delta = pred_all - last.unsqueeze(1) if pred_all.ndim == 4 else pred_all - last
+        delta_metrics = compute_latent_rollout_metrics(
+            pred_delta,
+            target_all - last,
+            mask_all,
+        )
         metrics["delta_ADE"] = delta_metrics["latent_ADE"]
     if model_name == "residual_latent_flow_mlp" and "residual_pred_parts" in locals():
         residual_pred_all = torch.cat(residual_pred_parts, dim=0)

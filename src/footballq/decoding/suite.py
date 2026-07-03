@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import csv
 import math
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import torch
 from torch.utils.data import DataLoader
@@ -327,4 +328,9 @@ def run_decoder_suite(
     }
     save_json({"rows": rows, "summary": summary}, out_path / "results.json")
     save_json(summary, summary_json)
-    return {"rows": rows, "summary": summary, "results_csv": results_csv, "summary_json": summary_json}
+    return {
+        "rows": rows,
+        "summary": summary,
+        "results_csv": results_csv,
+        "summary_json": summary_json,
+    }

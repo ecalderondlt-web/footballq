@@ -125,5 +125,9 @@ def test_residual_context_future_decoder_train_eval_reload(tmp_path):
         device="cpu",
     )["metrics"]
     assert torch.isfinite(torch.tensor(metrics["all_entity_ADE_m"]))
-    sample = torch.load(result["run_dir"] / "predictions_sample.pt", map_location="cpu", weights_only=False)
+    sample = torch.load(
+        result["run_dir"] / "predictions_sample.pt",
+        map_location="cpu",
+        weights_only=False,
+    )
     assert "raw_decoder_output_xy_norm" in sample

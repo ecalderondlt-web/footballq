@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import csv
 import math
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from footballq.latent_flow.eval import evaluate_latent_baseline, evaluate_latent_checkpoint
 from footballq.latent_flow.io import load_yaml, save_json
 from footballq.latent_flow.train import train_latent_flow_from_config
-
 
 ABLATION_FIELDS = [
     "model",
@@ -126,10 +126,15 @@ def summarize_ablation(
     *,
     max_mean_ade_multiplier: float = 2.0,
 ) -> dict[str, Any]:
-    baseline_rows = [row for row in rows if row["model"] in {"last_latent", "constant_latent_velocity"}]
+    baseline_rows = [
+        row for row in rows if row["model"] in {"last_latent", "constant_latent_velocity"}
+    ]
     residual_rows = [row for row in rows if str(row["model"]).startswith("residual_flow")]
     stochastic_rows = [row for row in residual_rows if float(row["noise_scale"]) > 0.0]
-    cv_row = next((row for row in baseline_rows if row["model"] == "constant_latent_velocity"), None)
+    cv_row = next(
+        (row for row in baseline_rows if row["model"] == "constant_latent_velocity"),
+        None,
+    )
     last_row = next((row for row in baseline_rows if row["model"] == "last_latent"), None)
     cv_ade = float(cv_row["latent_ADE"]) if cv_row else math.inf
     last_fde = float(last_row["latent_FDE"]) if last_row else math.inf
@@ -259,4 +264,9 @@ def run_latent_flow_ablation(
     )
     save_json(summary, summary_json)
     save_json({"results": rows, "summary": summary}, out_path / "results.json")
-    return {"rows": rows, "summary": summary, "results_csv": results_csv, "summary_json": summary_json}
+    return {
+        "rows": rows,
+        "summary": summary,
+        "results_csv": results_csv,
+        "summary_json": summary_json,
+    }

@@ -23,7 +23,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint", type=Path, default=None)
     parser.add_argument("--dataset", type=Path, default=None)
     parser.add_argument("--split", default="test", choices=["train", "val", "test"])
-    parser.add_argument("--baseline", choices=["last_latent", "constant_latent_velocity"], default=None)
+    parser.add_argument(
+        "--baseline",
+        choices=["last_latent", "constant_latent_velocity"],
+        default=None,
+    )
     parser.add_argument("--device", default="auto")
     parser.add_argument("--num-samples", type=int, default=None)
     parser.add_argument("--num-steps", type=int, default=None)

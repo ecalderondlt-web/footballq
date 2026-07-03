@@ -321,7 +321,9 @@ def test_latent_flow_ablation_writes_results_and_summary(tmp_path):
         "residual_flow_cv",
     }
     stochastic = [
-        row for row in rows if row["model"] == "residual_flow_cv" and float(row["noise_scale"]) > 0.0
+        row
+        for row in rows
+        if row["model"] == "residual_flow_cv" and float(row["noise_scale"]) > 0.0
     ]
     assert stochastic
     assert any(float(row["diversity_mean_pairwise_distance"]) > 0.0 for row in stochastic)

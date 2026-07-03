@@ -96,7 +96,12 @@ class LatentFlowMLP(nn.Module):
         return out.view(x_t.shape[0], self.horizon_steps, self.latent_dim)
 
 
-def create_latent_model(config: dict[str, object], latent_dim: int, context_steps: int, horizon_steps: int) -> nn.Module:
+def create_latent_model(
+    config: dict[str, object],
+    latent_dim: int,
+    context_steps: int,
+    horizon_steps: int,
+) -> nn.Module:
     """Create a latent flow or deterministic MLP model from config."""
 
     model_cfg = dict(config.get("model", {})) if isinstance(config, dict) else {}

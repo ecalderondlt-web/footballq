@@ -77,7 +77,11 @@ def _config_args(args: argparse.Namespace) -> dict[str, Any]:
         "dataset": Path(datasets[0]),
         "datasets": [Path(value) for value in datasets],
         "out": Path(out),
-        "match_counts": _option(args.match_counts, suite_cfg.get("match_counts"), ["1", "3", "all"]),
+        "match_counts": _option(
+            args.match_counts,
+            suite_cfg.get("match_counts"),
+            ["1", "3", "all"],
+        ),
         "models": _option(args.models, suite_cfg.get("models"), None),
         "stress_percentile": float(
             _option(args.stress_percentile, suite_cfg.get("stress_percentile"), 0.75)

@@ -42,7 +42,12 @@ def _dataset_path(cfg: dict[str, Any]) -> Path:
 
 
 def decoder_mode(cfg: dict[str, Any]) -> str:
-    return str(cfg.get("target", {}).get("mode", cfg.get("model", {}).get("input_type", "future_from_z")))
+    return str(
+        cfg.get("target", {}).get(
+            "mode",
+            cfg.get("model", {}).get("input_type", "future_from_z"),
+        )
+    )
 
 
 def decoder_name(cfg: dict[str, Any]) -> str:

@@ -311,7 +311,10 @@ def _indices_for_matches(data: DecoderDatasetData, match_ids: list[str]) -> list
     ]
 
 
-def _subset_specs(data: DecoderDatasetData, match_counts: list[str | int]) -> list[tuple[str, list[str]]]:
+def _subset_specs(
+    data: DecoderDatasetData,
+    match_counts: list[str | int],
+) -> list[tuple[str, list[str]]]:
     unique = sorted(set(str(value) for value in data.examples["match_id"]))
     specs: list[tuple[str, list[str]]] = []
     seen: set[tuple[str, ...]] = set()
@@ -383,7 +386,12 @@ def _append_future_slice_rows(
 ) -> None:
     split_indices = [int(value) for value in data.splits.get(f"{split}_indices", [])]
     horizon_steps = data.horizon_steps
-    horizon_seconds = float(data.metadata.get("horizon_seconds", horizon_steps / data.metadata.get("fps", 10.0)))
+    horizon_seconds = float(
+        data.metadata.get(
+            "horizon_seconds",
+            horizon_steps / data.metadata.get("fps", 10.0),
+        )
+    )
     for slice_name in STRESS_SLICE_NAMES:
         if slice_name not in slice_masks:
             continue
@@ -654,7 +662,10 @@ def _primary_real_split(diagnostics: list[dict[str, Any]]) -> dict[str, Any] | N
     )
 
 
-def _main_limitation(dataset_summaries: list[dict[str, Any]], expected_horizons: list[float]) -> str:
+def _main_limitation(
+    dataset_summaries: list[dict[str, Any]],
+    expected_horizons: list[float],
+) -> str:
     max_matches = max((int(item["num_matches"]) for item in dataset_summaries), default=0)
     completed = {float(item["horizon_seconds"]) for item in dataset_summaries}
     missing = [value for value in expected_horizons if float(value) not in completed]
@@ -662,7 +673,9 @@ def _main_limitation(dataset_summaries: list[dict[str, Any]], expected_horizons:
     if max_matches <= 3:
         parts.append("only three or fewer local matches are available")
     if missing:
-        parts.append("missing completed decoder datasets for horizons: " + ", ".join(map(str, missing)))
+        parts.append(
+            "missing completed decoder datasets for horizons: " + ", ".join(map(str, missing))
+        )
     return "; ".join(parts) if parts else "no major local scale limitation detected"
 
 
@@ -789,9 +802,14 @@ def run_decoder_learning_curve(
                     continue
                 if model_key not in TRAIN_SPECS:
                     raise ValueError(f"Unknown decoder learning-curve model: {model_key}")
-                model_label, feature_source, decoder_type, mode, target_type, best_metric = TRAIN_SPECS[
-                    model_key
-                ]
+                (
+                    model_label,
+                    feature_source,
+                    decoder_type,
+                    mode,
+                    target_type,
+                    best_metric,
+                ) = TRAIN_SPECS[model_key]
                 cfg = {
                     "experiment": f"decoder_learning_curve_{model_label}_{dataset_label}_{label}",
                     "seed": seed,
@@ -852,7 +870,13 @@ def run_decoder_learning_curve(
                         )
                     ):
                         for row in rows[before:]:
-                            rows.append({**row, "model": "raw_past_summary_mlp", "model_name": "raw_past_summary_mlp"})
+                            rows.append(
+                                {
+                                    **row,
+                                    "model": "raw_past_summary_mlp",
+                                    "model_name": "raw_past_summary_mlp",
+                                }
+                            )
                 else:
                     metrics = result["test_metrics"]
                     rows.append(
@@ -890,7 +914,10 @@ def run_decoder_learning_curve(
         if int(row["num_matches"]) == all_matches and row.get("slice_name") == "all_windows"
     ]
     context_only = next((row for row in all_rows if row["model"] == "context_only_decoder"), None)
-    z_plus_context = next((row for row in all_rows if row["model"] == "z_plus_context_decoder"), None)
+    z_plus_context = next(
+        (row for row in all_rows if row["model"] == "z_plus_context_decoder"),
+        None,
+    )
     direct_comparisons = _comparison_rows(rows, "z_plus_context_decoder", "context_only_decoder")
     residual_comparisons = _comparison_rows(
         rows,
@@ -936,7 +963,10 @@ def run_decoder_learning_curve(
         "stress_results_csv": str(stress_results_csv),
         "summary_json": str(summary_json),
         "dataset_summaries": dataset_summaries,
-        "num_available_matches": max((item["num_matches"] for item in dataset_summaries), default=0),
+        "num_available_matches": max(
+            (item["num_matches"] for item in dataset_summaries),
+            default=0,
+        ),
         "raw_match_count": max((item["num_matches"] for item in dataset_summaries), default=0),
         "raw_match_count_source": "decoder_datasets",
         "prepared_match_count_by_horizon": prepared_match_count_by_horizon,
@@ -944,7 +974,9 @@ def run_decoder_learning_curve(
         "train_match_ids": primary_split.get("train_match_ids", []) if primary_split else [],
         "val_match_ids": primary_split.get("val_match_ids", []) if primary_split else [],
         "test_match_ids": primary_split.get("test_match_ids", []) if primary_split else [],
-        "split_disjoint": bool(primary_split.get("disjoint_match_split")) if primary_split else False,
+        "split_disjoint": (
+            bool(primary_split.get("disjoint_match_split")) if primary_split else False
+        ),
         "horizon_completion": horizon_completion,
         "six_second_completed": bool(horizon_completion.get("6.0", False)),
         "best_current_reconstruction": _best_row(rows, "current_all_entity_error_m", "current"),
@@ -978,13 +1010,18 @@ def run_decoder_learning_curve(
             "future",
             include_smoke=False,
         ),
-        "context_only_all_entity_ADE_m": context_only.get("all_entity_ADE_m") if context_only else None,
-        "z_plus_context_all_entity_ADE_m": z_plus_context.get("all_entity_ADE_m") if z_plus_context else None,
+        "context_only_all_entity_ADE_m": (
+            context_only.get("all_entity_ADE_m") if context_only else None
+        ),
+        "z_plus_context_all_entity_ADE_m": (
+            z_plus_context.get("all_entity_ADE_m") if z_plus_context else None
+        ),
         "td_jepa_adds_value_over_context": (
             bool(
                 context_only
                 and z_plus_context
-                and float(z_plus_context["all_entity_ADE_m"]) < float(context_only["all_entity_ADE_m"])
+                and float(z_plus_context["all_entity_ADE_m"])
+                < float(context_only["all_entity_ADE_m"])
             )
         ),
         "best_model_overall": _best_row(rows, "all_entity_ADE_m", "future", include_smoke=False),

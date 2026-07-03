@@ -21,7 +21,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint", type=Path, default=None)
     parser.add_argument("--split", default="test", choices=["train", "val", "test"])
     parser.add_argument("--device", default="auto")
-    parser.add_argument("--noise-scales", nargs="*", type=float, default=[0.0, 0.01, 0.03, 0.05, 0.1])
+    parser.add_argument(
+        "--noise-scales",
+        nargs="*",
+        type=float,
+        default=[0.0, 0.01, 0.03, 0.05, 0.1],
+    )
     parser.add_argument("--num-steps", nargs="*", type=int, default=[5, 10, 20])
     parser.add_argument("--num-samples", nargs="*", type=int, default=[4, 8, 16])
     parser.add_argument("--max-mean-ade-multiplier", type=float, default=2.0)

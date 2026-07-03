@@ -29,7 +29,9 @@ class MLPDecoder(nn.Module):
         current = int(input_dim)
         activation_layer: type[nn.Module] = nn.GELU if activation == "gelu" else nn.ReLU
         for hidden in hidden_sizes:
-            layers.extend([nn.Linear(current, int(hidden)), activation_layer(), nn.Dropout(dropout)])
+            layers.extend(
+                [nn.Linear(current, int(hidden)), activation_layer(), nn.Dropout(dropout)]
+            )
             current = int(hidden)
         layers.append(nn.Linear(current, output_dim))
         self.net = nn.Sequential(*layers)
@@ -153,7 +155,12 @@ def create_coordinate_decoder(
             input_steps=input_steps,
             output_steps=output_steps,
             n_entities=data.n_entities,
-            pooling=str(model_cfg.get("pooling", "mean" if mode == "future_from_context" else "flatten")),
+            pooling=str(
+                model_cfg.get(
+                    "pooling",
+                    "mean" if mode == "future_from_context" else "flatten",
+                )
+            ),
             hidden_sizes=hidden_sizes or [256],
             dropout=dropout,
             activation=activation,

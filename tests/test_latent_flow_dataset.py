@@ -1,15 +1,15 @@
 import torch
 
-from footballq.latent_flow.dataset import (
-    add_residual_targets,
-    build_latent_rollout_dataset,
-    split_latent_indices_by_match,
-)
 from footballq.latent_flow.baselines import (
     constant_latent_velocity_predict,
     denormalize_residual,
     last_latent_predict,
     normalize_residual,
+)
+from footballq.latent_flow.dataset import (
+    add_residual_targets,
+    build_latent_rollout_dataset,
+    split_latent_indices_by_match,
 )
 
 
@@ -58,7 +58,10 @@ def test_latent_rollout_dataset_does_not_cross_match_boundaries(tmp_path):
     path = tmp_path / "embeddings.pt"
     _write_latent_embeddings(path, matches=2, steps=8, dim=4)
     data = build_latent_rollout_dataset(path, context_steps=3, horizon_steps=3)
-    counts = {match_id: data.examples["match_id"].count(match_id) for match_id in set(data.examples["match_id"])}
+    counts = {
+        match_id: data.examples["match_id"].count(match_id)
+        for match_id in set(data.examples["match_id"])
+    }
     assert counts == {"m0": 3, "m1": 3}
     assert set(data.examples["frame_t"].tolist()) == {0, 1, 2}
 

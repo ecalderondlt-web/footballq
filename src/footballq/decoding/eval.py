@@ -33,7 +33,8 @@ def evaluate_decoder_checkpoint(
     mode = str(payload.get("mode", decoder_mode(cfg)))
     split_indices = payload.get("split_indices", {})
     if split not in split_indices:
-        raise ValueError(f"Split {split!r} not found in checkpoint. Available: {sorted(split_indices)}")
+        available = sorted(split_indices)
+        raise ValueError(f"Split {split!r} not found in checkpoint. Available: {available}")
     model = create_coordinate_decoder(cfg, data)
     model.load_state_dict(payload["model_state_dict"])
     torch_device = resolve_device(device)

@@ -55,7 +55,11 @@ def residual_future(
     return baseline, future_z - baseline
 
 
-def normalize_residual(residual: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
+def normalize_residual(
+    residual: torch.Tensor,
+    mean: torch.Tensor,
+    std: torch.Tensor,
+) -> torch.Tensor:
     """Normalize residuals with broadcastable train-set statistics."""
 
     return (residual - mean.to(residual.device)) / std.to(residual.device).clamp_min(1e-6)

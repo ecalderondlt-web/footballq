@@ -14,9 +14,13 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from footballq.latent_flow.dataset import LatentRolloutDataset, load_latent_rollout_dataset  # noqa: E402
 from footballq.latent_flow.baselines import denormalize_residual  # noqa: E402
-from footballq.latent_flow.dataset import ensure_residual_targets, residual_normalization_stats  # noqa: E402
+from footballq.latent_flow.dataset import (  # noqa: E402
+    LatentRolloutDataset,
+    ensure_residual_targets,
+    load_latent_rollout_dataset,
+    residual_normalization_stats,
+)
 from footballq.latent_flow.flow_matching import sample_latent_flow  # noqa: E402
 from footballq.latent_flow.models import create_latent_model  # noqa: E402
 from footballq.training.train import resolve_device  # noqa: E402
@@ -65,7 +69,9 @@ def main() -> None:
         args.num_steps
         or flow_cfg.get("num_sampling_steps", cfg.get("sampling", {}).get("num_steps", 20))
     )
-    noise_scale = float(flow_cfg.get("noise_scale", cfg.get("sampling", {}).get("noise_scale", 1.0)))
+    noise_scale = float(
+        flow_cfg.get("noise_scale", cfg.get("sampling", {}).get("noise_scale", 1.0))
+    )
     if bool(flow_cfg.get("deterministic_mean_eval", False)):
         noise_scale = 0.0
     samples = sample_latent_flow(

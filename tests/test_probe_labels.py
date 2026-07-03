@@ -1,11 +1,10 @@
 import pandas as pd
+import torch
 
 from footballq.data.windows import build_tracking_windows, save_windows_pt
 from footballq.probes.dataset import build_probe_dataset, split_probe_indices_by_match
 from footballq.probes.labels import derive_probe_targets
 from footballq.synthetic.generate import generate_synthetic_tracking
-
-import torch
 
 
 def _save_embeddings(path, windows):
