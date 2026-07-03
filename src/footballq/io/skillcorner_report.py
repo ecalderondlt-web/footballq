@@ -94,6 +94,37 @@ def _counter(values: list[str]) -> dict[str, int]:
     return dict(sorted(Counter(str(value) for value in values).items()))
 
 
+def _match_period_counts(match_ids: list[str], periods: list[int]) -> dict[str, dict[str, int]]:
+    counts: dict[str, Counter[str]] = {}
+    for match_id, period in zip(match_ids, periods, strict=True):
+        counts.setdefault(str(match_id), Counter())[str(int(period))] += 1
+    return {match_id: dict(sorted(counter.items())) for match_id, counter in sorted(counts.items())}
+
+
+def _match_period_start_frame_ranges(
+    match_ids: list[str],
+    periods: list[int],
+    start_frames: list[int],
+) -> dict[str, dict[str, dict[str, int]]]:
+    ranges: dict[str, dict[str, dict[str, int]]] = {}
+    for match_id, period, start_frame in zip(match_ids, periods, start_frames, strict=True):
+        match_key = str(match_id)
+        period_key = str(int(period))
+        period_ranges = ranges.setdefault(match_key, {})
+        item = period_ranges.setdefault(
+            period_key,
+            {
+                "count": 0,
+                "min_start_frame": int(start_frame),
+                "max_start_frame": int(start_frame),
+            },
+        )
+        item["count"] += 1
+        item["min_start_frame"] = min(item["min_start_frame"], int(start_frame))
+        item["max_start_frame"] = max(item["max_start_frame"], int(start_frame))
+    return {match_id: dict(sorted(periods.items())) for match_id, periods in sorted(ranges.items())}
+
+
 def _load_embedding_keys(path: Path | None) -> tuple[set[tuple[str, int]], set[str]]:
     if path is None or not path.exists():
         return set(), set()
@@ -124,6 +155,10 @@ def _processed_horizon_report(
         "decoder_dataset_exists": decoder_path.exists(),
         "window_count": 0,
         "window_count_by_match": {},
+        "window_periods": [],
+        "window_count_by_period": {},
+        "window_count_by_match_period": {},
+        "window_start_frame_range_by_match_period": {},
         "decoder_example_count": 0,
         "decoder_example_count_by_match": {},
         "embedding_alignment": {
@@ -135,13 +170,24 @@ def _processed_horizon_report(
     }
     if windows_path.exists():
         windows = load_windows_pt(windows_path)
+        match_ids = [str(value) for value in windows.match_id]
+        periods = [int(value) for value in windows.period]
+        start_frames = [int(value) for value in windows.start_frame]
         report["window_count"] = len(windows.match_id)
-        report["window_count_by_match"] = _counter([str(value) for value in windows.match_id])
+        report["window_count_by_match"] = _counter(match_ids)
+        report["window_periods"] = sorted(set(periods))
+        report["window_count_by_period"] = _counter([str(value) for value in periods])
+        report["window_count_by_match_period"] = _match_period_counts(match_ids, periods)
+        report["window_start_frame_range_by_match_period"] = _match_period_start_frame_ranges(
+            match_ids,
+            periods,
+            start_frames,
+        )
         if embedding_keys:
             window_keys = set(
                 zip(
-                    [str(value) for value in windows.match_id],
-                    [int(value) for value in windows.start_frame],
+                    match_ids,
+                    start_frames,
                     strict=True,
                 )
             )
@@ -197,4 +243,3 @@ def build_skillcorner_availability_report(
         "embedding_match_ids": sorted(embedding_matches),
         "horizons": horizon_reports,
     }
-

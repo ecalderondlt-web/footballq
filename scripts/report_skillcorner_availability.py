@@ -19,7 +19,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--raw", type=Path, default=Path("data/raw/skillcorner"))
     parser.add_argument("--processed-dir", type=Path, default=Path("data/processed"))
-    parser.add_argument("--embeddings", type=Path, default=Path("data/processed/skillcorner_td_embeddings_all.pt"))
+    parser.add_argument(
+        "--embeddings",
+        type=Path,
+        default=Path("data/processed/skillcorner_td_embeddings_all.pt"),
+    )
     parser.add_argument("--horizon-seconds", nargs="*", type=float, default=[2.0, 4.0, 6.0])
     parser.add_argument("--windows-prefix", default="skillcorner_windows")
     parser.add_argument("--decoder-prefix", default="skillcorner_decoder_dataset")
@@ -56,6 +60,7 @@ def main() -> None:
             "horizon: "
             f"{horizon['horizon_label']} windows={horizon['windows_exists']} "
             f"window_count={horizon['window_count']} "
+            f"periods={','.join(str(value) for value in horizon['window_periods']) or 'none'} "
             f"decoder={horizon['decoder_dataset_exists']} "
             f"decoder_examples={horizon['decoder_example_count']} "
             f"matching_embedding_keys={alignment['matching_window_keys']}/"
@@ -70,6 +75,10 @@ def main() -> None:
             print("windows_per_match:")
             for match_id, count in horizon["window_count_by_match"].items():
                 print(f"- {match_id}: {count}")
+        if horizon["window_count_by_period"]:
+            print("windows_per_period:")
+            for period, count in horizon["window_count_by_period"].items():
+                print(f"- {period}: {count}")
         if horizon["decoder_example_count_by_match"]:
             print("decoder_examples_per_match:")
             for match_id, count in horizon["decoder_example_count_by_match"].items():

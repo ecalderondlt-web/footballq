@@ -59,6 +59,9 @@ period 1 only, so those rows remain blank. The renderer now writes
 `render_manifest.json` with source paths, rendered/reused/missing counts, and
 `claim_status: diagnostic_only`. This is partial diagnostic media only; no
 completed blinded annotation evidence exists yet.
+The SkillCorner availability report now exposes processed-window period
+coverage; current h2s output reports `periods=1`, `window_count=315400`, and no
+processed period-2 windows.
 
 ## Review Purpose
 

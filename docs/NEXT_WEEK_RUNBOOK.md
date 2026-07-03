@@ -51,11 +51,24 @@ print("test", split.test_match_ids)
 PY
 ```
 
+Verify raw and processed SkillCorner availability, including processed-window
+period coverage:
+
+```bash
+python scripts/report_skillcorner_availability.py \
+  --raw data/raw/skillcorner \
+  --processed-dir data/processed \
+  --embeddings data/processed/skillcorner_td_embeddings_v2_context_w0p05_slot_recon_margin_seed7_all.pt \
+  --horizon-seconds 2.0
+```
+
 Expected outputs:
 
 - full tests pass in Emilio's environment
 - Ruff is either clean or exact remaining lint debt is recorded
 - split hash is printed and reused in all later artifacts
+- availability report shows the ten raw match IDs and lists processed window
+  periods for each horizon; current h2s artifacts report `periods=1`
 
 Common failure modes:
 

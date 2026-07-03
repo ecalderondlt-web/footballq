@@ -83,8 +83,11 @@ These items block paper-quality claims:
   SkillCorner availability.
 - Team-shape labels remain all-visible-player stretch diagnostics, not a clean
   team tactical target.
-- The real SkillCorner ten-match split has been located locally, but processed
-  artifact coverage and alignment still need final audit.
+- The real SkillCorner ten-match split has been located locally, and the
+  availability report now exposes processed-window period coverage. The current
+  h2s processed window artifact is period 1 only (`315400` windows), so
+  period-2 visualization examples require rebuilding or locating a fuller
+  processed window tensor before annotation.
 - Representation v2 has only been retrained as one-epoch diagnostic seeds under
   the non-overlap, geometry-only protocol.
 - Falsification controls have a three-seed gate summary, and the gate remains

@@ -81,6 +81,9 @@ processed SkillCorner window tensors contain period 1 only, so their
 `clip_path` fields remain blank. The renderer writes a
 `render_manifest.json` coverage summary for this provenance boundary. This
 partial media scaffold is not blinded annotation evidence.
+`scripts/report_skillcorner_availability.py` now reports processed-window period
+coverage; on the current h2s artifacts it confirms `periods=1`,
+`window_count=315400`, and no processed period-2 windows.
 
 A geometry-only gap-1.0 diagnostic config is available at
 `configs/td_jepa_nonoverlap_gap1p0_skillcorner.yaml`, and three one-epoch
