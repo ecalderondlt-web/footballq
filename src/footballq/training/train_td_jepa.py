@@ -107,6 +107,12 @@ def _loss_from_outputs(
         state_target=batch.get("state_t_plus_delta"),
         state_mask=batch.get("mask_t_plus_delta"),
         slot_reconstruction_weight=float(loss_cfg.get("slot_reconstruction_weight", 0.0)),
+        context_reconstruction=outputs.get("context_reconstruction"),
+        context_target=batch.get("state_t"),
+        context_mask=batch.get("mask_t"),
+        context_reconstruction_weight=float(
+            loss_cfg.get("context_reconstruction_weight", 0.0)
+        ),
         no_motion_margin_weight=float(loss_cfg.get("no_motion_margin_weight", 0.0)),
         no_motion_margin=float(loss_cfg.get("no_motion_margin", 0.01)),
     )

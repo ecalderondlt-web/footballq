@@ -15,6 +15,17 @@ def variance_loss(z: torch.Tensor, threshold: float = 1.0) -> torch.Tensor:
     return F.relu(threshold - std).mean()
 
 
+def _masked_state_mse(
+    reconstruction: torch.Tensor,
+    target: torch.Tensor,
+    mask: torch.Tensor,
+) -> torch.Tensor:
+    weights = mask.unsqueeze(-1).to(reconstruction.dtype)
+    diff_sq = (reconstruction - target.detach()).pow(2) * weights
+    denom = weights.sum().clamp_min(1.0) * reconstruction.shape[-1]
+    return diff_sq.sum() / denom
+
+
 def td_jepa_loss(
     z_pred: torch.Tensor,
     z_target: torch.Tensor,
@@ -25,6 +36,10 @@ def td_jepa_loss(
     state_target: torch.Tensor | None = None,
     state_mask: torch.Tensor | None = None,
     slot_reconstruction_weight: float = 0.0,
+    context_reconstruction: torch.Tensor | None = None,
+    context_target: torch.Tensor | None = None,
+    context_mask: torch.Tensor | None = None,
+    context_reconstruction_weight: float = 0.0,
     no_motion_margin_weight: float = 0.0,
     no_motion_margin: float = 0.01,
 ) -> dict[str, torch.Tensor]:
@@ -53,12 +68,29 @@ def td_jepa_loss(
                 "slot_reconstruction_weight requires state_reconstruction, "
                 "state_target, and state_mask."
             )
-        weights = state_mask.unsqueeze(-1).to(state_reconstruction.dtype)
-        diff_sq = (state_reconstruction - state_target.detach()).pow(2) * weights
-        denom = weights.sum().clamp_min(1.0) * state_reconstruction.shape[-1]
-        slot_reconstruction = diff_sq.sum() / denom
+        slot_reconstruction = _masked_state_mse(
+            state_reconstruction,
+            state_target,
+            state_mask,
+        )
+    context_reconstruction_loss = z_pred.new_tensor(0.0)
+    if context_reconstruction_weight > 0.0:
+        if context_reconstruction is None or context_target is None or context_mask is None:
+            raise ValueError(
+                "context_reconstruction_weight requires context_reconstruction, "
+                "context_target, and context_mask."
+            )
+        context_reconstruction_loss = _masked_state_mse(
+            context_reconstruction,
+            context_target,
+            context_mask,
+        )
     total_loss = td_loss + variance_weight * anti_collapse
     total_loss = total_loss + float(slot_reconstruction_weight) * slot_reconstruction
+    total_loss = (
+        total_loss
+        + float(context_reconstruction_weight) * context_reconstruction_loss
+    )
     total_loss = total_loss + float(no_motion_margin_weight) * no_motion_margin_loss
     return {
         "td_loss": td_loss,
@@ -66,6 +98,7 @@ def td_jepa_loss(
         "no_motion_margin_loss": no_motion_margin_loss,
         "anti_collapse_loss": anti_collapse,
         "slot_reconstruction_loss": slot_reconstruction,
+        "context_reconstruction_loss": context_reconstruction_loss,
         "total_loss": total_loss,
         "cosine_similarity": cosine,
         "z_online_std_mean": online_std.mean(),

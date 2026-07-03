@@ -111,6 +111,10 @@ These items block paper-quality claims:
   while preserving the no-motion pass, but it still leaves player-slot/team-swap
   controls below pass threshold and context-side team-label swap failed. This is
   still blocked and is not a downstream-analysis gate pass.
+- A lower-weight context reconstruction diagnostic clears the current
+  falsification gate across three seeds under `total_loss`; this identifies a
+  candidate representation for the next gates, not a paper result. Incremental
+  probe tests, discovery baselines, and blinded visualization gates remain.
 - No blinded annotation evidence exists yet.
 
 ## Final Path

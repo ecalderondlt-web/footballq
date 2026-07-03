@@ -130,4 +130,5 @@ class SoccerTDJEPA(nn.Module):
         }
         if self.state_decoder is not None:
             outputs["state_reconstruction"] = self.decode_state(z_pred)
+            outputs["context_reconstruction"] = self.decode_state(z_t)
         return outputs

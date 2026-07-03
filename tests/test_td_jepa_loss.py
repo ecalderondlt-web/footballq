@@ -31,6 +31,26 @@ def test_slot_reconstruction_loss_adds_to_total():
     assert with_reconstruction["total_loss"].item() > without["total_loss"].item()
 
 
+def test_context_reconstruction_loss_adds_to_total():
+    z = torch.randn(4, 8)
+    target = torch.zeros(4, 2, 3, 2)
+    reconstruction = torch.ones_like(target)
+    mask = torch.ones(4, 2, 3, dtype=torch.bool)
+    without = td_jepa_loss(z, z, z, variance_weight=0.0)
+    with_reconstruction = td_jepa_loss(
+        z,
+        z,
+        z,
+        variance_weight=0.0,
+        context_reconstruction=reconstruction,
+        context_target=target,
+        context_mask=mask,
+        context_reconstruction_weight=0.5,
+    )
+    assert with_reconstruction["context_reconstruction_loss"].item() == 1.0
+    assert with_reconstruction["total_loss"].item() > without["total_loss"].item()
+
+
 def test_no_motion_margin_loss_adds_to_total_when_prediction_matches_online():
     z = torch.randn(4, 8)
     without = td_jepa_loss(z, z, z, variance_weight=0.0)

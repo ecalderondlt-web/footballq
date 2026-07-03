@@ -121,10 +121,25 @@ gate remains `blocked`: player-slot and team-swap controls are only caution, and
 context-side team-label swap remains fail (`ratio_min` 1.04). Do not proceed to
 downstream probes, discovery, or visualization from this diagnostic.
 
-Scientific validation still requires longer/stronger representation runs,
-stronger separation from no-motion and team/slot-invariance controls, discovery
-enrichment beyond raw/PCA/random controls, possession- or segment-level
-uncertainty, and blinded annotation against matched controls.
+Context-side reconstruction is implemented via
+`loss.context_reconstruction_weight`, reusing the state decoder on `z_t` to add
+`context_reconstruction_loss`. The first context-reconstruction diagnostic at
+`configs/td_jepa_nonoverlap_gap1p0_context_slot_recon_margin_skillcorner.yaml`
+clears context-side team/slot controls but is still `blocked` by the
+no-motion predictor. The lower-weight context diagnostic at
+`configs/td_jepa_nonoverlap_gap1p0_context_w0p05_slot_recon_margin_skillcorner.yaml`
+is the first current diagnostic to clear the falsification gate under
+`total_loss`: three one-epoch seeds are summarized at
+`runs/td_jepa/v2_nonoverlap_geometry_gap1p0_context_w0p05_slot_recon_margin_falsification_gate_extended/`,
+with `scientific_claim_status: controls_passed`. The minimum passing ratios
+include no-motion 1.81, context player-slot 1.34, target player-slot 1.34,
+context team-label swap 3.03, and team swap 3.12. This is a falsification-gate
+diagnostic pass only; it does not validate downstream probes, discovery
+baselines, or visualization.
+
+Scientific validation still requires incremental probe tests (raw versus
+z-scored), discovery enrichment beyond raw/PCA/random controls, possession- or
+segment-level uncertainty, and blinded annotation against matched controls.
 
 Current focused verification:
 
@@ -132,6 +147,7 @@ Current focused verification:
 - synthetic data/window/TD-JEPA preparation smoke: passed for legacy overlap and
   future non-overlap modes
 - focused invariant tests and touched-file Ruff: passed
+- full test suite: `151 passed`
 
 Known lint exception: repo-wide `python -m ruff check . --statistics` reports 45
 pre-existing issues in older decoder, latent-flow, probe, script, and legacy

@@ -60,6 +60,7 @@ def rows_from_summary(seed: str, path: Path, metric: str = "td_loss") -> list[di
         td_loss = metrics.get("td_loss")
         total_loss = metrics.get("total_loss")
         slot_reconstruction = metrics.get("slot_reconstruction_loss")
+        context_reconstruction = metrics.get("context_reconstruction_loss")
         cosine = metrics.get("cosine_similarity")
         if metric_value is None:
             ratio = None
@@ -76,6 +77,7 @@ def rows_from_summary(seed: str, path: Path, metric: str = "td_loss") -> list[di
                 "td_loss": td_loss,
                 "total_loss": total_loss,
                 "slot_reconstruction_loss": slot_reconstruction,
+                "context_reconstruction_loss": context_reconstruction,
                 "cosine_similarity": cosine,
                 "metric_ratio_vs_correct": ratio,
                 "metric_margin_vs_correct": margin,
@@ -181,6 +183,7 @@ def write_rows_csv(rows: list[dict[str, Any]], path: Path) -> None:
         "td_loss",
         "total_loss",
         "slot_reconstruction_loss",
+        "context_reconstruction_loss",
         "cosine_similarity",
         "metric_ratio_vs_correct",
         "metric_margin_vs_correct",

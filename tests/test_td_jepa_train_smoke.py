@@ -40,6 +40,7 @@ def test_td_jepa_one_batch_train_eval_and_export(tmp_path):
             "variance_weight": 0.05,
             "variance_threshold": 0.2,
             "slot_reconstruction_weight": 0.1,
+            "context_reconstruction_weight": 0.1,
             "no_motion_margin_weight": 0.1,
             "no_motion_margin": 0.01,
         },
@@ -60,6 +61,7 @@ def test_td_jepa_one_batch_train_eval_and_export(tmp_path):
     metrics = evaluate_td_checkpoint(result["latest_checkpoint"], split="test", device="cpu")
     assert torch.isfinite(torch.tensor(metrics["metrics"]["total_loss"]))
     assert "slot_reconstruction_loss" in metrics["metrics"]
+    assert "context_reconstruction_loss" in metrics["metrics"]
     assert "no_motion_margin_loss" in metrics["metrics"]
     out = export_td_embeddings(
         result["latest_checkpoint"],

@@ -111,6 +111,12 @@ def _condition_losses(
             state_target=batch["state_t_plus_delta"],
             state_mask=batch["mask_t_plus_delta"],
             slot_reconstruction_weight=float(loss_cfg.get("slot_reconstruction_weight", 0.0)),
+            context_reconstruction=outputs.get("context_reconstruction"),
+            context_target=batch["state_t"],
+            context_mask=batch["mask_t"],
+            context_reconstruction_weight=float(
+                loss_cfg.get("context_reconstruction_weight", 0.0)
+            ),
             no_motion_margin_weight=float(loss_cfg.get("no_motion_margin_weight", 0.0)),
             no_motion_margin=float(loss_cfg.get("no_motion_margin", 0.01)),
         )
@@ -131,6 +137,12 @@ def _condition_losses(
         state_target=controlled["state_t_plus_delta"],
         state_mask=controlled["mask_t_plus_delta"],
         slot_reconstruction_weight=float(loss_cfg.get("slot_reconstruction_weight", 0.0)),
+        context_reconstruction=outputs.get("context_reconstruction"),
+        context_target=controlled["state_t"],
+        context_mask=controlled["mask_t"],
+        context_reconstruction_weight=float(
+            loss_cfg.get("context_reconstruction_weight", 0.0)
+        ),
         no_motion_margin_weight=float(loss_cfg.get("no_motion_margin_weight", 0.0)),
         no_motion_margin=float(loss_cfg.get("no_motion_margin", 0.01)),
     )

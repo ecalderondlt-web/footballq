@@ -186,6 +186,18 @@ improves the tradeoff but still does not pass: no-motion remains a strong pass,
 player-slot and team-swap controls are only caution, and context-side
 team-label swap remains fail. Treat this as a design clue, not as a downstream
 green light.
+Context-side reconstruction is now available through
+`loss.context_reconstruction_weight`. The equal-weight context diagnostic
+`configs/td_jepa_nonoverlap_gap1p0_context_slot_recon_margin_skillcorner.yaml`
+clears context-side team/slot controls but overcorrects and leaves no-motion
+blocked. The lower-weight candidate
+`configs/td_jepa_nonoverlap_gap1p0_context_w0p05_slot_recon_margin_skillcorner.yaml`
+clears the current falsification gate across seeds 7, 11, and 23 under the
+`total_loss` gate at
+`runs/td_jepa/v2_nonoverlap_geometry_gap1p0_context_w0p05_slot_recon_margin_falsification_gate_extended/`.
+Use this as the current candidate representation for the next gate: incremental
+probe tests comparing raw versus z-scored feature views. Do not run blinded
+visualization until probe and discovery-baseline gates are complete.
 
 Expected outputs:
 

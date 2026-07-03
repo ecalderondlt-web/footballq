@@ -126,6 +126,7 @@ def test_td_jepa_forward_with_state_decoder_outputs_slot_reconstruction():
         }
     )
     assert outputs["state_reconstruction"].shape == state.shape
+    assert outputs["context_reconstruction"].shape == state.shape
     assert model.decode_state(outputs["z_t"]).shape == state.shape
 
 

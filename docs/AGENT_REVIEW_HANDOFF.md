@@ -30,6 +30,20 @@ no-motion remains close to learned prediction, home/away label-swap controls
 separate from correct pairing, and team-slot/player-slot controls remain
 near-invariant.
 
+Continuation status on the local `codex/research-integrity-sprint-v1` branch:
+the v2 geometry-only non-overlap diagnostic was extended with slot-aligned target
+reconstruction, a no-motion margin, and optional context-side reconstruction.
+The first context-side reconstruction diagnostic overcorrected and remained
+blocked by no-motion, but the lower-weight context diagnostic at
+`configs/td_jepa_nonoverlap_gap1p0_context_w0p05_slot_recon_margin_skillcorner.yaml`
+cleared the current falsification gate across seeds 7, 11, and 23 under the
+`total_loss` gate. The aggregate is stored at
+`runs/td_jepa/v2_nonoverlap_geometry_gap1p0_context_w0p05_slot_recon_margin_falsification_gate_extended/`
+with `scientific_claim_status: controls_passed`. This is not a paper result:
+the next required gates are incremental probes comparing raw versus z-scored
+feature views, discovery baselines against raw/PCA/random controls, and only
+then blinded visualization.
+
 ## Review Purpose
 
 The project is being prepared for a paper. The reviewer should evaluate whether
