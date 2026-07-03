@@ -281,7 +281,7 @@ Remaining reviewer task:
 
 - [ ] Fresh install succeeds with `python -m pip install -e ".[dev]"`.
 - [ ] Full `python -m pytest -q` passes.
-- [ ] Repo-wide Ruff is clean or a tracked lint-debt exception is explicit.
+- [x] Repo-wide Ruff is clean or a tracked lint-debt exception is explicit.
 - [ ] README scientific commands include split manifests.
 - [ ] Every real-data scientific command requires or records split lineage.
 - [ ] Run manifests are written from every experimental entry point.

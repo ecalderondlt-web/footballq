@@ -1,7 +1,7 @@
 experiment: td_jepa_nonoverlap_skillcorner
 seed: 7
 data:
-  path: data/processed/skillcorner_td_jepa_nonoverlap.pt
+  path: data/processed/skillcorner_td_jepa_nonoverlap_geometry.pt
   source: skillcorner
   fps_out: 10
   context_seconds: 1.0

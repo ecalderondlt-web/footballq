@@ -412,7 +412,7 @@ If SkillCorner data is available locally, run but do not commit outputs:
 ```bash
 python scripts/report_skillcorner_availability.py --raw data/raw/skillcorner --processed-dir data/processed --embeddings data/processed/skillcorner_td_embeddings_all.pt
 python scripts/prepare_tracking_data.py --source skillcorner --raw data/raw/skillcorner --out data/processed/skillcorner_windows.pt --fps-out 10 --context-seconds 2.0 --horizon-seconds 2.0 --stride-seconds 0.2
-python scripts/prepare_td_jepa_data.py --source skillcorner --raw data/raw/skillcorner --out data/processed/skillcorner_td_jepa_nonoverlap.pt --fps-out 10 --context-seconds 1.0 --delta-seconds 0.2 --stride-seconds 0.2 --objective-mode future_nonoverlap_context_only --prediction-gap-seconds 0.5 --split-manifest splits/skillcorner_10match_inductive_v1.json
+python scripts/prepare_td_jepa_data.py --source skillcorner --raw data/raw/skillcorner --out data/processed/skillcorner_td_jepa_nonoverlap_geometry.pt --fps-out 10 --context-seconds 1.0 --delta-seconds 0.2 --stride-seconds 0.2 --objective-mode future_nonoverlap_context_only --prediction-gap-seconds 0.5 --split-manifest splits/skillcorner_10match_inductive_v1.json
 ```
 
 ## Go/No-Go Criteria

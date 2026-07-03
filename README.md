@@ -220,7 +220,7 @@ then run:
 python scripts/prepare_td_jepa_data.py `
   --source skillcorner `
   --raw data/raw/skillcorner `
-  --out data/processed/skillcorner_td_jepa_nonoverlap.pt `
+  --out data/processed/skillcorner_td_jepa_nonoverlap_geometry.pt `
   --fps-out 10 `
   --context-seconds 1.0 `
   --delta-seconds 0.2 `
@@ -235,7 +235,7 @@ python scripts/train_td_jepa.py --config configs/td_jepa_nonoverlap_skillcorner.
 python scripts/eval_td_jepa.py --checkpoint runs/td_jepa/latest.pt --split test
 python scripts/export_td_embeddings.py `
   --checkpoint runs/td_jepa/latest.pt `
-  --data data/processed/skillcorner_td_jepa_nonoverlap.pt `
+  --data data/processed/skillcorner_td_jepa_nonoverlap_geometry.pt `
   --out data/processed/skillcorner_td_embeddings_all.pt `
   --split all
 ```

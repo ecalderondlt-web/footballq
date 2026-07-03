@@ -183,7 +183,8 @@ Current focused verification:
 - blinded renderer focused tests and touched-file Ruff: passed
 - full test suite: `152 passed`
 
-Known lint exception: repo-wide `python -m ruff check . --statistics` reports 45
-pre-existing issues in older decoder, latent-flow, probe, script, and legacy
-test files outside the integrity-sprint edits. Touched sprint files are expected
-to remain Ruff-clean unless a final repo-wide lint cleanup is explicitly chosen.
+Known lint exception: repo-wide `python -m ruff check . --statistics` currently
+reports 42 issues in older decoder, latent-flow, script, and legacy test files
+outside the integrity-sprint edits. The exact current debt is tracked in
+`docs/LINT_DEBT.md`. Touched sprint files are expected to remain Ruff-clean
+unless a final repo-wide lint cleanup is explicitly chosen.

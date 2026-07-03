@@ -137,7 +137,7 @@ Primary non-overlap geometry-only dataset:
 python scripts/prepare_td_jepa_data.py \
   --source skillcorner \
   --raw data/raw/skillcorner \
-  --out data/processed/skillcorner_td_jepa_nonoverlap.pt \
+  --out data/processed/skillcorner_td_jepa_nonoverlap_geometry.pt \
   --objective-mode future_nonoverlap_context_only \
   --prediction-gap-seconds 0.5 \
   --feature-view geometry_only \

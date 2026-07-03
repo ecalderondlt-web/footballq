@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from footballq.discovery.transitions import TransitionDatasetData
@@ -23,6 +24,24 @@ def test_transition_features_are_train_normalized():
     assert features["random_encoder_delta_z"].shape == delta_z.shape
     assert diagnostics["normalization_train_rows"] == 2
     assert torch.isfinite(features["normalized_delta_z"]).all()
+
+
+def test_scientific_transition_features_require_train_rows():
+    from footballq.discovery.transitions import _feature_payload
+
+    z_t = torch.zeros(3, 2)
+    z_next = torch.ones(3, 2)
+    delta_z = z_next - z_t
+
+    with pytest.raises(ValueError, match="requires at least one train row"):
+        _feature_payload(
+            z_t,
+            z_next,
+            delta_z,
+            torch.ones(3),
+            ["val", "test", "test"],
+            scientific_mode=True,
+        )
 
 
 def test_transition_dataset_properties():
