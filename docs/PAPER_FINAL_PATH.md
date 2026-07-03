@@ -118,6 +118,10 @@ These items block paper-quality claims:
 - Linear h2s incremental probes for that candidate are mixed: ball displacement
   and z-scored team-shape improve over raw baselines, while global-x bucket and
   unnormalized team-shape do not. This is still diagnostic, not a claim.
+- Discovery controls for the same candidate include all required raw/PCA/random
+  and handcrafted baselines, but normalized latent clustering remains similar to
+  the controls. The current combined gate remains blocked by probe/discovery
+  diagnostics.
 - No blinded annotation evidence exists yet.
 
 ## Final Path

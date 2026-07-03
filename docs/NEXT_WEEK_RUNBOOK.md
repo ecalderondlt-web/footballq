@@ -204,6 +204,12 @@ Future ball displacement and z-scored team-shape show consistent incremental
 gains, but global-x bucket and unnormalized team-shape do not. Continue to
 discovery baselines as diagnostics, but do not treat the probe gate as a paper
 evidence pass.
+Current discovery controls for the same candidate are aggregated at
+`runs/discovery/v2_context_w0p05_slot_recon_margin_control_summary/`. All
+required feature families are present, but normalized latent clusters look
+similar to raw/PCA/random controls, so the combined gate at
+`runs/integrity/v2_context_w0p05_slot_recon_margin_gate_summary.json` remains
+blocked by probe/discovery diagnostics.
 
 Expected outputs:
 

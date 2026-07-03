@@ -38,13 +38,16 @@ reversed-time, masked-ball, and home/away label-swap controls pass the current
 ratio threshold, while team-slot swap plus context/target player-slot
 permutation fail and no-motion remains a caution.
 
-The discovery control summary in
-`runs/discovery/v2_nonoverlap_geometry_control_summary/` now includes nuisance
-fields for match concentration, transition-magnitude concentration, and minimum
-held-out examples per cluster. The current k=32 summaries are not obviously
-one-match dominated, but latent-delta quality/concentration remains similar to
-raw, PCA, and random-encoder controls, so the discovery outputs remain
-diagnostic partitions only.
+The current-candidate discovery control summary is aggregated in
+`runs/discovery/v2_context_w0p05_slot_recon_margin_control_summary/` across
+seeds 7, 11, and 23. It includes normalized latent deltas, raw latent deltas,
+PCA latent deltas, random-projection deltas, handcrafted structure metrics, and
+PCA handcrafted metrics with train-fit / held-out assignment. The normalized
+latent clusters are not obviously one-match dominated, but their entropy and
+match-concentration are similar to raw/PCA/random controls (`cluster_size_entropy`
+mean 0.833 versus raw 0.839 and random 0.835; max top-match fraction 0.263).
+Discovery therefore remains a diagnostic partition, not evidence of a distinct
+latent structure.
 
 Earlier h2s incremental probe suites for the prior v2 representation are
 aggregated in `runs/probe_suite/v2_nonoverlap_geometry_h2s_incremental_summary/`.
@@ -59,12 +62,11 @@ consistently worse than raw for global-x bucket (mean macro-F1 delta -0.014;
 z-scored delta -0.009) and unnormalized team-shape (mean delta -0.026). Treat
 this as a mixed diagnostic probe result, not a downstream evidence pass.
 
-The older combined gate artifact at
-`runs/integrity/v2_nonoverlap_geometry_gate_summary_extended.json` reports
-`overall_claim_status: blocked` for the earlier representation. It should not be
-used as the current lower-weight context candidate's combined gate until
-discovery controls are rerun or explicitly marked as carried-forward
-diagnostics. Any visualization remains blinded diagnostic material only.
+The current combined gate artifact at
+`runs/integrity/v2_context_w0p05_slot_recon_margin_gate_summary.json` reports
+`overall_claim_status: blocked`. Falsification is now `controls_passed`, but the
+incremental probe and discovery-control gates remain `diagnostic_only`. Any
+visualization remains blinded diagnostic material only.
 
 A geometry-only gap-1.0 diagnostic config is available at
 `configs/td_jepa_nonoverlap_gap1p0_skillcorner.yaml`, and three one-epoch
@@ -143,10 +145,9 @@ context team-label swap 3.03, and team swap 3.12. This is a falsification-gate
 diagnostic pass only; it does not validate downstream probes, discovery
 baselines, or visualization.
 
-Scientific validation still requires discovery enrichment beyond raw/PCA/random
-controls for the current candidate, stronger or confirmatory probe evidence,
-possession- or segment-level uncertainty, and blinded annotation against matched
-controls.
+Scientific validation still requires stronger or confirmatory probe evidence,
+discovery enrichment beyond raw/PCA/random controls, possession- or
+segment-level uncertainty, and blinded annotation against matched controls.
 
 Current focused verification:
 

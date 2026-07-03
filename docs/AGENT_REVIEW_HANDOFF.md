@@ -44,8 +44,12 @@ linear h2s incremental probes were run next and are mixed. The aggregate at
 `runs/probe_suite/v2_context_w0p05_slot_recon_margin_h2s_linear_incremental_summary/`
 shows consistent gains for future ball displacement and z-scored team-shape, but
 negative raw-plus-`z` deltas for global-x bucket and unnormalized team-shape.
-The next required gate is discovery baselines against raw/PCA/random controls;
-only after those controls should blinded visualization be considered.
+Discovery baselines against raw/PCA/random and handcrafted controls were then
+run for the same candidate and aggregated at
+`runs/discovery/v2_context_w0p05_slot_recon_margin_control_summary/`. The
+combined gate at `runs/integrity/v2_context_w0p05_slot_recon_margin_gate_summary.json`
+remains blocked by `probe_incremental` and `discovery_controls`, while
+falsification is `controls_passed`.
 
 ## Review Purpose
 
