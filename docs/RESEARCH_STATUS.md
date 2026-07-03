@@ -46,19 +46,25 @@ one-match dominated, but latent-delta quality/concentration remains similar to
 raw, PCA, and random-encoder controls, so the discovery outputs remain
 diagnostic partitions only.
 
-The h2s incremental probe suites are aggregated in
-`runs/probe_suite/v2_nonoverlap_geometry_h2s_incremental_summary/` with signed
-raw-plus-`z` improvements and match-level deltas. Current diagnostics show
-consistent raw-plus-`z` gains for global-x bucket and future ball displacement,
-and consistent z-scored raw-plus-`z` gains for the all-player team-shape
-diagnostic, but these are geometry/control targets with only two held-out test
-matches.
+Earlier h2s incremental probe suites for the prior v2 representation are
+aggregated in `runs/probe_suite/v2_nonoverlap_geometry_h2s_incremental_summary/`.
+For the lower-weight context-reconstruction candidate, three linear h2s probe
+suites are aggregated at
+`runs/probe_suite/v2_context_w0p05_slot_recon_margin_h2s_linear_incremental_summary/`.
+The current probe result is mixed: future ball displacement has consistent
+raw-plus-`z` gains over raw (mean RMSE improvement 0.109; z-scored mean
+improvement 0.498), and z-scored raw-plus-`z` improves the all-player
+team-shape diagnostic (mean macro-F1 improvement 0.074). But raw-plus-`z` is
+consistently worse than raw for global-x bucket (mean macro-F1 delta -0.014;
+z-scored delta -0.009) and unnormalized team-shape (mean delta -0.026). Treat
+this as a mixed diagnostic probe result, not a downstream evidence pass.
 
-The combined gate artifact at
+The older combined gate artifact at
 `runs/integrity/v2_nonoverlap_geometry_gate_summary_extended.json` reports
-`overall_claim_status: blocked`. The current next scientific action is to
-redesign or retrain the representation until falsification controls pass; any
-visualization remains blinded diagnostic material only.
+`overall_claim_status: blocked` for the earlier representation. It should not be
+used as the current lower-weight context candidate's combined gate until
+discovery controls are rerun or explicitly marked as carried-forward
+diagnostics. Any visualization remains blinded diagnostic material only.
 
 A geometry-only gap-1.0 diagnostic config is available at
 `configs/td_jepa_nonoverlap_gap1p0_skillcorner.yaml`, and three one-epoch
@@ -137,9 +143,10 @@ context team-label swap 3.03, and team swap 3.12. This is a falsification-gate
 diagnostic pass only; it does not validate downstream probes, discovery
 baselines, or visualization.
 
-Scientific validation still requires incremental probe tests (raw versus
-z-scored), discovery enrichment beyond raw/PCA/random controls, possession- or
-segment-level uncertainty, and blinded annotation against matched controls.
+Scientific validation still requires discovery enrichment beyond raw/PCA/random
+controls for the current candidate, stronger or confirmatory probe evidence,
+possession- or segment-level uncertainty, and blinded annotation against matched
+controls.
 
 Current focused verification:
 

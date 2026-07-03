@@ -101,6 +101,29 @@ def discovery_gate(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _next_scientific_action(gates: dict[str, dict[str, Any]]) -> str:
+    falsification = gates["falsification"]
+    if falsification["status"] != "controls_passed":
+        return (
+            "Redesign or retrain the representation until falsification controls pass; "
+            "use visualization only as blinded diagnostic material."
+        )
+    if gates["probe_incremental"]["status"] == "incomplete":
+        return (
+            "Run incremental probe controls comparing raw, z, raw+z, and z-scored "
+            "feature views before discovery or visualization."
+        )
+    if gates["discovery_controls"]["status"] == "incomplete":
+        return (
+            "Run discovery baselines against raw/PCA/random controls before any "
+            "blinded visualization."
+        )
+    return (
+        "Review incremental-probe and discovery-control diagnostics against the "
+        "paper gates; proceed only to blinded annotation, not unblinded claims."
+    )
+
+
 def combine_gates(
     falsification: dict[str, Any],
     probe: dict[str, Any],
@@ -126,10 +149,7 @@ def combine_gates(
             "The current artifacts exercise reproducibility and diagnostic controls.",
             "Current clusters, residuals, and probe scores remain diagnostics only.",
         ],
-        "next_scientific_action": (
-            "Redesign or retrain the representation until falsification controls pass; "
-            "use visualization only as blinded diagnostic material."
-        ),
+        "next_scientific_action": _next_scientific_action(gates),
     }
 
 

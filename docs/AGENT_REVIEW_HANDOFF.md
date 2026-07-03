@@ -40,9 +40,12 @@ cleared the current falsification gate across seeds 7, 11, and 23 under the
 `total_loss` gate. The aggregate is stored at
 `runs/td_jepa/v2_nonoverlap_geometry_gap1p0_context_w0p05_slot_recon_margin_falsification_gate_extended/`
 with `scientific_claim_status: controls_passed`. This is not a paper result:
-the next required gates are incremental probes comparing raw versus z-scored
-feature views, discovery baselines against raw/PCA/random controls, and only
-then blinded visualization.
+linear h2s incremental probes were run next and are mixed. The aggregate at
+`runs/probe_suite/v2_context_w0p05_slot_recon_margin_h2s_linear_incremental_summary/`
+shows consistent gains for future ball displacement and z-scored team-shape, but
+negative raw-plus-`z` deltas for global-x bucket and unnormalized team-shape.
+The next required gate is discovery baselines against raw/PCA/random controls;
+only after those controls should blinded visualization be considered.
 
 ## Review Purpose
 

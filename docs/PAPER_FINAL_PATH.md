@@ -115,6 +115,9 @@ These items block paper-quality claims:
   falsification gate across three seeds under `total_loss`; this identifies a
   candidate representation for the next gates, not a paper result. Incremental
   probe tests, discovery baselines, and blinded visualization gates remain.
+- Linear h2s incremental probes for that candidate are mixed: ball displacement
+  and z-scored team-shape improve over raw baselines, while global-x bucket and
+  unnormalized team-shape do not. This is still diagnostic, not a claim.
 - No blinded annotation evidence exists yet.
 
 ## Final Path

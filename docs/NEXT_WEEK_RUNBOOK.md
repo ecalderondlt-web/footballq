@@ -198,6 +198,12 @@ clears the current falsification gate across seeds 7, 11, and 23 under the
 Use this as the current candidate representation for the next gate: incremental
 probe tests comparing raw versus z-scored feature views. Do not run blinded
 visualization until probe and discovery-baseline gates are complete.
+Current linear h2s probe result for this candidate is mixed and aggregated at
+`runs/probe_suite/v2_context_w0p05_slot_recon_margin_h2s_linear_incremental_summary/`.
+Future ball displacement and z-scored team-shape show consistent incremental
+gains, but global-x bucket and unnormalized team-shape do not. Continue to
+discovery baselines as diagnostics, but do not treat the probe gate as a paper
+evidence pass.
 
 Expected outputs:
 
