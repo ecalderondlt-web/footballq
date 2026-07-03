@@ -69,6 +69,7 @@ The current branch contains a first pass of research-integrity infrastructure:
   `latent_residual_examples.csv` and `latent_residual_summary.json`
 - Blinded diagnostic rendering scaffold
 - Horizon-window resume cache validation against raw match periods
+- Targeted horizon-window cache rebuild and multi-window diagnostic rendering
 - Focused integrity tests
 
 ## What Is Not Done
@@ -92,7 +93,10 @@ These items block paper-quality claims:
   require rebuilding or locating a fuller processed window tensor before
   annotation. Existing per-match window cache chunks are also period-1-only; the
   horizon preparer now detects those stale chunks under `--resume` and
-  regenerates them instead of silently recombining incomplete coverage.
+  regenerates them instead of silently recombining incomplete coverage. It can
+  also rebuild selected match IDs with `--skip-combine`, and the renderer can
+  consume multiple window files or cache globs, so period-2 media recovery does
+  not require a single huge combined h2s tensor.
 - Representation v2 has only been retrained as one-epoch diagnostic seeds under
   the non-overlap, geometry-only protocol.
 - Falsification controls have a three-seed gate summary, and the gate remains
@@ -131,11 +135,9 @@ These items block paper-quality claims:
   the controls. The current combined gate remains blocked by probe/discovery
   diagnostics.
 - A blinded annotation scaffold exists for seed-7 0.2s latent-residual examples.
-  It now includes rendered diagnostic GIFs for the 25 rows that match the
-  available period-1 processed window tensors; 15 period-2 rows still have blank
-  `clip_path` values because the current processed SkillCorner window artifacts
-  do not include period 2 even though raw tracking does. No completed blinded
-  annotation evidence exists yet.
+  It now includes rendered diagnostic GIFs for all 40 rows after targeted
+  period-2 h2s cache recovery. No completed blinded annotation evidence exists
+  yet.
 - A separate balanced diagnostic scaffold adds hidden low-residual controls:
   `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
   contains 20 high-residual rows and 20 low-residual controls, with status stored
@@ -357,8 +359,9 @@ Current diagnostic scaffold:
   separates annotator rows from the private key.
 - `scripts/render_diagnostic_clips.py --windows data/processed/skillcorner_windows_h2s.pt`
   renders matched processed-window GIFs and fills annotator `clip_path` values.
-- The current run rendered 25 of 40 seed-7 examples; the 15 missing examples are
-  period-2 rows not covered by the available processed window tensors.
+- The current local diagnostic run has 40 of 40 clip paths after targeted
+  period-2 h2s cache recovery; `render_manifest.json` reports
+  `missing_windows=0`.
 - `render_manifest.json` records source paths, media coverage, missing window
   identities, and `claim_status: diagnostic_only`.
 - Balanced diagnostic scaffolds can be generated with `--positive-rows` and

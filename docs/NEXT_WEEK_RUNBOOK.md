@@ -233,10 +233,40 @@ blocked by probe/discovery diagnostics.
 The current blinded scaffold is
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`; it
 separates annotator rows from the private key and now includes diagnostic GIF
-media for 25 of 40 seed-7 rows. The 15 remaining rows are period-2 examples;
-the currently available processed SkillCorner window tensors contain period 1
-only, so those `clip_path` fields remain blank. This is still diagnostic media,
-not blinded annotation evidence.
+media for all 40 seed-7 rows after targeted period-2 cache recovery. This is
+still diagnostic media, not blinded annotation evidence.
+
+To refresh the period-2 media path without building one giant combined window
+tensor, rebuild h2s per-match caches only for the matches referenced by the
+current period-2 identities:
+
+```bash
+python scripts/prepare_tracking_horizons.py \
+  --source skillcorner \
+  --raw data/raw/skillcorner \
+  --out-dir data/processed \
+  --prefix skillcorner_windows_fullperiod \
+  --cache-dir data/processed/.skillcorner_window_cache_fullperiod_h2s \
+  --horizon-seconds 2.0 \
+  --match-ids 1886347 1925299 1953632 1996435 2011166 2013725 2015213 2017461 \
+  --skip-combine
+```
+
+Then rerender the scaffold with the existing period-1 windows plus the targeted
+full-period per-match caches:
+
+```bash
+python scripts/render_diagnostic_clips.py \
+  --examples runs/discovery/v2_context_w0p05_slot_recon_margin_seed7/normalized_delta_z_h02/latent_residual_examples.csv \
+  --out runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02 \
+  --positive-rows 20 \
+  --controls-per-positive 1 \
+  --shuffle-seed 123 \
+  --blinded \
+  --windows data/processed/skillcorner_windows_h2s.pt data/processed/.skillcorner_window_cache_fullperiod_h2s/*_skillcorner_windows_fullperiod_h2s.pt \
+  --clip-fps 5 \
+  --reuse-existing-media
+```
 
 Expected outputs:
 

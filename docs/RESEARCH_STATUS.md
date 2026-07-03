@@ -73,14 +73,12 @@ A current-candidate blinded annotation scaffold exists at
 built from the seed-7 normalized-delta latent-residual examples at
 `runs/discovery/v2_context_w0p05_slot_recon_margin_seed7/normalized_delta_z_h02/`.
 The annotator CSV contains 40 blind rows without cluster IDs or residual scores,
-and the private key stores those hidden fields. Diagnostic GIF media has been
-rendered from `data/processed/skillcorner_windows_h2s.pt` for the 25 rows whose
-`match_id`/`period`/`frame_t` identities are present in that processed tensor.
-The remaining 15 rows are period-2 examples, while the currently available
-processed SkillCorner window tensors contain period 1 only, so their
-`clip_path` fields remain blank. The renderer writes a
-`render_manifest.json` coverage summary for this provenance boundary. This
-partial media scaffold is not blinded annotation evidence.
+and the private key stores those hidden fields. Diagnostic GIF media now covers
+all 40 rows. The first render filled 25 period-1 rows from
+`data/processed/skillcorner_windows_h2s.pt`; targeted full-period h2s per-match
+caches filled the remaining period-2 rows. The renderer writes a
+`render_manifest.json` coverage summary with `missing_windows=0`. This complete
+media scaffold is still diagnostic material, not blinded annotation evidence.
 `scripts/report_skillcorner_availability.py` now compares raw frame period
 coverage with processed-window period coverage. On the current local
 SkillCorner files it confirms `raw_periods=1,2` for all ten matches, while the
@@ -91,14 +89,19 @@ processed-artifact coverage/provenance issue, not missing raw period-2 data.
 window chunks against raw match periods before reuse, so the existing
 period-1-only `.skillcorner_window_cache` files are flagged as stale and must be
 regenerated rather than silently recombined.
+The horizon preparer also supports `--match-ids` and `--skip-combine`, and the
+diagnostic renderer accepts multiple `--windows` inputs plus glob patterns. This
+enables targeted h2s period-2 media recovery for the eight matches referenced by
+the current missing blinded rows without writing one giant combined window
+artifact.
 
 A balanced diagnostic scaffold was also generated at
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
 using 20 high-residual rows and 20 hidden low-residual controls selected from
 the same examples file. The annotator CSV remains blinded; the private key
 stores `positive_control`, `rank_source`, `control_group`, and
-`control_match_reason`. Media coverage is again 25 rendered GIFs and 15 blank
-period-2 rows because the processed h2s windows are period 1 only.
+`control_match_reason`. Targeted full-period h2s caches now bring media coverage
+to 40 of 40 rows with `missing_windows=0`; this remains diagnostic media only.
 
 A geometry-only gap-1.0 diagnostic config is available at
 `configs/td_jepa_nonoverlap_gap1p0_skillcorner.yaml`, and three one-epoch
@@ -189,7 +192,7 @@ Current focused verification:
 - focused invariant tests and touched-file Ruff: passed
 - blinded renderer focused tests and touched-file Ruff: passed
 - repo-wide Ruff: passed
-- full test suite: `160 passed`
+- full test suite: `164 passed`
 
 The former repo-wide Ruff debt is retired and the current status is tracked in
 `docs/LINT_STATUS.md`.

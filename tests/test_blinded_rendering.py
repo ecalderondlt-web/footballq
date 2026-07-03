@@ -6,7 +6,13 @@ from pathlib import Path
 import torch
 
 from footballq.data.normalize import normalize_xy_from_meters
-from footballq.data.windows import FEATURE_NAMES, TEAM_AWAY, TEAM_HOME, TrackingWindowTensorData
+from footballq.data.windows import (
+    FEATURE_NAMES,
+    TEAM_AWAY,
+    TEAM_HOME,
+    TrackingWindowTensorData,
+    save_windows_pt,
+)
 
 
 def _load_renderer():
@@ -207,3 +213,78 @@ def test_blinded_renderer_attaches_processed_window_gif(tmp_path):
     assert manifest_payload["rows_with_clip_path"] == 1
     assert "cluster_id" not in manifest_payload["annotator_fields"]
     assert "latent_residual_score" in manifest_payload["private_key_fields"]
+
+
+def test_blinded_renderer_resolves_rows_across_multiple_window_files(tmp_path):
+    module = _load_renderer()
+    n_entities = 3
+
+    def tiny_windows(match_id: str, period: int, start_frame: int) -> TrackingWindowTensorData:
+        past = torch.zeros((1, 2, n_entities, len(FEATURE_NAMES)), dtype=torch.float32)
+        future_xy = torch.zeros((1, 2, n_entities, 2), dtype=torch.float32)
+        past_mask = torch.ones((1, 2, n_entities), dtype=torch.bool)
+        future_mask = torch.ones((1, 2, n_entities), dtype=torch.bool)
+        team_id = torch.tensor([[0, TEAM_HOME, TEAM_AWAY]], dtype=torch.long)
+        entity_type = torch.tensor([[0, 1, 1]], dtype=torch.long)
+        past_xy_m = torch.tensor(
+            [
+                [[52.5, 34.0], [30.0, 20.0], [75.0, 45.0]],
+                [[53.0, 34.5], [31.0, 20.5], [74.0, 44.5]],
+            ],
+            dtype=torch.float32,
+        )
+        future_xy_m = torch.tensor(
+            [
+                [[54.0, 35.0], [32.0, 21.0], [73.0, 44.0]],
+                [[55.0, 35.5], [33.0, 21.5], [72.0, 43.5]],
+            ],
+            dtype=torch.float32,
+        )
+        past[0, :, :, 0:2] = normalize_xy_from_meters(past_xy_m)
+        future_xy[0] = normalize_xy_from_meters(future_xy_m)
+        return TrackingWindowTensorData(
+            past=past,
+            future_xy=future_xy,
+            past_mask=past_mask,
+            future_mask=future_mask,
+            entity_type=entity_type,
+            team_id=team_id,
+            match_id=[match_id],
+            period=[period],
+            start_frame=[start_frame],
+            feature_names=list(FEATURE_NAMES),
+            fps=5.0,
+            context_seconds=0.4,
+            horizon_seconds=0.4,
+            stride_seconds=0.2,
+        )
+
+    windows_a = save_windows_pt(tiny_windows("m1", 1, 10), tmp_path / "windows_a.pt")
+    windows_b = save_windows_pt(tiny_windows("m2", 2, 20), tmp_path / "windows_b.pt")
+
+    rows, stats = module.attach_window_clip_paths_from_files(
+        [
+            {"match_id": "m1", "period": 1, "frame_t": 10},
+            {"match_id": "m2", "period": 2, "frame_t": 20},
+        ],
+        [windows_a, windows_b],
+        tmp_path / "media_multi",
+        fps=2.0,
+    )
+
+    assert stats["rendered_clips"] == 2
+    assert stats["missing_windows"] == 0
+    assert len(stats["windows_paths"]) == 2
+    assert all(Path(str(row["clip_path"])).exists() for row in rows)
+
+
+def test_blinded_renderer_expands_window_globs(tmp_path):
+    module = _load_renderer()
+    first = tmp_path / "a_windows.pt"
+    second = tmp_path / "b_windows.pt"
+    first.write_text("placeholder", encoding="utf-8")
+    second.write_text("placeholder", encoding="utf-8")
+
+    expanded = module._expand_windows_paths([tmp_path / "*_windows.pt"])
+
+    assert expanded == [first, second]

@@ -44,6 +44,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--combined-load", action="store_true")
     parser.add_argument("--cache-dir", type=Path)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--match-ids", nargs="*", default=None)
+    parser.add_argument("--skip-combine", action="store_true")
     return parser.parse_args()
 
 
@@ -98,6 +100,23 @@ def _write_horizon(windows: TrackingWindowTensorData, out: Path) -> None:
         print(f"- {match_id}: {int(count)}")
 
 
+def _filter_raw_matches(
+    raw_matches: list[SkillCornerRawMatch],
+    match_ids: list[str] | None,
+) -> list[SkillCornerRawMatch]:
+    if not match_ids:
+        return raw_matches
+    requested = [str(value) for value in match_ids]
+    by_match_id = {match.match_id: match for match in raw_matches}
+    missing = [match_id for match_id in requested if match_id not in by_match_id]
+    if missing:
+        raise ValueError(
+            "Requested SkillCorner match IDs were not found under the raw directory: "
+            + ", ".join(missing)
+        )
+    return [by_match_id[match_id] for match_id in requested]
+
+
 def _cached_window_periods(path: Path) -> list[int]:
     windows = load_windows_pt(path)
     return sorted(set(int(value) for value in windows.period))
@@ -149,7 +168,10 @@ def _prepare_combined(args: argparse.Namespace) -> list[str]:
 
 
 def _prepare_skillcorner_per_match(args: argparse.Namespace) -> list[str]:
-    raw_matches = discover_skillcorner_raw_matches(args.raw)
+    raw_matches = _filter_raw_matches(
+        discover_skillcorner_raw_matches(args.raw),
+        args.match_ids,
+    )
     if not raw_matches:
         raise FileNotFoundError(f"No SkillCorner tracking files found under {args.raw}.")
     match_ids = [match.match_id for match in raw_matches]
@@ -196,6 +218,12 @@ def _prepare_skillcorner_per_match(args: argparse.Namespace) -> list[str]:
     for horizon_seconds, paths in cached_by_horizon.items():
         if not paths:
             raise RuntimeError(f"No windows were produced for horizon_seconds={horizon_seconds}.")
+        if args.skip_combine:
+            print(
+                "skipped_combined_horizon: "
+                f"{horizon_label(horizon_seconds)} cache_files={len(paths)}"
+            )
+            continue
         combined = _concat_windows([load_windows_pt(path) for path in paths])
         out = args.out_dir / f"{args.prefix}_{horizon_label(horizon_seconds)}.pt"
         _write_horizon(combined, out)

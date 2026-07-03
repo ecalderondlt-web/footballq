@@ -52,13 +52,12 @@ remains blocked by `probe_incremental` and `discovery_controls`, while
 falsification is `controls_passed`. A blinded annotation scaffold was generated
 at `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`;
 it separates annotator rows from the private key. A follow-up diagnostic render
-filled `clip_path` values for the 25 rows whose identities match
-`data/processed/skillcorner_windows_h2s.pt`. The 15 remaining rows are period-2
-examples, while the available processed SkillCorner window tensors contain
-period 1 only, so those rows remain blank. The renderer now writes
-`render_manifest.json` with source paths, rendered/reused/missing counts, and
-`claim_status: diagnostic_only`. This is partial diagnostic media only; no
-completed blinded annotation evidence exists yet.
+initially filled `clip_path` values for the 25 rows whose identities match
+`data/processed/skillcorner_windows_h2s.pt`. Targeted full-period h2s per-match
+caches then filled the remaining period-2 rows. The renderer now writes
+`render_manifest.json` with source paths, rendered/reused/missing counts,
+`missing_windows=0`, and `claim_status: diagnostic_only`. This is complete
+diagnostic media only; no completed blinded annotation evidence exists yet.
 The SkillCorner availability report now exposes raw-vs-processed period
 coverage. Current local raw tracking reports `raw_periods=1,2` for all ten
 matches, while current h2s output reports `periods=1`, `window_count=315400`,
@@ -67,7 +66,10 @@ therefore a processed-artifact coverage/provenance issue, not missing raw
 period-2 SkillCorner data. `scripts/prepare_tracking_horizons.py --resume` now
 checks cached per-match chunks against raw match periods, so the current
 period-1-only cache files are treated as stale and regenerated rather than
-silently reused.
+silently reused. The same script now supports targeted `--match-ids` rebuilds
+with `--skip-combine`, and `scripts/render_diagnostic_clips.py` accepts multiple
+window files or globs; the local period-2 diagnostic media gap has been filled
+from per-match h2s caches without writing a giant combined tensor.
 A balanced diagnostic scaffold was also generated at
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
 with 20 high-residual rows and 20 hidden low-residual controls. The private key

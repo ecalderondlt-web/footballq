@@ -48,6 +48,35 @@ def _raw_match() -> SkillCornerRawMatch:
     )
 
 
+def test_match_id_filter_preserves_requested_order():
+    matches = [
+        _raw_match(),
+        SkillCornerRawMatch(
+            match_id="1002",
+            match_dir="",
+            tracking_files=[],
+            metadata_files=[],
+            event_files=[],
+            raw_frame_count_by_period={"1": 100, "2": 100},
+        ),
+    ]
+
+    selected = prepare_tracking_horizons._filter_raw_matches(matches, ["1002", "1001"])
+
+    assert [match.match_id for match in selected] == ["1002", "1001"]
+
+
+def test_match_id_filter_rejects_missing_match_id():
+    matches = [_raw_match()]
+
+    try:
+        prepare_tracking_horizons._filter_raw_matches(matches, ["missing"])
+    except ValueError as exc:
+        assert "missing" in str(exc)
+    else:
+        raise AssertionError("Expected missing match ID to raise ValueError.")
+
+
 def test_resume_cache_guard_rejects_cached_windows_missing_raw_periods(
     tmp_path,
     capsys,
