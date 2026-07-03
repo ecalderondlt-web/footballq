@@ -189,7 +189,7 @@ Current focused verification:
 - focused invariant tests and touched-file Ruff: passed
 - blinded renderer focused tests and touched-file Ruff: passed
 - repo-wide Ruff: passed
-- full test suite: `159 passed`
+- full test suite: `160 passed`
 
 The former repo-wide Ruff debt is retired and the current status is tracked in
 `docs/LINT_STATUS.md`.

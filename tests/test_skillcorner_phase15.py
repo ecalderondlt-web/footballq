@@ -1,4 +1,5 @@
 import json
+from collections import Counter
 
 import pytest
 import torch
@@ -7,47 +8,53 @@ from footballq.data.windows import build_tracking_windows, save_windows_pt
 from footballq.io.skillcorner import SkillCornerAdapter
 
 
-def _write_skillcorner_fixture(raw_dir, frames: int = 50, missing_away_11_frame: int | None = None):
+def _write_skillcorner_fixture(
+    raw_dir,
+    frames: int = 50,
+    missing_away_11_frame: int | None = None,
+    periods: tuple[int, ...] = (1,),
+):
     match_dir = raw_dir / "fixture_match"
     match_dir.mkdir(parents=True)
     path = match_dir / "fixture_tracking_extrapolated.jsonl"
     with path.open("w", encoding="utf-8") as handle:
-        for frame in range(frames):
-            time_s = frame / 10.0
-            players = []
-            for idx in range(1, 12):
-                players.append(
-                    {
-                        "player_id": f"h{idx}",
-                        "number": idx,
-                        "team": "home",
-                        "x": -42.0 + idx + 0.1 * frame,
-                        "y": -25.0 + idx,
-                        "is_detected": True,
-                    }
-                )
-            for idx in range(1, 12):
-                visible = not (idx == 11 and frame == missing_away_11_frame)
-                players.append(
-                    {
-                        "player_id": f"a{idx}",
-                        "number": idx,
-                        "team": "away",
-                        "x": 42.0 - idx - 0.1 * frame,
-                        "y": 25.0 - idx,
-                        "is_detected": visible,
-                    }
-                )
-            record = {
-                "period": 1,
-                "frame": frame,
-                "timestamp": time_s,
-                "fps": 10,
-                "possession_team": "home",
-                "ball_data": {"x": 0.2 * frame, "y": 0.0, "is_detected": True},
-                "player_data": players,
-            }
-            handle.write(json.dumps(record) + "\n")
+        for period in periods:
+            for frame in range(frames):
+                time_s = frame / 10.0
+                players = []
+                for idx in range(1, 12):
+                    players.append(
+                        {
+                            "player_id": f"h{idx}",
+                            "number": idx,
+                            "team": "home",
+                            "x": -42.0 + idx + 0.1 * frame,
+                            "y": -25.0 + idx,
+                            "is_detected": True,
+                        }
+                    )
+                for idx in range(1, 12):
+                    visible = not (idx == 11 and frame == missing_away_11_frame)
+                    players.append(
+                        {
+                            "player_id": f"a{idx}",
+                            "number": idx,
+                            "team": "away",
+                            "x": 42.0 - idx - 0.1 * frame,
+                            "y": 25.0 - idx,
+                            "is_detected": visible,
+                        }
+                    )
+                record = {
+                    "period": period,
+                    "frame": frame,
+                    "timestamp": time_s,
+                    "fps": 10,
+                    "possession_team": "home",
+                    "ball_data": {"x": 0.2 * frame, "y": 0.0, "is_detected": True},
+                    "player_data": players,
+                }
+                handle.write(json.dumps(record) + "\n")
     return path
 
 
@@ -114,6 +121,24 @@ def test_skillcorner_windows_shape(tmp_path):
     assert first["future_xy"].shape[1] == 23
     assert first["future_xy"].shape[-1] == 2
     assert first["possession_team_id"] == "home"
+
+
+def test_skillcorner_windows_include_all_raw_periods(tmp_path):
+    _write_skillcorner_fixture(tmp_path, periods=(1, 2))
+    tracking = SkillCornerAdapter(tmp_path, match_id="fixture").load_tracking()
+    windows = build_tracking_windows(
+        tracking,
+        fps_out=10.0,
+        context_seconds=2.0,
+        horizon_seconds=2.0,
+        stride_seconds=0.2,
+    )
+
+    assert sorted(tracking["period"].unique()) == [1, 2]
+    assert sorted(set(windows.period)) == [1, 2]
+    assert Counter(windows.period)[1] > 0
+    assert Counter(windows.period)[2] > 0
+    assert any(sample_id.startswith("fixture:2:") for sample_id in windows.sample_id)
 
 
 def test_real_data_or_fixture_preserves_23_entity_shape(tmp_path):
