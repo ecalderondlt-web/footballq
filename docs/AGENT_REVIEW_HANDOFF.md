@@ -49,7 +49,10 @@ run for the same candidate and aggregated at
 `runs/discovery/v2_context_w0p05_slot_recon_margin_control_summary/`. The
 combined gate at `runs/integrity/v2_context_w0p05_slot_recon_margin_gate_summary.json`
 remains blocked by `probe_incremental` and `discovery_controls`, while
-falsification is `controls_passed`.
+falsification is `controls_passed`. A blinded annotation scaffold was generated
+at `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`;
+it separates annotator rows from the private key but has blank `clip_path`
+fields, so no rendered media or completed annotation evidence exists yet.
 
 ## Review Purpose
 

@@ -68,6 +68,15 @@ The current combined gate artifact at
 incremental probe and discovery-control gates remain `diagnostic_only`. Any
 visualization remains blinded diagnostic material only.
 
+A current-candidate blinded annotation scaffold exists at
+`runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`. It was
+built from the seed-7 normalized-delta latent-residual examples at
+`runs/discovery/v2_context_w0p05_slot_recon_margin_seed7/normalized_delta_z_h02/`.
+The annotator CSV contains 40 blind rows without cluster IDs or residual scores,
+and the private key stores those hidden fields. The current scaffold does not
+yet include rendered clip media (`clip_path` is blank), so this is not blinded
+annotation evidence.
+
 A geometry-only gap-1.0 diagnostic config is available at
 `configs/td_jepa_nonoverlap_gap1p0_skillcorner.yaml`, and three one-epoch
 diagnostic seeds were run against

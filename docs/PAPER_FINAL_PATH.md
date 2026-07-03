@@ -122,7 +122,9 @@ These items block paper-quality claims:
   and handcrafted baselines, but normalized latent clustering remains similar to
   the controls. The current combined gate remains blocked by probe/discovery
   diagnostics.
-- No blinded annotation evidence exists yet.
+- A blinded annotation scaffold exists for seed-7 0.2s latent-residual examples,
+  but it does not include rendered clip media or completed annotations. No
+  blinded annotation evidence exists yet.
 
 ## Final Path
 

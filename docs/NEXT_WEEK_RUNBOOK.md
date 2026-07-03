@@ -210,6 +210,9 @@ required feature families are present, but normalized latent clusters look
 similar to raw/PCA/random controls, so the combined gate at
 `runs/integrity/v2_context_w0p05_slot_recon_margin_gate_summary.json` remains
 blocked by probe/discovery diagnostics.
+The current blinded scaffold is
+`runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`; it
+separates annotator rows from the private key but does not yet render clip media.
 
 Expected outputs:
 
