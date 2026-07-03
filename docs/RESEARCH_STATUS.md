@@ -164,7 +164,7 @@ Current focused verification:
 - synthetic data/window/TD-JEPA preparation smoke: passed for legacy overlap and
   future non-overlap modes
 - focused invariant tests and touched-file Ruff: passed
-- full test suite: `151 passed`
+- full test suite: `152 passed`
 
 Known lint exception: repo-wide `python -m ruff check . --statistics` reports 45
 pre-existing issues in older decoder, latent-flow, probe, script, and legacy
