@@ -51,8 +51,12 @@ combined gate at `runs/integrity/v2_context_w0p05_slot_recon_margin_gate_summary
 remains blocked by `probe_incremental` and `discovery_controls`, while
 falsification is `controls_passed`. A blinded annotation scaffold was generated
 at `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`;
-it separates annotator rows from the private key but has blank `clip_path`
-fields, so no rendered media or completed annotation evidence exists yet.
+it separates annotator rows from the private key. A follow-up diagnostic render
+filled `clip_path` values for the 25 rows whose identities match
+`data/processed/skillcorner_windows_h2s.pt`. The 15 remaining rows are period-2
+examples, while the available processed SkillCorner window tensors contain
+period 1 only, so those rows remain blank. This is partial diagnostic media
+only; no completed blinded annotation evidence exists yet.
 
 ## Review Purpose
 
@@ -283,7 +287,8 @@ Remaining reviewer task:
 - [ ] Discovery fits scalers/PCA/clusterers on train matches only.
 - [ ] Discovery includes raw/PCA/random/handcrafted controls.
 - [ ] Residual diagnostics report nuisance correlations by match.
-- [ ] Blinded visualization keeps annotation files separate from key files.
+- [ ] Blinded visualization keeps annotation files separate from key files and
+      records media coverage/missing-window limitations.
 - [ ] Paper claims are limited to the evidence actually produced.
 
 ## Recommended Next Decision

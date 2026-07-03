@@ -122,9 +122,11 @@ These items block paper-quality claims:
   and handcrafted baselines, but normalized latent clustering remains similar to
   the controls. The current combined gate remains blocked by probe/discovery
   diagnostics.
-- A blinded annotation scaffold exists for seed-7 0.2s latent-residual examples,
-  but it does not include rendered clip media or completed annotations. No
-  blinded annotation evidence exists yet.
+- A blinded annotation scaffold exists for seed-7 0.2s latent-residual examples.
+  It now includes rendered diagnostic GIFs for the 25 rows that match the
+  available period-1 processed window tensors; 15 period-2 rows still have blank
+  `clip_path` values because the current processed SkillCorner window artifacts
+  do not include period 2. No completed blinded annotation evidence exists yet.
 
 ## Final Path
 
@@ -335,6 +337,15 @@ Generate:
 - blinded annotation folders
 - annotation CSV templates
 - private key files linking anonymous clip IDs to metadata
+
+Current diagnostic scaffold:
+
+- `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`
+  separates annotator rows from the private key.
+- `scripts/render_diagnostic_clips.py --windows data/processed/skillcorner_windows_h2s.pt`
+  renders matched processed-window GIFs and fills annotator `clip_path` values.
+- The current run rendered 25 of 40 seed-7 examples; the 15 missing examples are
+  period-2 rows not covered by the available processed window tensors.
 
 Blinding rules:
 

@@ -212,7 +212,11 @@ similar to raw/PCA/random controls, so the combined gate at
 blocked by probe/discovery diagnostics.
 The current blinded scaffold is
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`; it
-separates annotator rows from the private key but does not yet render clip media.
+separates annotator rows from the private key and now includes diagnostic GIF
+media for 25 of 40 seed-7 rows. The 15 remaining rows are period-2 examples;
+the currently available processed SkillCorner window tensors contain period 1
+only, so those `clip_path` fields remain blank. This is still diagnostic media,
+not blinded annotation evidence.
 
 Expected outputs:
 
@@ -370,10 +374,24 @@ Render diagnostics only after control summaries are available:
 
 ```bash
 python scripts/render_diagnostic_clips.py \
-  --windows data/processed/skillcorner_windows_h2s.pt \
   --examples runs/discovery/experiment5_skillcorner/latent_residual_examples.csv \
   --out runs/diagnostics/blinded_clips \
-  --blinded
+  --max-rows 40 \
+  --blinded \
+  --windows data/processed/skillcorner_windows_h2s.pt \
+  --clip-fps 5
+```
+
+Current-candidate example:
+
+```bash
+python scripts/render_diagnostic_clips.py \
+  --examples runs/discovery/v2_context_w0p05_slot_recon_margin_seed7/normalized_delta_z_h02/latent_residual_examples.csv \
+  --out runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02 \
+  --max-rows 40 \
+  --blinded \
+  --windows data/processed/skillcorner_windows_h2s.pt \
+  --clip-fps 5
 ```
 
 Expected outputs:
@@ -382,7 +400,11 @@ Expected outputs:
 - stability metrics across seeds
 - nuisance correlations for latent residual scores
 - blinded annotation directory
+- annotator CSV with only blind IDs, match/period/frame, clip paths, and blank
+  annotation cells
 - separate private key file
+- media coverage count; blank `clip_path` values must be explained by missing
+  matched tracking windows, not silently ignored
 
 Do not claim:
 

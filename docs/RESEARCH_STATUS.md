@@ -73,8 +73,12 @@ A current-candidate blinded annotation scaffold exists at
 built from the seed-7 normalized-delta latent-residual examples at
 `runs/discovery/v2_context_w0p05_slot_recon_margin_seed7/normalized_delta_z_h02/`.
 The annotator CSV contains 40 blind rows without cluster IDs or residual scores,
-and the private key stores those hidden fields. The current scaffold does not
-yet include rendered clip media (`clip_path` is blank), so this is not blinded
+and the private key stores those hidden fields. Diagnostic GIF media has been
+rendered from `data/processed/skillcorner_windows_h2s.pt` for the 25 rows whose
+`match_id`/`period`/`frame_t` identities are present in that processed tensor.
+The remaining 15 rows are period-2 examples, while the currently available
+processed SkillCorner window tensors contain period 1 only, so their
+`clip_path` fields remain blank. This partial media scaffold is not blinded
 annotation evidence.
 
 A geometry-only gap-1.0 diagnostic config is available at
@@ -164,6 +168,7 @@ Current focused verification:
 - synthetic data/window/TD-JEPA preparation smoke: passed for legacy overlap and
   future non-overlap modes
 - focused invariant tests and touched-file Ruff: passed
+- blinded renderer focused tests and touched-file Ruff: passed
 - full test suite: `152 passed`
 
 Known lint exception: repo-wide `python -m ruff check . --statistics` reports 45
