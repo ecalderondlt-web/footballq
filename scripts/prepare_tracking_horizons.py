@@ -24,6 +24,7 @@ from footballq.io.idsse import IDSSEAdapter  # noqa: E402
 from footballq.io.metrica import MetricaAdapter  # noqa: E402
 from footballq.io.skillcorner import SkillCornerAdapter  # noqa: E402
 from footballq.io.skillcorner_report import (  # noqa: E402
+    SkillCornerRawMatch,
     discover_skillcorner_raw_matches,
     horizon_label,
 )
@@ -97,6 +98,32 @@ def _write_horizon(windows: TrackingWindowTensorData, out: Path) -> None:
         print(f"- {match_id}: {int(count)}")
 
 
+def _cached_window_periods(path: Path) -> list[int]:
+    windows = load_windows_pt(path)
+    return sorted(set(int(value) for value in windows.period))
+
+
+def _cache_covers_raw_periods(cache_path: Path, raw_match: SkillCornerRawMatch) -> bool:
+    raw_periods = set(raw_match.raw_periods)
+    if not raw_periods:
+        return True
+    try:
+        cached_periods = set(_cached_window_periods(cache_path))
+    except (OSError, RuntimeError, ValueError) as exc:
+        print(f"warning: could not read cache {cache_path}: {exc}; regenerating")
+        return False
+    missing_periods = sorted(raw_periods - cached_periods)
+    if not missing_periods:
+        return True
+    print(
+        "stale_cache_missing_periods: "
+        f"{cache_path} raw_periods={','.join(str(value) for value in sorted(raw_periods))} "
+        f"cached_periods={','.join(str(value) for value in sorted(cached_periods)) or 'none'} "
+        f"missing={','.join(str(value) for value in missing_periods)}; regenerating"
+    )
+    return False
+
+
 def _prepare_combined(args: argparse.Namespace) -> list[str]:
     tracking = _load_source(args.source, args.raw, args.match_id)
     match_ids = sorted(str(value) for value in tracking["match_id"].dropna().unique())
@@ -141,9 +168,10 @@ def _prepare_skillcorner_per_match(args: argparse.Namespace) -> list[str]:
             label = horizon_label(horizon_seconds)
             cache_path = cache_dir / f"{raw_match.match_id}_{args.prefix}_{label}.pt"
             if args.resume and cache_path.exists():
-                print(f"using_cached: {cache_path}")
-                cached_by_horizon[float(horizon_seconds)].append(cache_path)
-                continue
+                if _cache_covers_raw_periods(cache_path, raw_match):
+                    print(f"using_cached: {cache_path}")
+                    cached_by_horizon[float(horizon_seconds)].append(cache_path)
+                    continue
             if tracking is None:
                 tracking = SkillCornerAdapter(
                     raw_dir=Path(raw_match.match_dir),

@@ -64,7 +64,10 @@ coverage. Current local raw tracking reports `raw_periods=1,2` for all ten
 matches, while current h2s output reports `periods=1`, `window_count=315400`,
 and `missing_processed_periods=2` for every match. The period-2 media gap is
 therefore a processed-artifact coverage/provenance issue, not missing raw
-period-2 SkillCorner data.
+period-2 SkillCorner data. `scripts/prepare_tracking_horizons.py --resume` now
+checks cached per-match chunks against raw match periods, so the current
+period-1-only cache files are treated as stale and regenerated rather than
+silently reused.
 A balanced diagnostic scaffold was also generated at
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
 with 20 high-residual rows and 20 hidden low-residual controls. The private key

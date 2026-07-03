@@ -79,6 +79,9 @@ Common failure modes:
 - raw files contain period 2 but processed windows do not, which means the
   processed window tensors must be rebuilt or located before full-period
   visualization/annotation
+- existing `.skillcorner_window_cache` chunks may be period-1-only; the horizon
+  preparer now checks cached periods under `--resume` and regenerates stale
+  chunks instead of reusing them
 - README commands still omit `--split-manifest`
 
 Do not claim:

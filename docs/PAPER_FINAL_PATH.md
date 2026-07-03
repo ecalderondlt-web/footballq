@@ -68,6 +68,7 @@ The current branch contains a first pass of research-integrity infrastructure:
 - Default residual diagnostic files:
   `latent_residual_examples.csv` and `latent_residual_summary.json`
 - Blinded diagnostic rendering scaffold
+- Horizon-window resume cache validation against raw match periods
 - Focused integrity tests
 
 ## What Is Not Done
@@ -89,7 +90,9 @@ These items block paper-quality claims:
   processed window artifact is period 1 only (`315400` windows) and reports
   `missing_processed_periods=2` for every match. Period-2 visualization examples
   require rebuilding or locating a fuller processed window tensor before
-  annotation.
+  annotation. Existing per-match window cache chunks are also period-1-only; the
+  horizon preparer now detects those stale chunks under `--resume` and
+  regenerates them instead of silently recombining incomplete coverage.
 - Representation v2 has only been retrained as one-epoch diagnostic seeds under
   the non-overlap, geometry-only protocol.
 - Falsification controls have a three-seed gate summary, and the gate remains

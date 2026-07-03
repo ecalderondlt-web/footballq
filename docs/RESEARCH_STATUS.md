@@ -87,6 +87,10 @@ SkillCorner files it confirms `raw_periods=1,2` for all ten matches, while the
 current h2s artifact reports `periods=1`, `window_count=315400`, and
 `missing_processed_periods=2` for every match. This makes the blocker a
 processed-artifact coverage/provenance issue, not missing raw period-2 data.
+`scripts/prepare_tracking_horizons.py --resume` now checks cached per-match
+window chunks against raw match periods before reuse, so the existing
+period-1-only `.skillcorner_window_cache` files are flagged as stale and must be
+regenerated rather than silently recombined.
 
 A balanced diagnostic scaffold was also generated at
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
@@ -185,7 +189,7 @@ Current focused verification:
 - focused invariant tests and touched-file Ruff: passed
 - blinded renderer focused tests and touched-file Ruff: passed
 - repo-wide Ruff: passed
-- full test suite: `157 passed`
+- full test suite: `159 passed`
 
 The former repo-wide Ruff debt is retired and the current status is tracked in
 `docs/LINT_STATUS.md`.

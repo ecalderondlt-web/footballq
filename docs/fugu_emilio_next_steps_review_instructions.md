@@ -48,7 +48,9 @@ SkillCorner raw match folders. The current availability report confirms
 `raw_periods=1,2` for all ten matches, while the existing h2s processed window
 artifact is period 1 only and reports `missing_processed_periods=2` for every
 match. The remaining media/annotation gap is therefore processed-window coverage,
-not missing raw period-2 data.
+not missing raw period-2 data. The horizon-preparation resume path now checks
+cached chunks against raw match periods, so stale period-1-only cache files are
+not silently reused.
 
 ### 0.2 Before any real-data run
 
