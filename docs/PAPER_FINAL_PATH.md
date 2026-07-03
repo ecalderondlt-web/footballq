@@ -346,6 +346,8 @@ Current diagnostic scaffold:
   renders matched processed-window GIFs and fills annotator `clip_path` values.
 - The current run rendered 25 of 40 seed-7 examples; the 15 missing examples are
   period-2 rows not covered by the available processed window tensors.
+- `render_manifest.json` records source paths, media coverage, missing window
+  identities, and `claim_status: diagnostic_only`.
 
 Blinding rules:
 

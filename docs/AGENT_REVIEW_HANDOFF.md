@@ -55,8 +55,10 @@ it separates annotator rows from the private key. A follow-up diagnostic render
 filled `clip_path` values for the 25 rows whose identities match
 `data/processed/skillcorner_windows_h2s.pt`. The 15 remaining rows are period-2
 examples, while the available processed SkillCorner window tensors contain
-period 1 only, so those rows remain blank. This is partial diagnostic media
-only; no completed blinded annotation evidence exists yet.
+period 1 only, so those rows remain blank. The renderer now writes
+`render_manifest.json` with source paths, rendered/reused/missing counts, and
+`claim_status: diagnostic_only`. This is partial diagnostic media only; no
+completed blinded annotation evidence exists yet.
 
 ## Review Purpose
 

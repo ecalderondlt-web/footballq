@@ -394,6 +394,9 @@ python scripts/render_diagnostic_clips.py \
   --clip-fps 5
 ```
 
+If the GIF files already exist and only the CSV/manifest needs to be refreshed,
+add `--reuse-existing-media`.
+
 Expected outputs:
 
 - cluster summaries by split
@@ -403,6 +406,8 @@ Expected outputs:
 - annotator CSV with only blind IDs, match/period/frame, clip paths, and blank
   annotation cells
 - separate private key file
+- `render_manifest.json` with source paths, rendered/reused/missing counts, and
+  `claim_status: diagnostic_only`
 - media coverage count; blank `clip_path` values must be explained by missing
   matched tracking windows, not silently ignored
 

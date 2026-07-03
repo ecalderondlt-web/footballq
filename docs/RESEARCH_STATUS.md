@@ -78,8 +78,9 @@ rendered from `data/processed/skillcorner_windows_h2s.pt` for the 25 rows whose
 `match_id`/`period`/`frame_t` identities are present in that processed tensor.
 The remaining 15 rows are period-2 examples, while the currently available
 processed SkillCorner window tensors contain period 1 only, so their
-`clip_path` fields remain blank. This partial media scaffold is not blinded
-annotation evidence.
+`clip_path` fields remain blank. The renderer writes a
+`render_manifest.json` coverage summary for this provenance boundary. This
+partial media scaffold is not blinded annotation evidence.
 
 A geometry-only gap-1.0 diagnostic config is available at
 `configs/td_jepa_nonoverlap_gap1p0_skillcorner.yaml`, and three one-epoch

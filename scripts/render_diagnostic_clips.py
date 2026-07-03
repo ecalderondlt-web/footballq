@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import matplotlib
@@ -260,6 +262,7 @@ def attach_window_clip_paths(
     media_dir: str | Path,
     *,
     fps: float = 5.0,
+    reuse_existing: bool = False,
 ) -> tuple[list[dict[str, object]], dict[str, object]]:
     """Render matched processed windows and attach annotator-facing clip paths."""
 
@@ -268,6 +271,7 @@ def attach_window_clip_paths(
     rendered_rows: list[dict[str, object]] = []
     missing: list[tuple[str, int, int]] = []
     rendered = 0
+    reused = 0
     for idx, row in enumerate(rows):
         blind_id = f"blind_{idx:05d}"
         row_out = dict(row)
@@ -277,23 +281,79 @@ def attach_window_clip_paths(
             missing.append(identity)
             rendered_rows.append(row_out)
             continue
-        clip_path = render_window_gif(
-            windows,
-            window_idx,
-            media_path / f"{blind_id}.gif",
-            blind_id=blind_id,
-            fps=fps,
-        )
+        target_path = media_path / f"{blind_id}.gif"
+        if reuse_existing and target_path.exists():
+            clip_path = target_path
+            reused += 1
+        else:
+            clip_path = render_window_gif(
+                windows,
+                window_idx,
+                target_path,
+                blind_id=blind_id,
+                fps=fps,
+            )
+            rendered += 1
         row_out["clip_path"] = str(clip_path)
-        rendered += 1
         rendered_rows.append(row_out)
     stats: dict[str, object] = {
         "rendered_clips": rendered,
+        "reused_clips": reused,
         "missing_windows": len(missing),
-        "missing_window_identities": missing[:10],
+        "missing_window_identities": [
+            {"match_id": match_id, "period": period, "frame_t": frame_t}
+            for match_id, period, frame_t in missing
+        ],
         "media_dir": str(media_path),
     }
     return rendered_rows, stats
+
+
+def write_render_manifest(
+    manifest_json: str | Path,
+    *,
+    examples_csv: str | Path | None,
+    windows_path: str | Path | None,
+    annotator_csv: str | Path,
+    key_csv: str | Path,
+    rows: list[dict[str, object]],
+    stats: dict[str, object],
+) -> Path:
+    """Write a machine-readable provenance summary for a blinded media render."""
+
+    manifest_path = Path(manifest_json)
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "created_by": "scripts/render_diagnostic_clips.py",
+        "created_at_utc": datetime.now(UTC).isoformat(),
+        "claim_status": "diagnostic_only",
+        "examples_csv": str(examples_csv) if examples_csv is not None else None,
+        "windows_path": str(windows_path) if windows_path is not None else None,
+        "annotator_csv": str(annotator_csv),
+        "key_csv": str(key_csv),
+        "annotator_fields": [
+            "blind_id",
+            "match_id",
+            "period",
+            "frame_t",
+            "clip_path",
+            "annotation",
+        ],
+        "private_key_fields": [
+            "blind_id",
+            "cluster_id",
+            "latent_residual_score",
+            "positive_control",
+        ],
+        "rows": len(rows),
+        "rows_with_clip_path": sum(bool(row.get("clip_path", "")) for row in rows),
+        "rows_without_clip_path": sum(not bool(row.get("clip_path", "")) for row in rows),
+        "render_stats": stats,
+    }
+    with manifest_path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    return manifest_path
 
 
 def parse_args() -> argparse.Namespace:
@@ -307,6 +367,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--windows", type=Path, default=None)
     parser.add_argument("--media-dir", type=Path, default=None)
     parser.add_argument("--clip-fps", type=float, default=5.0)
+    parser.add_argument("--manifest-json", type=Path, default=None)
+    parser.add_argument("--reuse-existing-media", action="store_true")
     return parser.parse_args()
 
 
@@ -344,15 +406,35 @@ def main() -> None:
             windows,
             media_dir,
             fps=args.clip_fps,
+            reuse_existing=args.reuse_existing_media,
         )
     write_blinded_annotation_files(rows, annotator_csv, key_csv)
+    manifest_json = None
+    if render_stats is not None:
+        if args.manifest_json is not None:
+            manifest_json = args.manifest_json
+        elif args.out is not None:
+            manifest_json = args.out / "render_manifest.json"
+        else:
+            manifest_json = annotator_csv.parent / "render_manifest.json"
+        write_render_manifest(
+            manifest_json,
+            examples_csv=args.examples,
+            windows_path=args.windows,
+            annotator_csv=annotator_csv,
+            key_csv=key_csv,
+            rows=rows,
+            stats=render_stats,
+        )
     print(f"annotator_csv: {annotator_csv}")
     print(f"key_csv: {key_csv}")
     print(f"rows: {len(rows)}")
     if render_stats is not None:
         print(f"media_dir: {render_stats['media_dir']}")
         print(f"rendered_clips: {render_stats['rendered_clips']}")
+        print(f"reused_clips: {render_stats['reused_clips']}")
         print(f"missing_windows: {render_stats['missing_windows']}")
+        print(f"manifest_json: {manifest_json}")
 
 
 if __name__ == "__main__":
