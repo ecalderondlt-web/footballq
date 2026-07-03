@@ -51,7 +51,7 @@ print("test", split.test_match_ids)
 PY
 ```
 
-Verify raw and processed SkillCorner availability, including processed-window
+Verify raw and processed SkillCorner availability, including raw-vs-processed
 period coverage:
 
 ```bash
@@ -67,14 +67,18 @@ Expected outputs:
 - full tests pass in Emilio's environment
 - Ruff is either clean or exact remaining lint debt is recorded
 - split hash is printed and reused in all later artifacts
-- availability report shows the ten raw match IDs and lists processed window
-  periods for each horizon; current h2s artifacts report `periods=1`
+- availability report shows the ten raw match IDs, `raw_periods=1,2`, processed
+  window periods for each horizon, and missing processed periods; current h2s
+  artifacts report `periods=1` and `missing_processed_periods=2`
 
 Common failure modes:
 
 - missing `typer`, `pyyaml`, `pyarrow`, or torch because the editable install was
   not run
 - local SkillCorner files do not match the reported ten match IDs
+- raw files contain period 2 but processed windows do not, which means the
+  processed window tensors must be rebuilt or located before full-period
+  visualization/annotation
 - README commands still omit `--split-manifest`
 
 Do not claim:

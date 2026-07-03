@@ -43,6 +43,13 @@ discovery, visualization) will fail immediately, because there is no input. This
 is the single most important precondition. Do not interpret a missing-data error
 as a code bug.
 
+Continuation note: Emilio's local continuation worktree now has the ten
+SkillCorner raw match folders. The current availability report confirms
+`raw_periods=1,2` for all ten matches, while the existing h2s processed window
+artifact is period 1 only and reports `missing_processed_periods=2` for every
+match. The remaining media/annotation gap is therefore processed-window coverage,
+not missing raw period-2 data.
+
 ### 0.2 Before any real-data run
 
 1. Place SkillCorner Open Data match folders under `data/raw/skillcorner/`

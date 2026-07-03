@@ -74,8 +74,8 @@ The current branch contains a first pass of research-integrity infrastructure:
 
 These items block paper-quality claims:
 
-- Full repo lint is not clean.
-- Full test collection depends on a complete local dev environment.
+- Fresh-install reproduction still needs an independent clean-room rerun outside
+  Emilio's local environment.
 - Discovery controls now have a first raw/PCA/random/handcrafted multi-seed
   summary, but latent-delta discovery has not separated itself from those
   controls or shown blinded enrichment.
@@ -84,10 +84,12 @@ These items block paper-quality claims:
 - Team-shape labels remain all-visible-player stretch diagnostics, not a clean
   team tactical target.
 - The real SkillCorner ten-match split has been located locally, and the
-  availability report now exposes processed-window period coverage. The current
-  h2s processed window artifact is period 1 only (`315400` windows), so
-  period-2 visualization examples require rebuilding or locating a fuller
-  processed window tensor before annotation.
+  availability report now exposes raw-vs-processed period coverage. Raw
+  tracking confirms periods 1 and 2 for all ten matches, but the current h2s
+  processed window artifact is period 1 only (`315400` windows) and reports
+  `missing_processed_periods=2` for every match. Period-2 visualization examples
+  require rebuilding or locating a fuller processed window tensor before
+  annotation.
 - Representation v2 has only been retrained as one-epoch diagnostic seeds under
   the non-overlap, geometry-only protocol.
 - Falsification controls have a three-seed gate summary, and the gate remains
@@ -129,7 +131,8 @@ These items block paper-quality claims:
   It now includes rendered diagnostic GIFs for the 25 rows that match the
   available period-1 processed window tensors; 15 period-2 rows still have blank
   `clip_path` values because the current processed SkillCorner window artifacts
-  do not include period 2. No completed blinded annotation evidence exists yet.
+  do not include period 2 even though raw tracking does. No completed blinded
+  annotation evidence exists yet.
 - A separate balanced diagnostic scaffold adds hidden low-residual controls:
   `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
   contains 20 high-residual rows and 20 low-residual controls, with status stored

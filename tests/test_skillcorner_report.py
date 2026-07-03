@@ -14,7 +14,7 @@ def test_skillcorner_raw_match_report(tmp_path):
         match_dir = raw / match_id
         match_dir.mkdir(parents=True)
         (match_dir / f"{match_id}_tracking_extrapolated.jsonl").write_text(
-            "{}\n",
+            '{"period": 1}\n{"period_id": 2}\n',
             encoding="utf-8",
         )
         (match_dir / f"{match_id}_match.json").write_text("{}", encoding="utf-8")
@@ -22,6 +22,8 @@ def test_skillcorner_raw_match_report(tmp_path):
     assert [match.match_id for match in matches] == ["1001", "1002"]
     assert all(match.has_tracking for match in matches)
     assert all(match.has_metadata for match in matches)
+    assert all(match.raw_periods == [1, 2] for match in matches)
+    assert all(match.raw_frame_count_by_period == {"1": 1, "2": 1} for match in matches)
 
 
 def test_horizon_labeling_2s_4s_6s():
@@ -34,7 +36,10 @@ def test_horizon_labeling_2s_4s_6s():
 def test_availability_report_includes_embedding_alignment(tmp_path):
     raw = tmp_path / "raw" / "skillcorner" / "1001"
     raw.mkdir(parents=True)
-    (raw / "1001_tracking_extrapolated.jsonl").write_text("{}\n", encoding="utf-8")
+    (raw / "1001_tracking_extrapolated.jsonl").write_text(
+        '{"period": 1}\n{"period": 2}\n',
+        encoding="utf-8",
+    )
     processed = tmp_path / "processed"
     processed.mkdir()
     embeddings = processed / "embeddings.pt"
@@ -46,6 +51,7 @@ def test_availability_report_includes_embedding_alignment(tmp_path):
         horizons=[2.0, 4.0, 6.0],
     )
     assert report["raw_match_count"] == 1
+    assert report["raw_periods"] == [1, 2]
     assert report["embedding_match_ids"] == ["1001"]
     assert [item["horizon_label"] for item in report["horizons"]] == ["h2s", "h4s", "h6s"]
 
@@ -53,7 +59,10 @@ def test_availability_report_includes_embedding_alignment(tmp_path):
 def test_availability_report_includes_window_period_coverage(tmp_path):
     raw = tmp_path / "raw" / "skillcorner" / "1001"
     raw.mkdir(parents=True)
-    (raw / "1001_tracking_extrapolated.jsonl").write_text("{}\n", encoding="utf-8")
+    (raw / "1001_tracking_extrapolated.jsonl").write_text(
+        '{"period": 1}\n{"period": 2}\n',
+        encoding="utf-8",
+    )
     processed = tmp_path / "processed"
     processed.mkdir()
     n = 3
@@ -94,4 +103,47 @@ def test_availability_report_includes_window_period_coverage(tmp_path):
         "min_start_frame": 20,
         "max_start_frame": 22,
     }
+    assert horizon["missing_processed_periods"] == []
+    assert horizon["missing_processed_periods_by_match"] == {}
     assert horizon["embedding_alignment"]["matching_window_keys"] == 1
+
+
+def test_availability_report_flags_raw_periods_missing_from_processed_windows(tmp_path):
+    raw = tmp_path / "raw" / "skillcorner" / "1001"
+    raw.mkdir(parents=True)
+    (raw / "1001_tracking_extrapolated.jsonl").write_text(
+        '{"period": 1}\n{"period": 2}\n',
+        encoding="utf-8",
+    )
+    processed = tmp_path / "processed"
+    processed.mkdir()
+    windows = TrackingWindowTensorData(
+        past=torch.zeros((1, 2, 3, len(FEATURE_NAMES))),
+        future_xy=torch.zeros((1, 2, 3, 2)),
+        past_mask=torch.ones((1, 2, 3), dtype=torch.bool),
+        future_mask=torch.ones((1, 2, 3), dtype=torch.bool),
+        entity_type=torch.zeros((1, 3), dtype=torch.long),
+        team_id=torch.zeros((1, 3), dtype=torch.long),
+        match_id=["1001"],
+        period=[1],
+        start_frame=[10],
+        feature_names=list(FEATURE_NAMES),
+        fps=5.0,
+        context_seconds=0.4,
+        horizon_seconds=0.4,
+        stride_seconds=0.2,
+    )
+    save_windows_pt(windows, processed / "skillcorner_windows_h2s.pt")
+
+    report = build_skillcorner_availability_report(
+        raw.parent,
+        processed,
+        embeddings=None,
+        horizons=[2.0],
+    )
+
+    horizon = report["horizons"][0]
+    assert report["raw_frame_count_by_match_period"] == {"1001": {"1": 1, "2": 1}}
+    assert horizon["window_periods"] == [1]
+    assert horizon["missing_processed_periods"] == [2]
+    assert horizon["missing_processed_periods_by_match"] == {"1001": [2]}

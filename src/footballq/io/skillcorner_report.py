@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,7 @@ import torch
 
 from footballq.data.windows import load_windows_pt
 from footballq.decoding.dataset import load_decoder_dataset
+from footballq.io.skillcorner import SkillCornerAdapter
 
 
 @dataclass(frozen=True)
@@ -20,6 +22,7 @@ class SkillCornerRawMatch:
     tracking_files: list[str]
     metadata_files: list[str]
     event_files: list[str]
+    raw_frame_count_by_period: dict[str, int] = field(default_factory=dict)
 
     @property
     def has_tracking(self) -> bool:
@@ -33,6 +36,10 @@ class SkillCornerRawMatch:
     def has_events(self) -> bool:
         return bool(self.event_files)
 
+    @property
+    def raw_periods(self) -> list[int]:
+        return _integer_period_keys(self.raw_frame_count_by_period)
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "match_id": self.match_id,
@@ -43,12 +50,65 @@ class SkillCornerRawMatch:
             "has_tracking": self.has_tracking,
             "has_metadata": self.has_metadata,
             "has_events": self.has_events,
+            "raw_periods": self.raw_periods,
+            "raw_frame_count_by_period": self.raw_frame_count_by_period,
         }
 
 
 def horizon_label(seconds: float) -> str:
     value = int(seconds) if float(seconds).is_integer() else seconds
     return f"h{value}s".replace(".", "p")
+
+
+def _period_key(value: object) -> str:
+    if value is None:
+        return "missing"
+    text = str(value).strip()
+    if not text or text.lower() in {"nan", "none", "null", "<na>"}:
+        return "missing"
+    try:
+        numeric = float(text)
+    except ValueError:
+        return text
+    if numeric.is_integer():
+        return str(int(numeric))
+    return text
+
+
+def _period_sort_key(value: str) -> tuple[int, int | str]:
+    try:
+        return (0, int(value))
+    except ValueError:
+        return (1, value)
+
+
+def _sorted_period_counts(counter: Counter[str]) -> dict[str, int]:
+    return {key: int(counter[key]) for key in sorted(counter, key=_period_sort_key)}
+
+
+def _integer_period_keys(counts: dict[str, int]) -> list[int]:
+    periods: set[int] = set()
+    for value in counts:
+        try:
+            periods.add(int(value))
+        except ValueError:
+            continue
+    return sorted(periods)
+
+
+def _raw_frame_period_counts(files: list[Path]) -> dict[str, int]:
+    counts: Counter[str] = Counter()
+    for path in files:
+        try:
+            for frame in SkillCornerAdapter._iter_json_records(path):
+                if not isinstance(frame, dict):
+                    counts["unsupported_record"] += 1
+                    continue
+                period = SkillCornerAdapter._first(frame, ["period", "period_id"])
+                counts[_period_key(period)] += 1
+        except (OSError, json.JSONDecodeError, ValueError, TypeError):
+            counts["unreadable"] += 1
+    return _sorted_period_counts(counts)
 
 
 def discover_skillcorner_raw_matches(raw_dir: str | Path) -> list[SkillCornerRawMatch]:
@@ -85,13 +145,14 @@ def discover_skillcorner_raw_matches(raw_dir: str | Path) -> list[SkillCornerRaw
                 tracking_files=[str(path) for path in files],
                 metadata_files=[str(path) for path in metadata],
                 event_files=[str(path) for path in events],
+                raw_frame_count_by_period=_raw_frame_period_counts(files),
             )
         )
     return matches
 
 
 def _counter(values: list[str]) -> dict[str, int]:
-    return dict(sorted(Counter(str(value) for value in values).items()))
+    return _sorted_period_counts(Counter(str(value) for value in values))
 
 
 def _match_period_counts(match_ids: list[str], periods: list[int]) -> dict[str, dict[str, int]]:
@@ -123,6 +184,16 @@ def _match_period_start_frame_ranges(
         item["min_start_frame"] = min(item["min_start_frame"], int(start_frame))
         item["max_start_frame"] = max(item["max_start_frame"], int(start_frame))
     return {match_id: dict(sorted(periods.items())) for match_id, periods in sorted(ranges.items())}
+
+
+def _int_keys(values: dict[str, Any]) -> set[int]:
+    keys: set[int] = set()
+    for value in values:
+        try:
+            keys.add(int(value))
+        except ValueError:
+            continue
+    return keys
 
 
 def _load_embedding_keys(path: Path | None) -> tuple[set[tuple[str, int]], set[str]]:
@@ -159,6 +230,8 @@ def _processed_horizon_report(
         "window_count_by_period": {},
         "window_count_by_match_period": {},
         "window_start_frame_range_by_match_period": {},
+        "missing_processed_periods": [],
+        "missing_processed_periods_by_match": {},
         "decoder_example_count": 0,
         "decoder_example_count_by_match": {},
         "embedding_alignment": {
@@ -208,6 +281,30 @@ def _processed_horizon_report(
     return report
 
 
+def _add_raw_processed_period_gaps(
+    horizon_reports: list[dict[str, Any]],
+    raw_matches: list[SkillCornerRawMatch],
+) -> None:
+    raw_periods_by_match = {
+        match.match_id: set(match.raw_periods)
+        for match in raw_matches
+        if match.raw_periods
+    }
+    for horizon in horizon_reports:
+        missing_by_match: dict[str, list[int]] = {}
+        processed_counts = horizon.get("window_count_by_match_period", {})
+        for match_id, raw_periods in raw_periods_by_match.items():
+            processed_periods = _int_keys(processed_counts.get(match_id, {}))
+            missing = sorted(raw_periods - processed_periods)
+            if missing:
+                missing_by_match[match_id] = missing
+        missing_all = sorted(
+            {period for periods in missing_by_match.values() for period in periods}
+        )
+        horizon["missing_processed_periods"] = missing_all
+        horizon["missing_processed_periods_by_match"] = missing_by_match
+
+
 def build_skillcorner_availability_report(
     raw_dir: str | Path,
     processed_dir: str | Path = "data/processed",
@@ -233,10 +330,16 @@ def build_skillcorner_availability_report(
         )
         for horizon in (horizons or [2.0, 4.0, 6.0])
     ]
+    _add_raw_processed_period_gaps(horizon_reports, raw_matches)
+    raw_periods = sorted({period for match in raw_matches for period in match.raw_periods})
     return {
         "raw_dir": str(raw_dir),
         "raw_match_count": len(raw_matches),
         "raw_match_ids": [match.match_id for match in raw_matches],
+        "raw_periods": raw_periods,
+        "raw_frame_count_by_match_period": {
+            match.match_id: match.raw_frame_count_by_period for match in raw_matches
+        },
         "raw_matches": [match.to_dict() for match in raw_matches],
         "embeddings_path": str(embedding_path) if embedding_path else "",
         "embedding_match_count": len(embedding_matches),
