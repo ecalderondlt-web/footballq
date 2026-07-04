@@ -54,7 +54,8 @@ The horizon-preparation resume path now checks cached chunks against raw match
 periods, so stale period-1-only cache files are not silently reused. Targeted
 `--match-ids --skip-combine` horizon preparation and multi-file/glob `--windows`
 rendering recover period-2 diagnostic media without creating a single huge
-combined h2s artifact.
+combined h2s artifact. `scripts/validate_blinded_annotation_package.py` now
+passes on both current local diagnostic packages before human annotation.
 
 ### 0.2 Before any real-data run
 

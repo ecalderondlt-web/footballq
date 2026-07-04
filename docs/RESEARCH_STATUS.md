@@ -94,6 +94,10 @@ diagnostic renderer accepts multiple `--windows` inputs plus glob patterns. This
 enables targeted h2s period-2 media recovery for the eight matches referenced by
 the current missing blinded rows without writing one giant combined window
 artifact.
+`scripts/validate_blinded_annotation_package.py` validates annotator/key/manifest
+consistency, hidden-field separation, clip-path existence, and blank annotation
+cells before human review. Both current diagnostic packages pass locally with 40
+rows, 40 clip paths, zero missing clips, and zero filled annotation cells.
 
 A balanced diagnostic scaffold was also generated at
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
@@ -191,8 +195,10 @@ Current focused verification:
   future non-overlap modes
 - focused invariant tests and touched-file Ruff: passed
 - blinded renderer focused tests and touched-file Ruff: passed
+- blinded annotation package validation: passed for both current diagnostic
+  packages
 - repo-wide Ruff: passed
-- full test suite: `164 passed`
+- full test suite: `167 passed`
 
 The former repo-wide Ruff debt is retired and the current status is tracked in
 `docs/LINT_STATUS.md`.

@@ -268,6 +268,18 @@ python scripts/render_diagnostic_clips.py \
   --reuse-existing-media
 ```
 
+Validate the package before sending anything to annotators:
+
+```bash
+python scripts/validate_blinded_annotation_package.py \
+  --annotator-csv runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/annotator/annotations.csv \
+  --key-csv runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/private/annotation_key.csv \
+  --manifest-json runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/render_manifest.json
+```
+
+Expected validation output: `validation_status: passed`, 40 rows, 40 clip paths,
+0 missing clips, and 0 filled annotation cells.
+
 Expected outputs:
 
 - TD data has period-aware `sample_id`

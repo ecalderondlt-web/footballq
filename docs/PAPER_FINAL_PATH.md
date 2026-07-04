@@ -70,6 +70,7 @@ The current branch contains a first pass of research-integrity infrastructure:
 - Blinded diagnostic rendering scaffold
 - Horizon-window resume cache validation against raw match periods
 - Targeted horizon-window cache rebuild and multi-window diagnostic rendering
+- Blinded annotation package validation before human review
 - Focused integrity tests
 
 ## What Is Not Done
@@ -136,8 +137,9 @@ These items block paper-quality claims:
   diagnostics.
 - A blinded annotation scaffold exists for seed-7 0.2s latent-residual examples.
   It now includes rendered diagnostic GIFs for all 40 rows after targeted
-  period-2 h2s cache recovery. No completed blinded annotation evidence exists
-  yet.
+  period-2 h2s cache recovery. The package validator passes locally, confirming
+  40 clip paths, hidden-field separation, matching key IDs, and blank annotation
+  cells. No completed blinded annotation evidence exists yet.
 - A separate balanced diagnostic scaffold adds hidden low-residual controls:
   `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
   contains 20 high-residual rows and 20 low-residual controls, with status stored
@@ -366,6 +368,8 @@ Current diagnostic scaffold:
   identities, and `claim_status: diagnostic_only`.
 - Balanced diagnostic scaffolds can be generated with `--positive-rows` and
   `--controls-per-positive`; the annotator CSV must still hide the row status.
+- `scripts/validate_blinded_annotation_package.py` must pass before human
+  annotation begins.
 
 Blinding rules:
 
