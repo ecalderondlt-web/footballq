@@ -1,0 +1,33 @@
+Every stage is a documented command; the clean-room driver
+(\texttt{scripts/run\_clean\_room\_rerun.py}) executes the scientific chain
+end-to-end with the canonical artifact names. Scientific stages take
+\texttt{--split-manifest splits/skillcorner\_10match\_inductive\_v1.json} and
+\texttt{--scientific-mode}.
+
+\begin{table}[h]
+  \centering
+  \small
+  \begin{tabular}{lp{8.6cm}}
+    \toprule
+    Stage & Command \\
+    \midrule
+    Environment & \texttt{python -m pip install -e ".[dev]"; pytest -q; ruff check .} \\
+    Split check & \texttt{footballq.repro.splits.load\_split\_manifest(...)} \\
+    Availability & \texttt{scripts/report\_skillcorner\_availability.py --raw data/raw/skillcorner} \\
+    Windows & \texttt{scripts/prepare\_tracking\_horizons.py --horizon-seconds 2.0 ...} \\
+    TD dataset & \texttt{scripts/prepare\_td\_jepa\_data.py --objective-mode future\_nonoverlap\_context\_only --prediction-gap-seconds 1.0 --feature-view geometry\_only ...} \\
+    Training & \texttt{scripts/train\_td\_jepa.py --config configs/td\_jepa\_nonoverlap\_gap1p0\_context\_w0p05\_slot\_recon\_margin\_skillcorner.yaml --seed \{7,11,23\}} \\
+    Falsification & \texttt{scripts/run\_td\_falsification\_controls.py --split val} then \texttt{scripts/summarize\_td\_falsification.py --metric total\_loss} \\
+    Embeddings & \texttt{scripts/export\_td\_embeddings.py --split all} \\
+    Probes & \texttt{scripts/build\_probe\_dataset.py} then \texttt{scripts/run\_probe\_suite.py --linear-only} then \texttt{scripts/summarize\_probe\_incremental.py} \\
+    Discovery & \texttt{scripts/run\_discovery\_suite.py} plus \texttt{scripts/cluster\_latent\_transitions.py} per control family, then \texttt{scripts/summarize\_discovery\_controls.py} \\
+    Gate & \texttt{scripts/summarize\_integrity\_gates.py --falsification ... --probe ... --discovery ... [--annotation ...]} \\
+    Blinded package & \texttt{scripts/render\_diagnostic\_clips.py --blinded --positive-rows 20 --controls-per-positive 1} then \texttt{scripts/validate\_blinded\_annotation\_package.py} \\
+    Panel & \texttt{scripts/make\_contact\_sheets.py}, one blinded annotator per model, then \texttt{scripts/analyze\_annotator\_panel.py} and \texttt{scripts/analyze\_blinded\_annotations.py} \\
+    Paper assets & \texttt{scripts/make\_paper\_assets.py} (regenerates every number, table, and figure in this paper from run artifacts) \\
+    \bottomrule
+  \end{tabular}
+  \caption{Stage-by-stage commands. The repository's runbook documents the full
+  argument lists; run manifests record the exact provenance of every artifact.}
+  \label{tab:commands}
+\end{table}

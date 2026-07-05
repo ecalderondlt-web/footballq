@@ -1,0 +1,32 @@
+The blinded package places annotator-facing files (\texttt{annotations.csv},
+GIF clips, and static contact sheets derived from those GIFs) in an
+\texttt{annotator/} directory and all identifying fields (residual scores,
+cluster ids, positive/control status, match metadata keys) in a
+\texttt{private/} key file. Panel rules:
+
+\begin{enumerate}
+  \item Each model annotator runs in a fresh context (no conversation history)
+  and receives only: the annotation guide verbatim, the blank annotation rows,
+  and one contact sheet per clip. Sheets are rendered from the blinded GIFs by
+  \texttt{scripts/make\_contact\_sheets.py}, which reads no private files.
+  \item Annotators must output exactly one label per clip from the controlled
+  vocabulary \{\texttt{tactical\_pattern}, \texttt{routine\_motion},
+  \texttt{tracking\_artifact}, \texttt{ambiguous}\}; anything else is rejected
+  by the analyzer as \texttt{invalid\_labels}.
+  \item The orchestrating agent that built the pipeline never annotates (it has
+  seen key material) and does not read per-item labels until every annotator's
+  CSV is written and locked.
+  \item Per-annotator enrichment against the hidden matched controls is
+  computed by the repository's own analyzer
+  (\texttt{scripts/analyze\_blinded\_annotations.py}); panel agreement (label
+  distributions, pairwise Cohen's $\kappa$, Fleiss' $\kappa$, majority vote) is
+  computed by \texttt{scripts/analyze\_annotator\_panel.py}, which also never
+  reads the key.
+  \item Panel outputs are diagnostics. The protocol's annotation gate remains
+  \texttt{incomplete} until blinded \emph{human} annotation exists; the paper
+  reports the panel under that constraint rather than substituting it for the
+  human gate.
+\end{enumerate}
+
+The exact prompt given to every model annotator is committed alongside the
+panel outputs.

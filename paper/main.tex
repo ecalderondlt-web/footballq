@@ -1,0 +1,444 @@
+\documentclass{article}
+
+\usepackage[preprint]{neurips_2025}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{multirow}
+
+\input{numbers}
+
+\title{Gates Before Claims: A Leakage-Controlled Evaluation Protocol for
+Self-Supervised Representations of Soccer Tracking Data}
+
+\author{%
+  Luis Lozano \\
+  Tecnol\'ogico de Monterrey \\
+  \texttt{lalozanom@gmail.com} \\
+  \And
+  Emilio Calder\'on \\
+  University of California, Berkeley \\
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Self-supervised representations of multi-agent sports tracking data invite
+over-interpretation: latent clusters become ``tactics,'' prediction residuals
+become ``tactical surprise,'' and probe accuracy on leaked channels becomes
+``emergent understanding.'' We present an integrity-gated evaluation protocol
+that makes such claims mechanically expensive. The protocol combines immutable
+hashed match splits, leakage-controlled feature views, a non-overlapping
+future-prediction objective, a \FalsConditionCount-condition falsification
+battery, incremental-value probes that compare raw kinematics against
+raw-plus-latent features at seed and match level, discovery controls that pit
+latent transition clusters against raw, PCA, random-encoder, and handcrafted
+baselines, blinded annotation with hidden matched controls, and a
+machine-readable claim gate that emits explicit blocking conditions. As a case
+study, we train a temporal-difference joint-embedding predictive architecture
+(TD-JEPA) on \NumMatches{} broadcast-tracking matches and run it through every
+gate. The candidate representation passes the falsification battery across
+\NumSeeds{} seeds but records negative incremental value on
+\ProbeBlockedContrasts{} of \ProbeTotalContrasts{} probe contrasts and does not
+separate from control baselines in discovery, so the protocol's verdict is
+\emph{\GateOverallStatus}: no tactical claim is licensed. An independent
+clean-room reproduction on a second machine, from public data to final gate,
+reproduces the qualitative gate outcome. A blinded panel of
+\PanelAnnotatorCount{} frontier-model annotators, used as a diagnostic in place
+of not-yet-available human annotation, shows \PanelHeadline. We release the
+protocol, gate tooling, and all run manifests; we argue that negative results
+under honest gates are the correct default deliverable for small-data sports
+representation learning.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Optical and broadcast tracking now yields dense multi-agent time series for
+every professional soccer match: 22 player trajectories plus the ball, sampled
+at 10--25\,Hz. A natural research program is to learn self-supervised
+representations of these trajectories and then interpret the learned latent
+space --- its clusters as tactical motifs, its prediction residuals as
+surprising moments, its probe performance as evidence of emergent game
+understanding. Versions of this program appear across sports analytics,
+from formation discovery~\citep{bialkowski2014large} and tactic
+mining~\citep{decroos2018tactics} to trajectory
+generation~\citep{le2017coordinated,yeh2019diverse,zhan2019generating} and
+multi-entity transformers~\citep{alcorn2021baller2vec}.
+
+The failure modes of this program are equally well documented, just usually in
+other fields. Leakage inflates evaluations~\citep{kapoor2023leakage};
+overlapping windows masquerade as independent samples~\citep{lones2021pitfalls};
+benchmark variance swallows claimed improvements~\citep{bouthillier2021accounting};
+and clustering algorithms will happily partition any point
+cloud~\citep{rousseeuw1987silhouettes}, tactical or not. Sports tracking data
+aggravates all four: matches are few, frames within a match are strongly
+autocorrelated, provider metadata (possession flags, visibility masks) leaks
+label information into inputs, and smooth kinematics dominate any
+distance-based structure.
+
+This paper takes the position that for small-data sports representation
+learning, the evaluation protocol --- not the representation --- should be the
+primary contribution, and the protocol should be built to \emph{block} claims
+by default. We describe such a protocol, implemented end-to-end in a working
+codebase, and report what happens when a reasonable self-supervised candidate
+is pushed through it.
+
+Concretely, we make four contributions:
+
+\begin{enumerate}
+  \item \textbf{An integrity-gated evaluation protocol} for self-supervised
+  tracking representations (Section~\ref{sec:protocol}): immutable hashed
+  inductive match splits; leakage-controlled feature views; a non-overlapping
+  future-prediction objective; a \FalsConditionCount-condition falsification
+  battery; incremental-value probes reported at seed and match level; discovery
+  controls against raw, PCA, random-encoder, and handcrafted baselines; blinded
+  annotation with hidden matched controls; and a combined machine-readable gate
+  that names each blocking condition.
+  \item \textbf{A negative/mixed case study} (Sections~\ref{sec:setup} and
+  \ref{sec:results}): a TD-JEPA representation trained on \NumMatches{} public
+  broadcast-tracking matches~\citep{skillcorner2020opendata} that passes
+  falsification across \NumSeeds{} seeds yet fails the incremental-value and
+  discovery gates, yielding an overall claim status of \emph{\GateOverallStatus}.
+  \item \textbf{An independent clean-room reproduction} (Section~\ref{sec:cleanroom}):
+  a second author re-executed the full pipeline --- public data download, split
+  verification, training, and all gates --- on different hardware and software
+  versions, reproducing the qualitative gate outcomes. Following
+  \citet{raff2019reproducibility}, we treat independent re-execution, not
+  artifact re-loading, as the reproducibility standard.
+  \item \textbf{A blinded model-annotator panel} (Section~\ref{sec:panel}): with
+  human annotation still pending, \PanelAnnotatorCount{} frontier models
+  independently annotated a balanced blinded package of high-residual clips and
+  hidden matched controls under a controlled label vocabulary. We report
+  agreement (Fleiss' $\kappa$~\citep{fleiss1971measuring}, pairwise Cohen's
+  $\kappa$~\citep{cohen1960coefficient}) and enrichment against the hidden
+  controls, and we are explicit that this panel is a diagnostic, not a
+  substitute for the human gate.
+\end{enumerate}
+
+We frame the outcome plainly. The candidate representation is a competent
+engineering baseline: it trains stably, its embeddings do not collapse, and it
+beats shuffled- and wrong-match falsification controls. But under gates that
+price in leakage, autocorrelation, and control baselines, it has not earned a
+single tactical claim. We think this is the right default outcome to
+publish for this regime, and the protocol makes it cheap to publish honestly.
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Joint-embedding predictive architectures.}
+JEPA-style models predict target representations from context representations
+rather than reconstructing inputs~\citep{lecun2022path,assran2023ijepa,bardes2024vjepa}.
+Our candidate follows this family: an EMA target
+encoder~\citep{grill2020byol}, a predictor over latent states, and a variance
+regularizer~\citep{bardes2022vicreg} to resist collapse~\citep{chen2021simsiam}.
+Sports tracking is an attractive JEPA domain --- agents are few, dynamics are
+smooth, semantics are contested --- but exactly that smoothness makes trivial
+temporal interpolation a competitive predictor, which motivates our
+non-overlap objective and no-motion margin controls.
+
+\paragraph{Soccer tracking analytics.}
+Prior work spans formation and role discovery~\citep{bialkowski2014large,shaw2019dynamic},
+tactic pattern mining~\citep{decroos2018tactics}, action
+valuation~\citep{decroos2019actions,fernandez2018wide,spearman2018beyond},
+ghosting and trajectory generation~\citep{le2017coordinated,yeh2019diverse,zhan2019generating},
+and multi-agent trajectory prediction more broadly~\citep{alahi2016social,alcorn2021baller2vec}.
+Much of this literature validates discovered structure by expert inspection of
+selected examples. Our protocol replaces selected examples with blinded,
+control-matched annotation, and replaces single-run clustering with
+multi-seed, multi-family control comparisons.
+
+\paragraph{Leakage, variance, and reproducibility.}
+Our gate design operationalizes, for one domain, the general warnings of
+\citet{kapoor2023leakage} on leakage, \citet{lones2021pitfalls} on temporal
+data hygiene, \citet{bouthillier2021accounting} and \citet{henderson2018deep}
+on variance-aware comparison, \citet{musgrave2020metric} on inflated
+metric-learning claims, \citet{dodge2019show} and \citet{pineau2021improving}
+on reporting standards, and \citet{simmons2011false} on researcher degrees of
+freedom. The clean-room reproduction follows \citet{raff2019reproducibility}
+in privileging independent re-execution. Our contribution is not new theory
+but a working, machine-checkable instantiation for tracking data, where the
+autocorrelation and metadata-leakage traps are unusually severe.
+
+\section{The Integrity Protocol}
+\label{sec:protocol}
+
+The protocol is a chain of gates. Each gate consumes artifacts stamped with
+provenance metadata and emits a machine-readable summary; a final aggregator
+combines them into one claim status with named blocking conditions. Nothing
+downstream of a failed gate may be interpreted as evidence. Figure~\ref{fig:pipeline}
+summarizes the flow.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/pipeline.pdf}
+  \caption{The integrity-gated evaluation pipeline. Every scientific artifact
+  records the split-manifest hash, feature view, objective mode, and command
+  provenance. The combined gate emits an overall claim status plus one named
+  blocking condition per failure; downstream stages of a blocked gate are
+  diagnostics by definition.}
+  \label{fig:pipeline}
+\end{figure}
+
+\subsection{Split lineage and provenance}
+\label{sec:protocol-splits}
+
+All experiments inherit a single immutable split manifest: \NumMatches{}
+matches partitioned inductively into \NumTrainMatches{} training,
+\NumValMatches{} validation, and \NumTestMatches{} test matches. The manifest
+is hashed (SHA-256 over a canonical JSON serialization), and every downstream
+artifact --- window tensors, TD datasets, checkpoints, embeddings, probe
+datasets, transition datasets, cluster summaries --- stores the hash it was
+built from. Loaders reject artifacts whose hashes disagree, dataset names
+outside an allow-list, and scientific runs that lack period-aware sample
+identities (\texttt{match\_id:period:frame}), which prevents cross-period
+frame-index collisions from silently corrupting alignment. Each entry point
+writes a run manifest recording the git commit, config hash, split hash,
+feature view, objective mode, and platform. Distinct match halves and a
+prediction-gap exclusion ensure that no training window overlaps an
+evaluation window.
+
+\subsection{Leakage-controlled feature views}
+\label{sec:protocol-views}
+
+Tracking providers ship metadata channels --- possession flags, visibility
+masks --- that trivially predict several popular probe targets. The protocol
+defines explicit feature views: \texttt{full\_state\_legacy} (all channels;
+allowed only as an engineering baseline), \texttt{geometry\_only} (positions
+and velocities; the scientific view), \texttt{missingness\_only\_control}, and
+\texttt{raw\_kinematics\_control}. Probes are classified by validity:
+possession-related probes on full-state embeddings are labeled leakage sanity
+checks and can never support semantic claims.
+
+\subsection{Non-overlap objective and falsification battery}
+\label{sec:protocol-falsification}
+
+The legacy TD objective predicts $z_{t+\Delta}$ from a context window that
+overlaps the target frames; smooth kinematics make this nearly free.
+The scientific objective, \texttt{future\_nonoverlap\_context\_only},
+enforces a temporal gap of \PredictionGapSeconds{}s between context and
+target, with a margin term requiring the predictor to beat the no-motion
+(identity) latent. A trained checkpoint then faces \FalsConditionCount{}
+falsification conditions, including shuffled futures within batch, futures
+from another match, reversed-time context, masked ball, team-slot and
+home/away label swaps on context and target sides, pitch reflection, and
+consistent player-slot permutations. Passing requires the correct pairing to
+beat corrupted pairings by a ratio threshold on the gated loss, consistently
+across seeds; near-invariance to any semantically meaningful corruption is a
+named blocker.
+
+\subsection{Incremental-value probes}
+\label{sec:protocol-probes}
+
+A representation $z$ earns probe credit only through \emph{incremental} value:
+for each held-out target we train identical probes on raw kinematic summaries,
+on $z$, on raw$+z$, and on shape-matched random features, and report
+$\mathrm{perf}(\mathrm{raw}{+}z) - \mathrm{perf}(\mathrm{raw})$ with sign
+conventions fixed per metric. Increments are aggregated across \NumSeeds{}
+encoder seeds and, crucially, across held-out matches: a contrast blocks if
+its increment is non-positive in the mean or negative for any seed or any
+held-out match. Global-$x$ displacement targets are labeled geometry, not
+``attacking progression''; team-shape targets are labeled all-visible-player
+diagnostics.
+
+\subsection{Discovery controls}
+\label{sec:protocol-discovery}
+
+Latent transition clustering (k-means over $\Delta z$ with train-fit,
+held-out-assign protocol) is compared against \DiscoveryFamilyCount{} control
+feature families: raw coordinate/velocity transitions, PCA of raw transitions,
+random-encoder deltas, and handcrafted structure-change metrics (raw and PCA
+variants), each clustered across the same seeds. The latent family must
+separate from the best control by a margin on cluster-size entropy and on
+top-match concentration, avoid sparse held-out clusters, and avoid
+transition-magnitude domination. Without separation, clusters are partitions
+of smooth motion, not discovered structure.
+
+\subsection{Blinded annotation with hidden controls}
+\label{sec:protocol-annotation}
+
+Only after the quantitative gates does the protocol permit visualization, and
+then only blinded: a balanced package of \PanelPositiveRows{} high-residual
+clips and \PanelControlRows{} magnitude-matched low-residual controls is
+rendered with all identifying fields (cluster id, residual score,
+positive/control status) moved to a private key file. Annotators see a fixed
+label vocabulary (\texttt{tactical\_pattern}, \texttt{routine\_motion},
+\texttt{tracking\_artifact}, \texttt{ambiguous}); the analyzer rejects any
+other label, reports enrichment of positive labels in the high-residual group
+against the hidden controls (risk difference and Fisher exact test), and
+refuses to upgrade any claim while the package is incomplete.
+
+\subsection{The combined gate}
+\label{sec:protocol-gate}
+
+A final aggregator merges the falsification, probe, discovery, and annotation
+summaries into one artifact with an overall claim status
+(\texttt{supported\_for\_further\_validation} at best, \texttt{blocked}
+otherwise), the list of named blocking conditions, and a suggested next
+scientific action. The gate is deliberately asymmetric: one failed gate blocks
+all interpretive claims, while passing everything licenses only ``supported
+for further validation,'' never a tactical conclusion by itself.
+
+\section{Case Study Setup}
+\label{sec:setup}
+
+\paragraph{Data.}
+We use the \NumMatches{} publicly released SkillCorner broadcast-tracking
+matches~\citep{skillcorner2020opendata}, resampled to \FpsOut{}\,Hz, in a
+canonical 23-entity representation (22 player slots plus ball) with
+\FeatureCount{} geometry channels per entity under the scientific view. Raw
+tracking for every match covers both halves; window preparation validates
+per-period coverage against the raw files and refuses stale caches. The
+combined evaluation window tensor contains \NumWindows{} windows
+(2\,s context, 2\,s horizon, 0.2\,s stride). The TD dataset under the
+non-overlap objective contains \NumTdExamples{} examples (1\,s context,
+\PredictionGapSeconds{}s gap).
+
+\paragraph{Model and training.}
+The encoder is a compact spatiotemporal transformer~\citep{vaswani2017attention}
+(\ZDim-dimensional latents, \NumLayers{} layers, \NumHeads{} heads) with an
+EMA target encoder (momentum \EmaMomentum), a latent predictor, a variance
+regularizer (threshold \VarianceThreshold), slot-aligned target and
+context reconstruction heads (weights \SlotReconWeight{} and
+\ContextReconWeight), and a no-motion margin term (weight \MarginWeight,
+margin \MarginValue). We train with Adam~\citep{kingma2015adam} in
+PyTorch~\citep{paszke2019pytorch}, batch size \BatchSize, learning rate
+\LearningRate, for one epoch per seed --- the protocol's diagnostic budget ---
+across seeds \SeedList. This candidate configuration was selected by the
+first-stage falsification gate from \VariantCount{} objective variants
+explored under the same protocol (longer gaps, CLS pooling, slot
+reconstruction, margin, and context-reconstruction weights); all selection
+used validation matches only.
+
+\paragraph{Clean-room design.}
+\label{par:cleanroom-design}
+The pipeline was first executed by one author on his machine; a second
+execution was then performed independently on different hardware (Apple
+M3~Max, CPU-only) and different library versions (Python 3.13, PyTorch
+\TorchVersion), starting from a fresh clone, a fresh public-data download, and
+split-manifest verification, driven by a scripted runner committed to the
+repository. We compare gate outcomes, not floating-point values, and report
+both runs' blocking conditions in Section~\ref{sec:cleanroom}.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Falsification battery}
+\label{sec:results-falsification}
+
+\input{tables/falsification}
+
+\FalsificationNarrative
+
+\subsection{Incremental-value probes}
+\label{sec:results-probes}
+
+\input{tables/probes}
+
+\ProbeNarrative
+
+\subsection{Discovery controls}
+\label{sec:results-discovery}
+
+\input{tables/discovery}
+
+\DiscoveryNarrative
+
+\subsection{The combined gate}
+\label{sec:results-gate}
+
+\input{tables/gate}
+
+\GateNarrative
+
+\subsection{Clean-room reproduction}
+\label{sec:cleanroom}
+
+\input{tables/cleanroom}
+
+\CleanroomNarrative
+
+\subsection{Blinded model-annotator panel}
+\label{sec:panel}
+
+\input{tables/panel}
+
+\PanelNarrative
+
+\section{Discussion and Limitations}
+\label{sec:discussion}
+
+\paragraph{What the case study establishes.}
+The candidate TD-JEPA is a stable engineering baseline whose latents encode
+real temporal structure --- enough to beat shuffled and wrong-match futures
+consistently. What it has not established, under controls, is any value beyond
+raw kinematics for held-out targets, or any cluster structure beyond what raw,
+PCA, or random-encoder features already produce. The honest summary is a
+gated negative: \emph{representation learns dynamics; no evidence it learns
+tactics}.
+
+\paragraph{Why publish a blocked result.}
+Ten matches of broadcast tracking is a regime where positive tactical claims
+are cheap to manufacture and expensive to check. A protocol that emits named
+blocking conditions makes the negative informative: each blocker is a concrete,
+falsifiable target for the next representation design, and the gate artifact
+gives reviewers something to audit other than selected examples.
+
+\paragraph{Limitations.}
+Our probe targets are geometry diagnostics, not causally grounded tactical
+labels; constructing leakage-free tactical targets (turnovers, line breaks,
+penalty-area entries) requires event data we deliberately excluded from this
+release. The one-epoch training budget is a protocol choice that bounds
+compute, not an optimized recipe; passing falsification at this budget is
+necessary, not sufficient. The model-annotator panel is a diagnostic with no
+human gold standard yet; its agreement statistics quantify panel consistency,
+not truth. And with \NumMatches{} matches, match-level dispersion estimates
+are themselves high-variance --- which is precisely why the gate requires them.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented an integrity-gated evaluation protocol for self-supervised soccer
+tracking representations, demonstrated it end-to-end on a JEPA-style
+candidate, reproduced the gate outcome in an independent clean-room run, and
+released the tooling. The protocol's verdict for our candidate is
+\emph{\GateOverallStatus}. We offer the protocol, the named blockers, and the
+blinded-annotation scaffolding as the reusable contribution, and the blocked
+candidate as the honest baseline for whoever unblocks it.
+
+\paragraph{Reproducibility statement.}
+All data is public; the split manifest, configs, seeds, run manifests, gate
+summaries, and the clean-room driver script are in the repository. Every
+number in this paper is generated programmatically from run artifacts by a
+single script; no result is hand-transcribed. Commands for each stage appear
+in Appendix~\ref{app:commands}.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+
+\section{Stage-by-Stage Commands}
+\label{app:commands}
+\input{tables/commands}
+
+\section{Falsification Conditions}
+\label{app:conditions}
+\input{tables/conditions}
+
+\section{Model-Annotator Panel Protocol}
+\label{app:panel}
+\input{tables/panel_protocol}
+
+\end{document}

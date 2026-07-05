@@ -1,0 +1,31 @@
+The falsification battery evaluates a frozen checkpoint on validation-match
+batches under the following conditions. Corruptions marked ``should hurt''
+must raise the gated loss relative to the correct pairing by the pass ratio;
+the no-motion predictor must lose to the learned predictor.
+
+\begin{table}[h]
+  \centering
+  \small
+  \begin{tabular}{llp{7.2cm}}
+    \toprule
+    Condition & Expectation & Description \\
+    \midrule
+    \texttt{correct\_temporal\_pairing} & reference & Unmodified context--future pairs. \\
+    \texttt{shuffled\_future\_within\_batch} & should hurt & Future latents permuted across the batch. \\
+    \texttt{future\_from\_another\_match} & should hurt & Each future replaced by one from a different match. \\
+    \texttt{reversed\_time\_context} & should hurt & Context frames reversed in time. \\
+    \texttt{masked\_ball} & should hurt & Ball entity zeroed and masked out of the context. \\
+    \texttt{team\_swap} & should hurt & The two 11-player slot blocks exchanged in context. \\
+    \texttt{team\_label\_swap} & should hurt & Team-identity channels flipped in context. \\
+    \texttt{target\_team\_label\_swap} & should hurt & Team-identity channels flipped in the target. \\
+    \texttt{pitch\_reflection} & should hurt & Context $x$ coordinates mirrored about midfield. \\
+    \texttt{consistent\_player\_slot\_permutation} & should hurt & Player slots permuted within teams, consistently across context frames. \\
+    \texttt{target\_consistent\_player\_slot\_permutation} & should hurt & The same permutation applied to target slots. \\
+    \texttt{no\_motion\_predictor} & must lose & Identity baseline that predicts $z_{t+\Delta} = z_t$. \\
+    \bottomrule
+  \end{tabular}
+  \caption{Falsification conditions. A representation that is insensitive to a
+  semantically meaningful corruption, or that fails to beat the no-motion
+  identity, is blocked regardless of its loss value.}
+  \label{tab:conditions}
+\end{table}
