@@ -52,7 +52,7 @@
 \newcommand{\FalsCautionRatio}{1.05}
 \newcommand{\FalsTestStatus}{controls\_passed}
 \newcommand{\FalsTestScopeClause}{on both the validation matches used for candidate selection and the held-out test matches}
-\newcommand{\AblationOutcome}{\textit{[ablation run pending]} }
+\newcommand{\AblationOutcome}{Without reconstruction, the latents do not collapse (mean per-dimension std 0.325, min 0.090), so anti-collapse is carried by the EMA asymmetry and margin term rather than by reconstruction. The temporal side of the battery \emph{strengthens}: shuffled futures hurt 7.59$\times$, wrong-match futures 7.53$\times$, the no-motion identity loses by 48.37$\times$, and even reversed-time sensitivity rises to 1.18$\times$. But the identity side collapses: player-slot permutation (1.00$\times$) and team-slot swap (1.00$\times$) barely move the loss, so the ablated model would be blocked by the battery's identity controls. The hybrid's reconstruction heads are therefore load-bearing not for anti-collapse but for identity sensitivity --- and they buy it at the price of temporal directedness, which mechanistically explains the configuration-over-dynamics character of the passing candidate. }
 \newcommand{\ProbeDisplRawMean}{+0.070}
 \newcommand{\ProbeDisplZMean}{+0.241}
 \newcommand{\ProbeShapeZMean}{+0.049}

@@ -201,12 +201,19 @@ def load_ablation() -> dict[str, Any] | None:
             if correct_loss and no_motion.get("total_loss") is not None
             else None
         )
+        ratios = {}
+        if correct_loss:
+            for name, payload in results.items():
+                value = payload.get("total_loss")
+                if value is not None:
+                    ratios[name] = value / correct_loss
         return {
             "run_dir": str(run_dir.relative_to(ROOT)),
             "z_std_mean": correct.get("z_online_std_mean"),
             "z_std_min": correct.get("z_online_std_min"),
             "no_motion_ratio": ratio,
             "cosine": correct.get("cosine_similarity"),
+            "ratios": ratios,
         }
     return None
 
@@ -454,6 +461,12 @@ def write_numbers(data: dict[str, Any]) -> None:
     ]
     ablation = data["ablation"]
     if ablation:
+        ratios = ablation.get("ratios", {})
+
+        def ab(name: str) -> str:
+            value = ratios.get(name)
+            return f"{value:.2f}" if isinstance(value, int | float) else "--"
+
         collapse = (
             "the latent standard deviation collapses"
             if (ablation.get("z_std_mean") or 1.0) < 0.02
@@ -464,19 +477,26 @@ def write_numbers(data: dict[str, Any]) -> None:
             + collapse
             + f" (mean per-dimension std {fmt(ablation.get('z_std_mean'))}, min "
             + fmt(ablation.get("z_std_min"))
-            + "), and the learned predictor "
-            + (
-                "still beats"
-                if (ablation.get("no_motion_ratio") or 0) >= 1.25
-                else (
-                    "only marginally beats"
-                    if (ablation.get("no_motion_ratio") or 0) > 1.0
-                    else "no longer beats"
-                )
-            )
-            + " the no-motion identity ("
-            + fmt(ablation.get("no_motion_ratio"), 2)
-            + "$\\times$ on the gated loss). "
+            + "), so anti-collapse is carried by the EMA asymmetry and margin term"
+            + " rather than by reconstruction. The temporal side of the battery"
+            + " \\emph{strengthens}: shuffled futures hurt "
+            + ab("shuffled_future_within_batch")
+            + "$\\times$, wrong-match futures "
+            + ab("future_from_another_match")
+            + "$\\times$, the no-motion identity loses by "
+            + ab("no_motion_predictor")
+            + "$\\times$, and even reversed-time sensitivity rises to "
+            + ab("reversed_time_context")
+            + "$\\times$. But the identity side collapses: player-slot permutation ("
+            + ab("consistent_player_slot_permutation")
+            + "$\\times$) and team-slot swap ("
+            + ab("team_swap")
+            + "$\\times$) barely move the loss, so the ablated model would be blocked"
+            + " by the battery's identity controls. The hybrid's reconstruction heads"
+            + " are therefore load-bearing not for anti-collapse but for identity"
+            + " sensitivity --- and they buy it at the price of temporal directedness,"
+            + " which mechanistically explains the configuration-over-dynamics"
+            + " character of the passing candidate. "
         )
     else:
         ablation_text = "\\textit{[ablation run pending]} "
