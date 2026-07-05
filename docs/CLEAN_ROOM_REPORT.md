@@ -29,9 +29,14 @@ the repository's documented commands. Work branch: `luis/clean-room-paper-v1`.
   repository (Git LFS media endpoint); SHA-256 of every file recorded in
   `data/raw/skillcorner/download_sha256.log`.
 - Local match directories exactly equal the split manifest's 10 IDs
-  (train 6 / val 2 / test 2); manifest hash `0d66a904f30d38c2721b03b189057cc80f1
-  edfb16fdf42b1a35061a874850c71` reproduced by `load_split_manifest`.
-  <!-- hash split across lines only for markdown width; see manifest -->
+  (train 6 / val 2 / test 2); manifest hash
+  `0d66a904f30d38c2721b03b189057cc80f1edbf16fdf42b1a35061a874850c71`
+  reproduced by `load_split_manifest`.
+- Note: the manifest's own `source` field still reads
+  `progress_report_unverified`. We deliberately do NOT edit the manifest —
+  changing any byte would change its SHA-256 and orphan the lineage hash
+  recorded in every downstream artifact. Verification is instead recorded
+  here and in the run manifests.
 - Availability report: 10/10 matches, `raw_periods=1,2` for every match —
   matching the sprint README's claim.
 

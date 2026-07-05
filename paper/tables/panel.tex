@@ -1,0 +1,17 @@
+\begin{table}[t]
+  \centering
+  \small
+  \begin{tabular}{lrrrrrr}
+    \toprule
+    Annotator & tactical & routine & artifact & ambiguous & Risk diff. & Fisher $p$ \\
+    \midrule
+    codex & 11 & 5 & 24 & 0 & -0.350 & 0.998 \\
+    fable & 6 & 7 & 27 & 0 & -0.300 & 1.000 \\
+    kimi & 16 & 5 & 19 & 0 & -0.300 & 0.989 \\
+    \midrule
+    majority vote & \multicolumn{4}{c}{Fleiss' $\kappa$ = 0.41} & -0.300 & 0.998 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Blinded model-annotator panel over 20 high-residual clips and 20 hidden matched controls. Risk difference is the positive-label rate gap between the (hidden) high-residual and control groups; Fisher $p$ tests enrichment. Diagnostic only: the protocol's human-annotation gate remains open.}
+  \label{tab:panel}
+\end{table}

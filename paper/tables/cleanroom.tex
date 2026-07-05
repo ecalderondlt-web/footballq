@@ -1,0 +1,16 @@
+\begin{table}[t]
+  \centering
+  \small
+  \begin{tabular}{lccc}
+    \toprule
+    Gate outcome & Original run & Clean-room run & Agreement \\
+    \midrule
+    falsification status & controls\_passed & controls\_passed & \textbf{agree} \\
+    probe blocking targets & 2 & 2 (3 contrasts, 12 condition strings) & \textbf{agree} \\
+    discovery blockers & 4 & 4 & \textbf{agree} \\
+    overall claim status & blocked & blocked & \textbf{agree} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Clean-room re-execution: gate outcomes from the original run (original-run head \texttt{349fc08}, as recorded in the repository's integrity documentation committed at \texttt{acb2ba3}) versus this paper's second-operator re-execution on different hardware and library versions. We compare gate outcomes and named blockers, not floating-point losses. Blocker vocabulary: 2 blocking \emph{targets} = 3 blocking target$\times$view \emph{contrasts} = 12 machine-readable \emph{condition strings}.}
+  \label{tab:cleanroom}
+\end{table}

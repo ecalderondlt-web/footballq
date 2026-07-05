@@ -1,0 +1,18 @@
+\begin{table}[t]
+  \centering
+  \small
+  \begin{tabular}{llp{7.4cm}}
+    \toprule
+    Gate & Status & Blocking conditions \\
+    \midrule
+    falsification & controls\_passed & none \\
+    probe incremental & diagnostic\_only & 12 condition strings over \texttt{future\_ball\_global\_x\_bucket}, \texttt{team\_shape\_change\_bucket} \\
+    discovery controls & diagnostic\_only & \texttt{latent\_entropy\_not\_separated\_from\_controls}, \texttt{latent\_match\_concentration\_not\_separated\_from\_controls}, \texttt{sparse\_heldout\_clusters}, \texttt{transition\_magnitude\_concentration} \\
+    blinded annotation & diagnostic\_only & none \\
+    \midrule
+    \textbf{overall} & \textbf{blocked} & next action: Resolve mixed incremental probe results or redesign the representation before treating discovery or annotation as evidence. \\
+    \bottomrule
+  \end{tabular}
+  \caption{The combined integrity gate. Any blocked sub-gate blocks all interpretive claims; the artifact also names the next scientific action.}
+  \label{tab:gate}
+\end{table}

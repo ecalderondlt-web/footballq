@@ -24,8 +24,10 @@ the no-motion predictor must lose to the learned predictor.
     \texttt{no\_motion\_predictor} & must lose & Identity baseline that predicts $z_{t+\Delta} = z_t$. \\
     \bottomrule
   \end{tabular}
-  \caption{Falsification conditions. A representation that is insensitive to a
-  semantically meaningful corruption, or that fails to beat the no-motion
-  identity, is blocked regardless of its loss value.}
+  \caption{Falsification conditions. The battery's condition count includes
+  the reference pairing, ten corruptions, and the no-motion identity
+  predictor. A representation that is insensitive to a semantically meaningful
+  corruption, or that fails to beat the no-motion identity, is blocked
+  regardless of its loss value.}
   \label{tab:conditions}
 \end{table}

@@ -48,7 +48,8 @@ For each clip, choose exactly one label:
 
 Rules:
 - Judge only what is visible in the sheet.
-- Do not infer from file order, blind id, or file names.
+- Do not infer from file order, blind id, file names, match id, period, or
+  frame numbers shown in captions.
 - Mark tracking or rendering problems as tracking_artifact even if the clip
   also looks interesting.
 - Use ambiguous when a clip could plausibly fit multiple labels.
@@ -157,10 +158,13 @@ def annotate_kimi(
     labels: dict[str, str] = {}
     for start in range(0, len(items), batch_size):
         batch = items[start : start + batch_size]
+        batch_csv = f"batch_{start:03d}.csv"
         prompt = build_prompt(
             batch,
             "View each sheet PNG listed below (paths are relative to your working"
-            " directory). View every sheet in this batch before answering.",
+            " directory). View every sheet in this batch before answering. Then"
+            f" WRITE the full CSV (header plus one row per clip) to a new file"
+            f" named {batch_csv} in your working directory, and also print it.",
         )
         cmd = [
             "kimi",
@@ -173,7 +177,12 @@ def annotate_kimi(
             prompt,
         ]
         output = run_cli(cmd, sandbox, timeout, log_path)
-        labels.update(parse_labels(output))
+        batch_path = sandbox / batch_csv
+        if batch_path.exists():
+            labels.update(parse_labels(batch_path.read_text()))
+        labels.update(
+            {k: v for k, v in parse_labels(output).items() if k not in labels}
+        )
     return labels
 
 
@@ -255,7 +264,12 @@ def main() -> None:
         status[name] = {"filled": filled, "total": len(template)}
         print(f"[panel] {name}: {filled}/{len(template)} labels parsed", flush=True)
 
-    (out_dir / "panel_run_status.json").write_text(json.dumps(status, indent=2))
+    status_path = out_dir / "panel_run_status.json"
+    merged: dict[str, object] = {}
+    if status_path.exists():
+        merged.update(json.loads(status_path.read_text()))
+    merged.update(status)
+    status_path.write_text(json.dumps(merged, indent=2))
     complete = [n for n, s in status.items() if s["filled"] == len(template)]
     print(
         json.dumps(

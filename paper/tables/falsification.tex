@@ -1,0 +1,23 @@
+\begin{table}[t]
+  \centering
+  \small
+  \begin{tabular}{lrrrl}
+    \toprule
+    Condition & Ratio mean & Ratio min & Ratio max & Status \\
+    \midrule
+    target team label swap & 11.278 & 10.624 & 12.076 & pass \\
+    pitch reflection & 5.260 & 4.975 & 5.480 & pass \\
+    future from another match & 4.999 & 4.726 & 5.284 & pass \\
+    shuffled future within batch & 4.963 & 4.695 & 5.249 & pass \\
+    team swap & 3.311 & 3.162 & 3.508 & pass \\
+    team label swap & 3.166 & 3.043 & 3.318 & pass \\
+    no motion predictor & 2.269 & 1.812 & 2.858 & pass \\
+    consistent player slot permutation & 1.414 & 1.355 & 1.483 & pass \\
+    target consistent player slot permutation & 1.355 & 1.292 & 1.450 & pass \\
+    masked ball & 1.085 & 1.061 & 1.098 & caution \\
+    reversed time context & 1.030 & 1.029 & 1.031 & fail \\
+    \bottomrule
+  \end{tabular}
+  \caption{Falsification battery on validation matches, gated on total loss across seeds 7, 11, 23. Ratios are corrupted-condition loss over correct-pairing loss (higher means the corruption hurts, as it should); pass requires min ratio $\geq$ 1.25, caution $\geq$ 1.05. Reversed-time and masked-ball are reported but excluded from blocking by protocol. Overall: \textbf{controls\_passed}.}
+  \label{tab:falsification}
+\end{table}
