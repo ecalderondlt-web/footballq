@@ -181,7 +181,43 @@ def gather() -> dict[str, Any]:
     if PANEL_DIR.exists():
         for summary in sorted(PANEL_DIR.glob("*/annotation_summary.json")):
             data["panel_enrichment"][summary.parent.name] = read_json(summary)
+    data["probe_rows"] = probe_contrast_rows(data)
     return data
+
+
+RELEVANT_CONTRASTS = ["raw_plus_td_jepa_vs_raw", "raw_plus_td_jepa_zscore_vs_raw_zscore"]
+
+
+def probe_contrast_rows(data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalize probe contrasts from the gate artifact or the probe summary."""
+
+    gate = data["gate_with_panel"] or data["gate"]
+    if gate:
+        rows = ((gate.get("gates", {}) or {}).get("probe_incremental", {})).get("contrasts", [])
+        if rows:
+            return rows
+    summary = data["probe"] or {}
+    rows = []
+    for item in (summary.get("contrasts", {}) or {}).values():
+        if item.get("contrast") not in RELEVANT_CONTRASTS:
+            continue
+        seed = item.get("signed_improvement", {}) or {}
+        match = item.get("match_level_signed_improvement", {}) or {}
+        rows.append(
+            {
+                "target": item.get("target"),
+                "contrast": item.get("contrast"),
+                "metric_name": item.get("metric_name"),
+                "all_positive": seed.get("all_positive"),
+                "mean_signed_improvement": seed.get("mean"),
+                "min_signed_improvement": seed.get("min"),
+                "match_level_all_positive": match.get("all_positive"),
+                "match_level_mean_signed_improvement": match.get("mean"),
+                "match_level_min_signed_improvement": match.get("min"),
+            }
+        )
+    rows.sort(key=lambda r: (str(r["target"]), str(r["contrast"])))
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -280,6 +316,49 @@ def write_numbers(data: dict[str, Any]) -> None:
         macro("FalsPassRatio", fmt(fals.get("pass_ratio"), 2)),
         macro("FalsCautionRatio", fmt(fals.get("caution_ratio"), 2)),
     ]
+    probe_summary = data["probe"] or {}
+
+    def contrast_stat(target: str, contrast: str, level: str, stat: str) -> str:
+        for item in (probe_summary.get("contrasts", {}) or {}).values():
+            if item.get("target") == target and item.get("contrast") == contrast:
+                value = (item.get(level, {}) or {}).get(stat)
+                return f"{value:+.3f}" if isinstance(value, int | float) else "--"
+        return "--"
+
+    raw_contrast = "raw_plus_td_jepa_vs_raw"
+    z_contrast = "raw_plus_td_jepa_zscore_vs_raw_zscore"
+    lines += [
+        macro(
+            "ProbeDisplRawMean",
+            contrast_stat("future_ball_displacement_m", raw_contrast, "signed_improvement", "mean"),
+        ),
+        macro(
+            "ProbeDisplZMean",
+            contrast_stat("future_ball_displacement_m", z_contrast, "signed_improvement", "mean"),
+        ),
+        macro(
+            "ProbeShapeZMean",
+            contrast_stat("team_shape_change_bucket", z_contrast, "signed_improvement", "mean"),
+        ),
+        macro(
+            "ProbeShapeRawMean",
+            contrast_stat("team_shape_change_bucket", raw_contrast, "signed_improvement", "mean"),
+        ),
+        macro(
+            "ProbeGlobalXRawMin",
+            contrast_stat("future_ball_global_x_bucket", raw_contrast, "signed_improvement", "min"),
+        ),
+        macro(
+            "ProbeGlobalXRawMean",
+            contrast_stat(
+                "future_ball_global_x_bucket", raw_contrast, "signed_improvement", "mean"
+            ),
+        ),
+        macro(
+            "ProbeGlobalXZMean",
+            contrast_stat("future_ball_global_x_bucket", z_contrast, "signed_improvement", "mean"),
+        ),
+    ]
     for name in [
         "FalsificationNarrative",
         "ProbeNarrative",
@@ -351,7 +430,7 @@ def write_falsification_table(data: dict[str, Any]) -> None:
 def write_probe_table(data: dict[str, Any]) -> None:
     gate = data["gate_with_panel"] or data["gate"] or {}
     probe_gate = (gate.get("gates", {}) or {}).get("probe_incremental", {})
-    contrasts = probe_gate.get("contrasts", [])
+    contrasts = data["probe_rows"]
     out = PAPER / "tables/probes.tex"
     if not contrasts:
         out.write_text("% pending probe artifacts\n")
@@ -727,10 +806,7 @@ def fig_falsification(data: dict[str, Any]) -> None:
 
 
 def fig_probes(data: dict[str, Any]) -> None:
-    gate = data["gate_with_panel"] or data["gate"] or {}
-    contrasts = ((gate.get("gates", {}) or {}).get("probe_incremental", {})).get(
-        "contrasts", []
-    )
+    contrasts = data["probe_rows"]
     if not contrasts:
         return
     labels = []
@@ -772,10 +848,8 @@ def fig_probes(data: dict[str, Any]) -> None:
     ax.set_yticks(list(y))
     ax.set_yticklabels(labels, fontsize=7)
     ax.invert_yaxis()
-    ax.set_xlabel(
-        "signed incremental value of raw$+z$ over raw (bars: seed mean;"
-        " diamonds: match-level mean)"
-    )
+    ax.margins(x=0.18)
+    ax.set_xlabel("signed incremental value of raw$+z$ over raw")
     fig.savefig(PAPER / "figures/probes.pdf")
     plt.close(fig)
 

@@ -373,7 +373,33 @@ structure is \emph{useful} is the next gate's question.
 
 \input{tables/probes}
 
-\ProbeNarrative
+Table~\ref{tab:probes} and Figure~\ref{fig:probes} report incremental value.
+The picture is mixed in a specific, instructive way. Where the target is
+close to dynamics --- future ball displacement --- adding $z$ helps
+consistently in every seed and every held-out match
+(\ProbeDisplRawMean{} RMSE improvement on the raw view, \ProbeDisplZMean{}
+z-scored). Team-shape change shows the same gain only under z-scoring
+(\ProbeShapeZMean); on the unnormalized view, adding $z$ actively hurts
+(\ProbeShapeRawMean). The global-$x$ bucket target fails both views: its raw
+increment is positive on average (\ProbeGlobalXRawMean) but negative for at
+least one seed (min \ProbeGlobalXRawMin), and z-scoring makes it reliably
+negative (\ProbeGlobalXZMean). Under the gate's rule --- an increment must be
+positive for \emph{every} seed and \emph{every} held-out match --- two of
+three targets block. We highlight the global-$x$ case: judged on a single
+seed (seed 7 gives $+0.013$), it would have passed; the three-seed minimum
+reverses the conclusion. This is the concrete, small-data version of
+variance-aware benchmarking~\citep{bouthillier2021accounting}, and it is why
+the protocol refuses single-seed probe evidence.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.88\linewidth]{figures/probes.pdf}
+  \caption{Signed incremental value of raw$+z$ over raw per target and view
+  (bars: mean across seeds; diamonds: match-level mean). Blue: positive;
+  red: negative. The gate blocks any contrast with a non-positive seed-level
+  or match-level increment.}
+  \label{fig:probes}
+\end{figure}
 
 \subsection{Discovery controls}
 \label{sec:results-discovery}

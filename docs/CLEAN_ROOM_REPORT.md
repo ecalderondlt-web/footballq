@@ -86,7 +86,22 @@ with min ratio >= 1.29):
 
 ### Incremental probes
 
-<!-- TODO: fill from runs/probe_suite/v2_..._incremental_summary -->
+**Reproduces the original run's blockers exactly (same two blocking targets).**
+Signed incremental value of raw+z over raw (linear probes, h2s, positive is
+better; seed stats over 7/11/23, match stats over held-out matches):
+
+| target | view | seed mean | seed min | all positive |
+| --- | --- | --- | --- | --- |
+| future_ball_displacement_m | raw | +0.0699 | +0.0614 | yes |
+| future_ball_displacement_m | z-scored | +0.2412 | +0.1951 | yes |
+| team_shape_change_bucket | z-scored | +0.0486 | +0.0409 | yes |
+| future_ball_global_x_bucket | raw | +0.0018 | -0.0060 | **no** |
+| future_ball_global_x_bucket | z-scored | -0.0163 | -0.0221 | **no** |
+| team_shape_change_bucket | raw | -0.0310 | -0.0427 | **no** |
+
+Same match-level pattern. Note: on seed 7 alone, unnormalized global-x was
+positive (+0.013); the three-seed minimum flips it negative — the multi-seed
+gate is what makes this conclusion stable.
 
 ### Discovery controls
 
