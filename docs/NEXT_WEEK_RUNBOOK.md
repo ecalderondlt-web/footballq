@@ -6,6 +6,7 @@ numbers quickly.
 
 Read first:
 
+- `docs/INTEGRITY_SPRINT_README.md`
 - `docs/PAPER_FINAL_PATH.md`
 - `docs/RESEARCH_STATUS.md`
 - `docs/EXPERIMENT_PROTOCOL.md`
