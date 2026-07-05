@@ -49,8 +49,12 @@ run for the same candidate and aggregated at
 `runs/discovery/v2_context_w0p05_slot_recon_margin_control_summary/`. The
 combined gate at `runs/integrity/v2_context_w0p05_slot_recon_margin_gate_summary.json`
 remains blocked by `probe_incremental` and `discovery_controls`, while
-falsification is `controls_passed`. A blinded annotation scaffold was generated
-at `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`;
+falsification is `controls_passed`. The gate summary now records explicit
+blocking conditions: current probe blockers include negative global-x and
+unnormalized team-shape incremental deltas, and current discovery blockers
+include lack of separation from raw/PCA/random controls, sparse held-out
+clusters, and transition-magnitude concentration. A blinded annotation scaffold
+was generated at `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`;
 it separates annotator rows from the private key. A follow-up diagnostic render
 initially filled `clip_path` values for the 25 rows whose identities match
 `data/processed/skillcorner_windows_h2s.pt`. Targeted full-period h2s per-match

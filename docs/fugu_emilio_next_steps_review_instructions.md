@@ -60,7 +60,10 @@ passes on both current local diagnostic packages before human annotation.
 path and currently reports the balanced package as incomplete until annotation
 cells are filled. It rejects filled labels outside the controlled annotation
 vocabulary so typo labels block the annotation gate instead of entering the
-enrichment summary.
+enrichment summary. The combined gate summary now records explicit
+probe/discovery `blocking_conditions`; current blockers include negative
+global-x and unnormalized team-shape increments plus discovery results that do
+not separate from raw/PCA/random controls.
 
 ### 0.2 Before any real-data run
 

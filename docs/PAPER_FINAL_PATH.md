@@ -136,7 +136,9 @@ These items block paper-quality claims:
 - Discovery controls for the same candidate include all required raw/PCA/random
   and handcrafted baselines, but normalized latent clustering remains similar to
   the controls. The current combined gate remains blocked by probe/discovery
-  diagnostics.
+  diagnostics, and now records explicit blocking conditions for negative
+  incremental-probe deltas, lack of discovery separation from controls, sparse
+  held-out clusters, and transition-magnitude concentration.
 - A blinded annotation scaffold exists for seed-7 0.2s latent-residual examples.
   It now includes rendered diagnostic GIFs for all 40 rows after targeted
   period-2 h2s cache recovery. The package validator passes locally, confirming

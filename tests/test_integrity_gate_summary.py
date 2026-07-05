@@ -110,12 +110,50 @@ def _complete_discovery_payload():
     return {
         "features": {
             "normalized_delta_z": {
-                "cluster_size_entropy": {"mean": 0.87},
-                "max_cluster_top_match_fraction": {"max": 0.16},
+                "cluster_size_entropy": {"mean": 0.91},
+                "max_cluster_top_match_fraction": {"mean": 0.1, "max": 0.12},
+                "min_heldout_examples_per_cluster": {"min": 12},
+                "max_delta_norm_top_fraction": {"max": 0.2},
             },
-            "raw_delta_z": {"cluster_size_entropy": {"mean": 0.88}},
-            "pca_delta_z": {},
-            "random_encoder_delta_z": {"cluster_size_entropy": {"mean": 0.86}},
+            "raw_delta_z": {
+                "cluster_size_entropy": {"mean": 0.84},
+                "max_cluster_top_match_fraction": {"mean": 0.17},
+            },
+            "pca_delta_z": {
+                "cluster_size_entropy": {"mean": 0.83},
+                "max_cluster_top_match_fraction": {"mean": 0.18},
+            },
+            "random_encoder_delta_z": {
+                "cluster_size_entropy": {"mean": 0.82},
+                "max_cluster_top_match_fraction": {"mean": 0.19},
+            },
+            "handcrafted_structure_metrics": {},
+            "pca_handcrafted_structure_metrics": {},
+        }
+    }
+
+
+def _blocked_discovery_payload():
+    return {
+        "features": {
+            "normalized_delta_z": {
+                "cluster_size_entropy": {"mean": 0.83},
+                "max_cluster_top_match_fraction": {"mean": 0.24, "max": 0.27},
+                "min_heldout_examples_per_cluster": {"min": 4},
+                "max_delta_norm_top_fraction": {"max": 1.0},
+            },
+            "raw_delta_z": {
+                "cluster_size_entropy": {"mean": 0.84},
+                "max_cluster_top_match_fraction": {"mean": 0.23},
+            },
+            "pca_delta_z": {
+                "cluster_size_entropy": {"mean": 0.85},
+                "max_cluster_top_match_fraction": {"mean": 0.22},
+            },
+            "random_encoder_delta_z": {
+                "cluster_size_entropy": {"mean": 0.835},
+                "max_cluster_top_match_fraction": {"mean": 0.25},
+            },
             "handcrafted_structure_metrics": {},
             "pca_handcrafted_structure_metrics": {},
         }
@@ -138,6 +176,47 @@ def test_combine_gates_blocks_incomplete_blinded_annotation():
     assert summary["overall_claim_status"] == "blocked"
     assert summary["gates"]["blinded_annotation"]["status"] == "incomplete"
     assert "Complete blinded annotation" in summary["next_scientific_action"]
+
+
+def test_combine_gates_records_mixed_probe_blocking_conditions():
+    mixed_probe = _diagnostic_probe_payload()
+    contrast = mixed_probe["contrasts"]["target|linear|raw_plus_td_jepa_vs_raw"]
+    contrast["signed_improvement"] = {
+        "all_positive": False,
+        "mean": -0.01,
+        "min": -0.02,
+    }
+    contrast["match_level_signed_improvement"] = {
+        "all_positive": False,
+        "mean": -0.005,
+        "min": -0.01,
+    }
+
+    summary = combine_gates(
+        _passing_falsification_payload(),
+        mixed_probe,
+        _complete_discovery_payload(),
+    )
+
+    conditions = summary["gates"]["probe_incremental"]["blocking_conditions"]
+    assert any(condition.startswith("nonpositive_seed_increment") for condition in conditions)
+    assert any(condition.startswith("negative_match_increment") for condition in conditions)
+    assert "Resolve mixed incremental probe results" in summary["next_scientific_action"]
+
+
+def test_combine_gates_records_discovery_control_blocking_conditions():
+    summary = combine_gates(
+        _passing_falsification_payload(),
+        _diagnostic_probe_payload(),
+        _blocked_discovery_payload(),
+    )
+
+    conditions = summary["gates"]["discovery_controls"]["blocking_conditions"]
+    assert "latent_entropy_not_separated_from_controls" in conditions
+    assert "latent_match_concentration_not_separated_from_controls" in conditions
+    assert "sparse_heldout_clusters" in conditions
+    assert "transition_magnitude_concentration" in conditions
+    assert "Improve discovery separation" in summary["next_scientific_action"]
 
 
 def test_combine_gates_keeps_completed_annotation_diagnostic_only():

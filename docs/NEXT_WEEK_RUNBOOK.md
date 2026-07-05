@@ -231,6 +231,11 @@ required feature families are present, but normalized latent clusters look
 similar to raw/PCA/random controls, so the combined gate at
 `runs/integrity/v2_context_w0p05_slot_recon_margin_gate_summary.json` remains
 blocked by probe/discovery diagnostics.
+The gate summary now writes explicit `blocking_conditions`: current probe
+blockers include negative seed- and match-level increments for global-x bucket
+and unnormalized team-shape, and current discovery blockers include lack of
+separation from controls, sparse held-out clusters, and transition-magnitude
+concentration.
 The current blinded scaffold is
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`; it
 separates annotator rows from the private key and now includes diagnostic GIF

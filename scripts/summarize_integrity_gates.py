@@ -21,9 +21,31 @@ RELEVANT_PROBE_CONTRASTS = [
     "raw_plus_td_jepa_zscore_vs_raw_zscore",
 ]
 
+DISCOVERY_CONTROL_FEATURES = [
+    "raw_delta_z",
+    "pca_delta_z",
+    "random_encoder_delta_z",
+]
+DISCOVERY_SEPARATION_MARGIN = 0.02
+MIN_HELDOUT_EXAMPLES_PER_CLUSTER = 5
+MAX_DELTA_NORM_TOP_FRACTION = 0.95
+
 
 def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _as_float(value: Any) -> float | None:
+    if isinstance(value, int | float):
+        return float(value)
+    return None
+
+
+def _metric_stat(feature: dict[str, Any], metric: str, stat: str) -> float | None:
+    value = feature.get(metric, {})
+    if not isinstance(value, dict):
+        return None
+    return _as_float(value.get(stat))
 
 
 def falsification_gate(payload: dict[str, Any]) -> dict[str, Any]:
@@ -43,20 +65,44 @@ def probe_gate(payload: dict[str, Any]) -> dict[str, Any]:
     """Return the incremental-probe gate status."""
 
     contrast_rows = []
+    blocking_conditions = []
     for item in payload.get("contrasts", {}).values():
         if item.get("contrast") not in RELEVANT_PROBE_CONTRASTS:
             continue
         improvement = item.get("signed_improvement", {})
         match_improvement = item.get("match_level_signed_improvement", {})
+        target = item.get("target")
+        contrast = item.get("contrast")
+        row_id = f"{target}:{contrast}"
+        seed_all_positive = improvement.get("all_positive")
+        match_all_positive = match_improvement.get("all_positive")
+        seed_mean = _as_float(improvement.get("mean"))
+        seed_min = _as_float(improvement.get("min"))
+        match_mean = _as_float(match_improvement.get("mean"))
+        match_min = _as_float(match_improvement.get("min"))
+        if seed_all_positive is False or seed_mean is None or seed_mean <= 0:
+            blocking_conditions.append(f"nonpositive_seed_increment:{row_id}")
+        if seed_min is not None and seed_min <= 0:
+            blocking_conditions.append(f"negative_seed_increment:{row_id}")
+        if (
+            match_all_positive is False
+            or match_mean is None
+            or match_mean <= 0
+        ):
+            blocking_conditions.append(f"nonpositive_match_increment:{row_id}")
+        if match_min is not None and match_min <= 0:
+            blocking_conditions.append(f"negative_match_increment:{row_id}")
         contrast_rows.append(
             {
-                "target": item.get("target"),
-                "contrast": item.get("contrast"),
+                "target": target,
+                "contrast": contrast,
                 "metric_name": item.get("metric_name"),
-                "all_positive": improvement.get("all_positive"),
-                "mean_signed_improvement": improvement.get("mean"),
-                "min_signed_improvement": improvement.get("min"),
-                "match_level_mean_signed_improvement": match_improvement.get("mean"),
+                "all_positive": seed_all_positive,
+                "mean_signed_improvement": seed_mean,
+                "min_signed_improvement": seed_min,
+                "match_level_all_positive": match_all_positive,
+                "match_level_mean_signed_improvement": match_mean,
+                "match_level_min_signed_improvement": match_min,
             }
         )
     if not contrast_rows:
@@ -66,6 +112,17 @@ def probe_gate(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "status": status,
         "claim_status": payload.get("claim_status"),
+        "blocking_conditions": sorted(set(blocking_conditions)),
+        "positive_contrast_count": sum(
+            row["all_positive"] is not False
+            and row["match_level_all_positive"] is not False
+            and row["mean_signed_improvement"] is not None
+            and row["mean_signed_improvement"] > 0
+            and row["match_level_mean_signed_improvement"] is not None
+            and row["match_level_mean_signed_improvement"] > 0
+            for row in contrast_rows
+        ),
+        "contrast_count": len(contrast_rows),
         "contrasts": contrast_rows,
         "note": (
             "Current probe targets are geometry/control diagnostics; positive incremental "
@@ -79,21 +136,105 @@ def discovery_gate(payload: dict[str, Any]) -> dict[str, Any]:
 
     features = payload.get("features", {})
     missing = [feature for feature in REQUIRED_DISCOVERY_FEATURES if feature not in features]
-    status = "incomplete" if missing else "diagnostic_only"
     primary = features.get("normalized_delta_z", {})
-    raw = features.get("raw_delta_z", {})
-    random = features.get("random_encoder_delta_z", {})
+    control_rows = []
+    for feature_name in DISCOVERY_CONTROL_FEATURES:
+        feature = features.get(feature_name, {})
+        control_rows.append(
+            {
+                "feature": feature_name,
+                "entropy_mean": _metric_stat(feature, "cluster_size_entropy", "mean"),
+                "top_match_fraction_mean": _metric_stat(
+                    feature,
+                    "max_cluster_top_match_fraction",
+                    "mean",
+                ),
+            }
+        )
+
+    primary_entropy_mean = _metric_stat(primary, "cluster_size_entropy", "mean")
+    primary_top_match_mean = _metric_stat(
+        primary,
+        "max_cluster_top_match_fraction",
+        "mean",
+    )
+    primary_top_match_max = _metric_stat(
+        primary,
+        "max_cluster_top_match_fraction",
+        "max",
+    )
+    min_heldout_examples = _metric_stat(
+        primary,
+        "min_heldout_examples_per_cluster",
+        "min",
+    )
+    max_delta_norm_top_fraction = _metric_stat(
+        primary,
+        "max_delta_norm_top_fraction",
+        "max",
+    )
+    control_entropy_values = [
+        row["entropy_mean"] for row in control_rows if row["entropy_mean"] is not None
+    ]
+    control_top_match_values = [
+        row["top_match_fraction_mean"]
+        for row in control_rows
+        if row["top_match_fraction_mean"] is not None
+    ]
+    best_control_entropy = max(control_entropy_values, default=None)
+    best_control_top_match = min(control_top_match_values, default=None)
+    entropy_margin_vs_best_control = (
+        None
+        if primary_entropy_mean is None or best_control_entropy is None
+        else primary_entropy_mean - best_control_entropy
+    )
+    top_match_margin_vs_best_control = (
+        None
+        if primary_top_match_mean is None or best_control_top_match is None
+        else best_control_top_match - primary_top_match_mean
+    )
+    blocking_conditions = []
+    if missing:
+        blocking_conditions.extend(f"missing_feature:{feature}" for feature in missing)
+    if not missing:
+        if (
+            entropy_margin_vs_best_control is None
+            or entropy_margin_vs_best_control <= DISCOVERY_SEPARATION_MARGIN
+        ):
+            blocking_conditions.append("latent_entropy_not_separated_from_controls")
+        if (
+            top_match_margin_vs_best_control is None
+            or top_match_margin_vs_best_control <= DISCOVERY_SEPARATION_MARGIN
+        ):
+            blocking_conditions.append(
+                "latent_match_concentration_not_separated_from_controls"
+            )
+        if (
+            min_heldout_examples is not None
+            and min_heldout_examples < MIN_HELDOUT_EXAMPLES_PER_CLUSTER
+        ):
+            blocking_conditions.append("sparse_heldout_clusters")
+        if (
+            max_delta_norm_top_fraction is not None
+            and max_delta_norm_top_fraction >= MAX_DELTA_NORM_TOP_FRACTION
+        ):
+            blocking_conditions.append("transition_magnitude_concentration")
+    status = "incomplete" if missing else "diagnostic_only"
     return {
         "status": status,
+        "blocking_conditions": sorted(set(blocking_conditions)),
         "missing_required_features": missing,
         "num_features": len(features),
-        "primary_entropy_mean": primary.get("cluster_size_entropy", {}).get("mean"),
-        "raw_entropy_mean": raw.get("cluster_size_entropy", {}).get("mean"),
-        "random_entropy_mean": random.get("cluster_size_entropy", {}).get("mean"),
-        "primary_top_match_fraction_max": primary.get(
-            "max_cluster_top_match_fraction",
-            {},
-        ).get("max"),
+        "primary_entropy_mean": primary_entropy_mean,
+        "best_control_entropy_mean": best_control_entropy,
+        "entropy_margin_vs_best_control": entropy_margin_vs_best_control,
+        "primary_top_match_fraction_mean": primary_top_match_mean,
+        "primary_top_match_fraction_max": primary_top_match_max,
+        "best_control_top_match_fraction_mean": best_control_top_match,
+        "top_match_margin_vs_best_control": top_match_margin_vs_best_control,
+        "min_heldout_examples_per_cluster": min_heldout_examples,
+        "max_delta_norm_top_fraction": max_delta_norm_top_fraction,
+        "control_comparisons": control_rows,
         "note": (
             "Discovery summaries are controls and nuisance diagnostics; cluster outputs "
             "remain diagnostic until they beat controls and pass blinded enrichment."
@@ -144,10 +285,20 @@ def _next_scientific_action(gates: dict[str, dict[str, Any]]) -> str:
             "Run incremental probe controls comparing raw, z, raw+z, and z-scored "
             "feature views before discovery or visualization."
         )
+    if gates["probe_incremental"].get("blocking_conditions"):
+        return (
+            "Resolve mixed incremental probe results or redesign the representation "
+            "before treating discovery or annotation as evidence."
+        )
     if gates["discovery_controls"]["status"] == "incomplete":
         return (
             "Run discovery baselines against raw/PCA/random controls before any "
             "blinded visualization."
+        )
+    if gates["discovery_controls"].get("blocking_conditions"):
+        return (
+            "Improve discovery separation from raw/PCA/random controls before using "
+            "blinded annotation for interpretive claims."
         )
     annotation = gates.get("blinded_annotation")
     if annotation is None:

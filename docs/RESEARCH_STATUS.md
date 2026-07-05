@@ -65,8 +65,14 @@ this as a mixed diagnostic probe result, not a downstream evidence pass.
 The current combined gate artifact at
 `runs/integrity/v2_context_w0p05_slot_recon_margin_gate_summary.json` reports
 `overall_claim_status: blocked`. Falsification is now `controls_passed`, but the
-incremental probe and discovery-control gates remain `diagnostic_only`. Any
-visualization remains blinded diagnostic material only.
+incremental probe and discovery-control gates remain `diagnostic_only`.
+`scripts/summarize_integrity_gates.py` now records machine-readable blocking
+conditions for those gates. For the current candidate, the probe gate records
+negative seed- and match-level increments for global-x bucket plus unnormalized
+team-shape, while the discovery gate records that latent entropy and
+match-concentration are not separated from raw/PCA/random controls, with sparse
+held-out clusters and transition-magnitude concentration. Any visualization
+remains blinded diagnostic material only.
 
 A current-candidate blinded annotation scaffold exists at
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`. It was
@@ -211,7 +217,7 @@ Current focused verification:
   packages
 - blinded annotation analysis: current package correctly reports incomplete
 - repo-wide Ruff: passed
-- full test suite: `173 passed`
+- full test suite: `175 passed`
 
 The former repo-wide Ruff debt is retired and the current status is tracked in
 `docs/LINT_STATUS.md`.
