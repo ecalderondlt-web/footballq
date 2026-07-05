@@ -348,6 +348,21 @@ def combine_gates(
     }
 
 
+def blocking_condition_lines(summary: dict[str, Any]) -> list[str]:
+    """Return CLI-readable blocking-condition lines from a gate summary."""
+
+    lines = []
+    gates = summary.get("gates", {})
+    if not isinstance(gates, dict):
+        return lines
+    for gate_name, gate in gates.items():
+        if not isinstance(gate, dict):
+            continue
+        for condition in gate.get("blocking_conditions", []):
+            lines.append(f"blocking_condition[{gate_name}]: {condition}")
+    return lines
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--falsification", type=Path, required=True)
@@ -371,6 +386,9 @@ def main() -> None:
     print(f"summary_json: {args.out}")
     print(f"overall_claim_status: {summary['overall_claim_status']}")
     print(f"blocking_gates: {', '.join(summary['blocking_gates'])}")
+    print(f"next_scientific_action: {summary['next_scientific_action']}")
+    for line in blocking_condition_lines(summary):
+        print(line)
 
 
 if __name__ == "__main__":

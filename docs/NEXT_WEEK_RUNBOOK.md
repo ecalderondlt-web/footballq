@@ -235,7 +235,8 @@ The gate summary now writes explicit `blocking_conditions`: current probe
 blockers include negative seed- and match-level increments for global-x bucket
 and unnormalized team-shape, and current discovery blockers include lack of
 separation from controls, sparse held-out clusters, and transition-magnitude
-concentration.
+concentration. The gate CLI also prints `next_scientific_action` plus one
+`blocking_condition[...]` line per blocker.
 The current blinded scaffold is
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`; it
 separates annotator rows from the private key and now includes diagnostic GIF

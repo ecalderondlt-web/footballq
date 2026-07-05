@@ -1,4 +1,4 @@
-from scripts.summarize_integrity_gates import combine_gates
+from scripts.summarize_integrity_gates import blocking_condition_lines, combine_gates
 
 
 def test_combine_gates_blocks_diagnostic_outputs():
@@ -258,3 +258,23 @@ def test_combine_gates_blocks_invalid_annotation_labels():
     assert summary["overall_claim_status"] == "blocked"
     assert summary["gates"]["blinded_annotation"]["status"] == "blocked"
     assert "Fix the blinded annotation package" in summary["next_scientific_action"]
+
+
+def test_blocking_condition_lines_formats_gate_names():
+    lines = blocking_condition_lines(
+        {
+            "gates": {
+                "probe_incremental": {
+                    "blocking_conditions": ["negative_seed_increment:target:contrast"]
+                },
+                "discovery_controls": {
+                    "blocking_conditions": ["latent_entropy_not_separated_from_controls"]
+                },
+            }
+        }
+    )
+
+    assert lines == [
+        "blocking_condition[probe_incremental]: negative_seed_increment:target:contrast",
+        "blocking_condition[discovery_controls]: latent_entropy_not_separated_from_controls",
+    ]

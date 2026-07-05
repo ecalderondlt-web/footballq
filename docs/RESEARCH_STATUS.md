@@ -71,8 +71,9 @@ conditions for those gates. For the current candidate, the probe gate records
 negative seed- and match-level increments for global-x bucket plus unnormalized
 team-shape, while the discovery gate records that latent entropy and
 match-concentration are not separated from raw/PCA/random controls, with sparse
-held-out clusters and transition-magnitude concentration. Any visualization
-remains blinded diagnostic material only.
+held-out clusters and transition-magnitude concentration. The gate CLI now
+prints those blocker lines along with `next_scientific_action`. Any
+visualization remains blinded diagnostic material only.
 
 A current-candidate blinded annotation scaffold exists at
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_seed7_h02/`. It was
@@ -217,7 +218,7 @@ Current focused verification:
   packages
 - blinded annotation analysis: current package correctly reports incomplete
 - repo-wide Ruff: passed
-- full test suite: `175 passed`
+- full test suite: `176 passed`
 
 The former repo-wide Ruff debt is retired and the current status is tracked in
 `docs/LINT_STATUS.md`.
