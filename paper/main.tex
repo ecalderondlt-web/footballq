@@ -339,7 +339,34 @@ both runs' blocking conditions in Section~\ref{sec:cleanroom}.
 
 \input{tables/falsification}
 
-\FalsificationNarrative
+Table~\ref{tab:falsification} and Figure~\ref{fig:falsification} report the
+battery. The gate verdict is \emph{\FalsStatus}: every blockable corruption
+raises the gated loss past the pass threshold of \FalsPassRatio$\times$ in all
+\NumSeeds{} seeds. Futures drawn from another match
+(\FalsWrongMatchMeanRatio$\times$) and shuffled futures
+(\FalsShuffledMeanRatio$\times$) hurt most among pairing controls; team-identity
+corruptions hurt $3$--$11\times$; and the learned predictor beats the no-motion
+identity by \FalsNoMotionMeanRatio$\times$ on average (worst seed
+\FalsNoMotionMinRatio$\times$) --- the margin term introduced during candidate
+selection is doing its job. The slot-permutation controls, the sprint's
+historical weak point, now clear the bar with worst-case
+\FalsSlotPermMinRatio$\times$. Two excluded-from-blocking diagnostics remain
+informative: reversed-time context (\FalsReversedTimeMeanRatio$\times$) and
+masked ball (\FalsMaskedBallMeanRatio$\times$) barely move the loss, telling us
+the representation leans on configuration far more than on arrow-of-time or
+ball-specific signal at this horizon. Passing this battery licenses exactly
+one claim: the encoder learned non-trivial temporal structure. Whether that
+structure is \emph{useful} is the next gate's question.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/falsification.pdf}
+  \caption{Falsification ratios per condition (one marker per seed; gated on
+  total loss). Dashed line: pass threshold \FalsPassRatio; dotted: caution
+  \FalsCautionRatio; open markers: conditions excluded from blocking by
+  protocol.}
+  \label{fig:falsification}
+\end{figure}
 
 \subsection{Incremental-value probes}
 \label{sec:results-probes}

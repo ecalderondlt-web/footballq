@@ -255,6 +255,31 @@ def write_numbers(data: dict[str, Any]) -> None:
         ),
         macro("PanelHeadline", tex_escape(str(panel.get("headline", "results pending")))),
     ]
+    def cond_ratio(condition: str, stat: str) -> str:
+        value = (
+            fals.get("conditions", {})
+            .get(condition, {})
+            .get("gate_metric_ratio_vs_correct", {})
+            .get(stat)
+        )
+        return fmt(value, 2) if value is not None else "--"
+
+    lines += [
+        macro("FalsStatus", tex_escape(str(fals.get("scientific_claim_status", "pending")))),
+        macro("FalsWrongMatchMeanRatio", cond_ratio("future_from_another_match", "mean")),
+        macro("FalsShuffledMeanRatio", cond_ratio("shuffled_future_within_batch", "mean")),
+        macro("FalsNoMotionMeanRatio", cond_ratio("no_motion_predictor", "mean")),
+        macro("FalsNoMotionMinRatio", cond_ratio("no_motion_predictor", "min")),
+        macro(
+            "FalsSlotPermMinRatio",
+            cond_ratio("target_consistent_player_slot_permutation", "min"),
+        ),
+        macro("FalsTeamSwapMeanRatio", cond_ratio("team_swap", "mean")),
+        macro("FalsReversedTimeMeanRatio", cond_ratio("reversed_time_context", "mean")),
+        macro("FalsMaskedBallMeanRatio", cond_ratio("masked_ball", "mean")),
+        macro("FalsPassRatio", fmt(fals.get("pass_ratio"), 2)),
+        macro("FalsCautionRatio", fmt(fals.get("caution_ratio"), 2)),
+    ]
     for name in [
         "FalsificationNarrative",
         "ProbeNarrative",

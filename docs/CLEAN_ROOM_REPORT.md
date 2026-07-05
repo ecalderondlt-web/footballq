@@ -58,11 +58,31 @@ the repository's documented commands. Work branch: `luis/clean-room-paper-v1`.
 - Seed 7 (val): `td_loss 0.00018` vs `no_motion_td_loss 0.00668` (learned
   predictor beats the identity baseline by ~37x on TD loss);
   `anti_collapse_loss ~ 0.0006`; `cosine_similarity 0.989`.
-- <!-- TODO: seeds 11/23 one-line metrics -->
+- Seed 11 (val): `td_loss 0.00015` vs `no_motion_td_loss 0.00490`;
+  `anti_collapse_loss 0.00048`; `cosine_similarity 0.990`.
+- Seed 23 (val): `td_loss 0.00023` vs `no_motion_td_loss 0.00996`;
+  `anti_collapse_loss 0.00017`; `cosine_similarity 0.985`.
 
 ### Falsification gate (total_loss, seeds 7/11/23)
 
-<!-- TODO: fill from runs/td_jepa/v2_..._falsification_gate_extended -->
+**`scientific_claim_status: controls_passed`, no blocking conditions —
+reproduces the original run's outcome.** Ratio of corrupted-condition total
+loss over correct pairing (mean across seeds; blockable conditions all pass
+with min ratio >= 1.29):
+
+| condition | mean ratio | min ratio | status |
+| --- | --- | --- | --- |
+| target_team_label_swap | 11.28 | 10.62 | pass |
+| pitch_reflection | 5.26 | 4.97 | pass |
+| future_from_another_match | 5.00 | 4.73 | pass |
+| shuffled_future_within_batch | 4.96 | 4.70 | pass |
+| team_swap | 3.31 | 3.16 | pass |
+| team_label_swap | 3.17 | 3.04 | pass |
+| no_motion_predictor | 2.27 | 1.81 | pass |
+| consistent_player_slot_permutation | 1.41 | 1.35 | pass |
+| target_consistent_player_slot_permutation | 1.35 | 1.29 | pass |
+| masked_ball (excluded from blocking) | 1.09 | 1.06 | caution |
+| reversed_time_context (excluded from blocking) | 1.03 | 1.03 | fail |
 
 ### Incremental probes
 
