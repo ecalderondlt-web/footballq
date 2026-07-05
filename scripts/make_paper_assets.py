@@ -711,7 +711,7 @@ def write_probe_table(data: dict[str, Any]) -> None:
 
 
 DISCOVERY_LABELS = {
-    "normalized_delta_z": r"TD-JEPA (normalized $\Delta z$)",
+    "normalized_delta_z": r"TD hybrid (normalized $\Delta z$)",
     "raw_delta_z": "raw transitions",
     "pca_delta_z": "PCA of raw transitions",
     "random_encoder_delta_z": "random-encoder $\\Delta z$",
@@ -953,7 +953,7 @@ def fig_pipeline() -> None:
     stages = [
         ("hashed split\nmanifest", COLORS["muted"]),
         ("feature views\n(geometry only)", COLORS["muted"]),
-        ("non-overlap\nTD-JEPA", COLORS["blue"]),
+        ("non-overlap\nTD hybrid", COLORS["blue"]),
         ("falsification\nbattery", COLORS["blue"]),
         ("incremental\nprobes", COLORS["blue"]),
         ("discovery\ncontrols", COLORS["blue"]),

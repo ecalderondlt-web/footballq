@@ -144,11 +144,49 @@ attached at this stage). Blocker-by-blocker comparison with
 or redesign the representation before treating discovery or annotation as
 evidence."
 
+### Held-out test falsification (addition beyond the original run)
+
+Because the candidate was selected for passing falsification on validation,
+we re-ran the identical battery on the held-out test matches:
+**`controls_passed`, no blocking conditions** — the pass is not a
+selection artifact
+(`runs/td_jepa/..._falsification_gate_extended_test/`).
+
+### Reconstruction ablation (addition beyond the original run)
+
+One seed retrained with both reconstruction weights at zero
+(`configs/td_jepa_nonoverlap_gap1p0_margin_norecon_ablation_skillcorner.yaml`):
+latents do not collapse (std mean 0.325); temporal controls strengthen
+(shuffled 7.59x, wrong-match 7.53x, no-motion 48.4x, reversed-time 1.18x) but
+identity controls collapse (~1.00x slot permutation and team swap). The
+reconstruction heads are load-bearing for identity sensitivity, not for
+anti-collapse — and they trade away temporal directedness.
+
 ### Blinded package + model-annotator panel
 
-<!-- TODO: fill after panel run; human annotation package left blank for the
-human gate -->
+- Balanced package re-rendered fresh (20 high-residual + 20 hidden controls,
+  40/40 GIFs, `validation_status: passed`, 0 filled cells before the panel).
+- Model panel (diagnostic only; fresh headless contexts; keys never exposed):
+  Fable, Codex (GPT-5.5), Kimi completed 40/40; Opus and Sonnet hit a provider
+  session limit (retry pending). Fleiss' kappa = 0.41; pairwise Cohen's kappa:
+  codex-fable 0.67, fable-kimi 0.37, codex-kimi 0.24.
+- **Enrichment is NEGATIVE for every annotator**: majority-vote positive-label
+  rate 0.05 on high-residual clips vs 0.35 on hidden controls (risk difference
+  -0.30, Fisher greater-p ~= 1.0). Dominant high-residual label:
+  `tracking_artifact`. Under blinding, the latent-residual score selects
+  broken tracking, not tactics — quantitative confirmation of the repo's
+  "do not call residuals tactical surprise" rule.
+- The HUMAN annotation package remains blank and ready
+  (`<package>/annotator/annotations.csv` + GIFs + guide); the protocol's human
+  gate stays open.
 
 ## Verdict
 
-<!-- TODO: reproduced / not reproduced per gate, with any deviations -->
+**Reproduced.** Every gate outcome and every named blocker of the original run
+reproduces on independent hardware/software: falsification `controls_passed`
+(now also on held-out test), probe gate blocked on the same two targets,
+all four discovery blockers, overall `blocked`. Floating-point losses differ
+(as expected across machines) and at least one single-seed probe increment
+flips sign between environments — the gate conclusions are stable because the
+protocol aggregates over seeds and held-out matches. Full paper:
+`paper/main.pdf` ("Gates Before Claims", Lozano & Calderón).

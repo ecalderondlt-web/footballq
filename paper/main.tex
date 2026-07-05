@@ -110,7 +110,14 @@ Concretely, we make four contributions:
   annotation with hidden matched controls; and a combined machine-readable gate
   that names each blocking condition.
   \item \textbf{A negative/mixed case study} (Sections~\ref{sec:setup} and
-  \ref{sec:results}): a TD-JEPA representation trained on \NumMatches{} public
+  \ref{sec:results}): a temporal-difference JEPA--autoencoder hybrid (the
+  \emph{TD hybrid}\footnote{The repository's historical name for this model
+  family is ``TD-JEPA''; we avoid that name in this paper because it now
+  denotes an unrelated zero-shot reinforcement-learning method
+  (\emph{TD-JEPA: Latent-Predictive Representations for Zero-Shot RL},
+  OpenReview \texttt{SzXDuBN8M1}), and because
+  Section~\ref{sec:setup} shows our candidate is not a pure JEPA.}) trained on
+  \NumMatches{} public
   broadcast-tracking matches~\citep{skillcorner2020opendata} that passes
   falsification across \NumSeeds{} seeds yet fails the incremental-value and
   discovery gates, yielding an overall claim status of \emph{\GateOverallStatus}.
