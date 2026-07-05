@@ -10,6 +10,7 @@ Read first:
 - `docs/RESEARCH_STATUS.md`
 - `docs/EXPERIMENT_PROTOCOL.md`
 - `docs/AGENT_REVIEW_HANDOFF.md`
+- `docs/BLINDED_ANNOTATION_GUIDE.md`
 
 ## Global Rules
 
@@ -288,12 +289,15 @@ python scripts/analyze_blinded_annotations.py \
   --annotator-csv runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/annotator/annotations.csv \
   --key-csv runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/private/annotation_key.csv \
   --manifest-json runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/render_manifest.json \
-  --positive-labels tactical yes positive \
+  --positive-labels tactical_pattern \
   --out runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/annotation_summary.json
 ```
 
 Before annotation, the expected output is `annotation_status: incomplete` and
 `claim_status: diagnostic_only`.
+If a filled row uses a label outside `docs/BLINDED_ANNOTATION_GUIDE.md`, the
+expected output is `annotation_status: invalid_labels` and the combined gate is
+blocked until the annotation CSV is fixed.
 
 Expected outputs:
 
@@ -506,11 +510,11 @@ gate status:
 
 ```bash
 python scripts/summarize_integrity_gates.py \
-  --falsification runs/td_jepa/v2_nonoverlap_geometry_falsification_gate_extended/td_falsification_gate_summary.json \
-  --probe runs/probe_suite/v2_nonoverlap_geometry_h2s_incremental_summary/probe_incremental_summary.json \
-  --discovery runs/discovery/v2_nonoverlap_geometry_control_summary/discovery_control_summary.json \
+  --falsification runs/td_jepa/v2_nonoverlap_geometry_gap1p0_context_w0p05_slot_recon_margin_falsification_gate_extended/td_falsification_gate_summary.json \
+  --probe runs/probe_suite/v2_context_w0p05_slot_recon_margin_h2s_linear_incremental_summary/probe_incremental_summary.json \
+  --discovery runs/discovery/v2_context_w0p05_slot_recon_margin_control_summary/discovery_control_summary.json \
   --annotation runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/annotation_summary.json \
-  --out runs/integrity/v2_nonoverlap_geometry_gate_summary_extended.json
+  --out runs/integrity/v2_context_w0p05_slot_recon_margin_gate_summary_with_annotation.json
 ```
 
 Proceed toward a tactical representation paper only if most are true:

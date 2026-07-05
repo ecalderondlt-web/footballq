@@ -72,6 +72,7 @@ The current branch contains a first pass of research-integrity infrastructure:
 - Targeted horizon-window cache rebuild and multi-window diagnostic rendering
 - Blinded annotation package validation before human review
 - Blinded annotation completion/enrichment analysis scaffold
+- Annotator-facing controlled-label guide for blinded review
 - Focused integrity tests
 
 ## What Is Not Done
@@ -376,7 +377,10 @@ Current diagnostic scaffold:
   annotation begins.
 - `scripts/analyze_blinded_annotations.py` summarizes completed annotations and
   positive/control enrichment after human review; blank packages must remain
-  `annotation_status: incomplete`.
+  `annotation_status: incomplete`, and labels outside the guide's controlled
+  vocabulary must return `annotation_status: invalid_labels`.
+- `docs/BLINDED_ANNOTATION_GUIDE.md` gives annotators controlled labels without
+  exposing private key fields.
 
 Blinding rules:
 

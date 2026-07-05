@@ -161,3 +161,21 @@ def test_combine_gates_keeps_completed_annotation_diagnostic_only():
     assert summary["overall_claim_status"] == "blocked"
     assert summary["gates"]["blinded_annotation"]["status"] == "diagnostic_only"
     assert summary["gates"]["blinded_annotation"]["risk_difference"] == 0.4
+
+
+def test_combine_gates_blocks_invalid_annotation_labels():
+    summary = combine_gates(
+        _passing_falsification_payload(),
+        _diagnostic_probe_payload(),
+        _complete_discovery_payload(),
+        {
+            "annotation_status": "invalid_labels",
+            "completed_count": 1,
+            "completion_rate": 0.025,
+            "enrichment": {},
+        },
+    )
+
+    assert summary["overall_claim_status"] == "blocked"
+    assert summary["gates"]["blinded_annotation"]["status"] == "blocked"
+    assert "Fix the blinded annotation package" in summary["next_scientific_action"]

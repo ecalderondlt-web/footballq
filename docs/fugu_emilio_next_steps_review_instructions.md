@@ -58,7 +58,9 @@ combined h2s artifact. `scripts/validate_blinded_annotation_package.py` now
 passes on both current local diagnostic packages before human annotation.
 `scripts/analyze_blinded_annotations.py` now provides the post-review analysis
 path and currently reports the balanced package as incomplete until annotation
-cells are filled.
+cells are filled. It rejects filled labels outside the controlled annotation
+vocabulary so typo labels block the annotation gate instead of entering the
+enrichment summary.
 
 ### 0.2 Before any real-data run
 

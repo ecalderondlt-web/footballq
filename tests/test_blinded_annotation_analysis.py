@@ -102,7 +102,7 @@ def test_analyze_blinded_annotations_reports_incomplete_for_blank_annotations(tm
         annotator_csv=annotator,
         key_csv=key,
         manifest_json=manifest,
-        positive_labels=["tactical"],
+        positive_labels=["tactical_pattern"],
     )
 
     assert summary["annotation_status"] == "incomplete"
@@ -115,7 +115,7 @@ def test_analyze_blinded_annotations_reports_control_enrichment(tmp_path):
     module = _load_analyzer()
     annotator, key, manifest = _package(
         tmp_path,
-        ["tactical", "tactical", "artifact", "artifact"],
+        ["tactical_pattern", "tactical_pattern", "routine_motion", "routine_motion"],
         [True, True, False, False],
     )
 
@@ -123,7 +123,7 @@ def test_analyze_blinded_annotations_reports_control_enrichment(tmp_path):
         annotator_csv=annotator,
         key_csv=key,
         manifest_json=manifest,
-        positive_labels=["tactical"],
+        positive_labels=["tactical_pattern"],
     )
 
     assert summary["annotation_status"] == "analyzed"
@@ -132,3 +132,18 @@ def test_analyze_blinded_annotations_reports_control_enrichment(tmp_path):
     assert summary["groups"]["control"]["positive_label_rate"] == 0.0
     assert summary["enrichment"]["risk_difference"] == 1.0
     assert summary["enrichment"]["fisher_greater_pvalue"] == 1 / 6
+
+
+def test_analyze_blinded_annotations_rejects_uncontrolled_labels(tmp_path):
+    module = _load_analyzer()
+    annotator, key, manifest = _package(tmp_path, ["maybe_tactical"], [True])
+
+    summary = module.analyze_blinded_annotations(
+        annotator_csv=annotator,
+        key_csv=key,
+        manifest_json=manifest,
+    )
+
+    assert summary["annotation_status"] == "invalid_labels"
+    assert summary["invalid_labels"] == ["maybe_tactical"]
+    assert "controlled vocabulary" in summary["issues"][0]

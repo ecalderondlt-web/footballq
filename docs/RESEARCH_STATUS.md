@@ -106,6 +106,10 @@ correctly reports `annotation_status: incomplete`, `completed_count: 0`, and
 optionally include that annotation summary; the current with-annotation gate
 remains `blocked` by `probe_incremental`, `discovery_controls`, and
 `blinded_annotation`.
+`docs/BLINDED_ANNOTATION_GUIDE.md` defines the annotator-facing protocol and
+controlled labels: `tactical_pattern`, `routine_motion`, `tracking_artifact`,
+and `ambiguous`. The annotation analyzer now rejects filled rows outside this
+controlled vocabulary with `annotation_status: invalid_labels`.
 
 A balanced diagnostic scaffold was also generated at
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
@@ -207,7 +211,7 @@ Current focused verification:
   packages
 - blinded annotation analysis: current package correctly reports incomplete
 - repo-wide Ruff: passed
-- full test suite: `171 passed`
+- full test suite: `173 passed`
 
 The former repo-wide Ruff debt is retired and the current status is tracked in
 `docs/LINT_STATUS.md`.

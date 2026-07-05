@@ -15,6 +15,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+DEFAULT_ALLOWED_LABELS = (
+    "tactical_pattern",
+    "routine_motion",
+    "tracking_artifact",
+    "ambiguous",
+)
+DEFAULT_POSITIVE_LABELS = ("tactical_pattern",)
+
 
 def _read_csv(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8", newline="") as handle:
@@ -81,6 +89,7 @@ def analyze_blinded_annotations(
     key_csv: str | Path,
     manifest_json: str | Path | None = None,
     positive_labels: list[str] | None = None,
+    allowed_labels: list[str] | None = None,
 ) -> dict[str, Any]:
     """Return diagnostic annotation-completion and enrichment summaries."""
 
@@ -104,7 +113,16 @@ def analyze_blinded_annotations(
     annotator_rows = _read_csv(Path(annotator_csv))
     key_rows = _read_csv(Path(key_csv))
     key_lookup = _key_by_blind_id(key_rows)
-    positive_label_set = {_normalize_label(value) for value in positive_labels or []}
+    positive_label_set = {
+        _normalize_label(value)
+        for value in (positive_labels or DEFAULT_POSITIVE_LABELS)
+        if _normalize_label(value)
+    }
+    allowed_label_set = {
+        _normalize_label(value)
+        for value in (allowed_labels or DEFAULT_ALLOWED_LABELS)
+        if _normalize_label(value)
+    }
     completed_rows: list[dict[str, str]] = []
     joined_rows: list[dict[str, str]] = []
     for row in annotator_rows:
@@ -114,6 +132,32 @@ def analyze_blinded_annotations(
         joined_rows.append(joined)
         if _is_filled(annotation):
             completed_rows.append(joined)
+
+    invalid_labels = sorted(
+        {
+            row["annotation_normalized"]
+            for row in completed_rows
+            if row["annotation_normalized"] not in allowed_label_set
+        }
+    )
+    if invalid_labels:
+        return {
+            "claim_status": "diagnostic_only",
+            "annotation_status": "invalid_labels",
+            "annotator_csv": str(annotator_csv),
+            "key_csv": str(key_csv),
+            "manifest_json": str(manifest_json) if manifest_json is not None else "",
+            "row_count": len(joined_rows),
+            "completed_count": len(completed_rows),
+            "completion_rate": _safe_rate(len(completed_rows), len(joined_rows)),
+            "allowed_labels": sorted(allowed_label_set),
+            "invalid_labels": invalid_labels,
+            "validation": validation,
+            "issues": [
+                "annotation column contains labels outside the controlled vocabulary: "
+                + ", ".join(invalid_labels)
+            ],
+        }
 
     label_counts = Counter(row["annotation_normalized"] for row in completed_rows)
     groups: dict[str, dict[str, Any]] = {}
@@ -173,6 +217,7 @@ def analyze_blinded_annotations(
         "row_count": len(joined_rows),
         "completed_count": completed_count,
         "completion_rate": _safe_rate(completed_count, len(joined_rows)),
+        "allowed_labels": sorted(allowed_label_set),
         "label_counts": dict(sorted(label_counts.items())),
         "groups": groups,
         "enrichment": enrichment,
@@ -193,8 +238,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--positive-labels",
         nargs="*",
-        default=["tactical", "yes", "positive"],
+        default=list(DEFAULT_POSITIVE_LABELS),
         help="Annotation labels counted as positive/enriched.",
+    )
+    parser.add_argument(
+        "--allowed-labels",
+        nargs="*",
+        default=list(DEFAULT_ALLOWED_LABELS),
+        help="Controlled annotation labels accepted in filled rows.",
     )
     return parser.parse_args()
 
@@ -206,6 +257,7 @@ def main() -> None:
         key_csv=args.key_csv,
         manifest_json=args.manifest_json,
         positive_labels=args.positive_labels,
+        allowed_labels=args.allowed_labels,
     )
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -216,7 +268,7 @@ def main() -> None:
     print(f"completion_rate: {summary.get('completion_rate')}")
     if args.out is not None:
         print(f"summary_json: {args.out}")
-    if summary["annotation_status"] == "invalid_package":
+    if summary["annotation_status"] in {"invalid_package", "invalid_labels"}:
         for issue in summary.get("issues", []):
             print(f"issue: {issue}")
         sys.exit(1)

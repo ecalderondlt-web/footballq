@@ -67,6 +67,10 @@ path; the current balanced package correctly reports
 combined integrity gate can optionally include this annotation summary, and the
 current with-annotation gate remains blocked by probe, discovery, and blinded
 annotation.
+`docs/BLINDED_ANNOTATION_GUIDE.md` now gives annotators exact allowed labels
+without exposing private fields. The analyzer rejects filled rows outside that
+controlled vocabulary with `annotation_status: invalid_labels`, and the
+combined gate treats that as blocked.
 The SkillCorner availability report now exposes raw-vs-processed period
 coverage. Current local raw tracking reports `raw_periods=1,2` for all ten
 matches, while current h2s output reports `periods=1`, `window_count=315400`,

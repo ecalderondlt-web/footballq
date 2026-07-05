@@ -105,7 +105,7 @@ def annotation_gate(payload: dict[str, Any]) -> dict[str, Any]:
     """Return the blinded-annotation gate status."""
 
     annotation_status = str(payload.get("annotation_status", "incomplete"))
-    if annotation_status == "invalid_package":
+    if annotation_status in {"invalid_package", "invalid_labels"}:
         status = "blocked"
     elif annotation_status == "analyzed":
         status = "diagnostic_only"
