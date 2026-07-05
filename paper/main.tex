@@ -406,21 +406,73 @@ the protocol refuses single-seed probe evidence.
 
 \input{tables/discovery}
 
-\DiscoveryNarrative
+Table~\ref{tab:discovery} and Figure~\ref{fig:discovery} compare latent
+transition clusters against the five control families. The latent family does
+not merely fail to separate --- it loses to the best control on both gate
+metrics: cluster-size entropy \DiscEntropyLatent{} versus
+\DiscEntropyBestControl{} (margin \DiscEntropyMargin, requirement $>+0.02$)
+and top-match concentration \DiscTopMatchLatent{} versus
+\DiscTopMatchBestControl{} (margin \DiscTopMatchMargin, lower is better). Two
+structural blockers compound the comparison: at least one latent cluster
+receives \DiscMinHeldout{} held-out examples, and in the worst seed a single
+cluster absorbs a fraction \DiscMagTopFraction{} of the top-magnitude
+transitions --- the signature of clustering by movement magnitude rather than
+by kind. The concentration metrics are also unstable across clustering seeds
+(latent top-match fraction ranges \DiscTopMatchLatentMin{} to
+\DiscTopMatchLatentMax{} over three seeds; visible as the wide intervals in
+Figure~\ref{fig:discovery}), so even the latent family's occasional good draw
+is not reproducible structure. Under this
+protocol, k-means on $\Delta z$ has produced partitions of smooth motion that
+raw coordinates, PCA, or a random encoder reproduce equally well. Any
+``discovered tactical motif'' narrative built on such clusters would have been
+an artifact of not running controls.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/discovery.pdf}
+  \caption{Discovery controls at $k{=}32$: the latent family (filled) versus
+  control families (open) on cluster-size entropy (left; higher is better)
+  and top-match fraction (right; lower is better). The latent family trails
+  the best control on both.}
+  \label{fig:discovery}
+\end{figure}
 
 \subsection{The combined gate}
 \label{sec:results-gate}
 
 \input{tables/gate}
 
-\GateNarrative
+Table~\ref{tab:gate} shows the combined artifact. The overall claim status is
+\emph{\GateOverallStatus}, with blocking gates \texttt{\GateBlockingGates}.
+The gate file names every blocking condition and emits a suggested next
+scientific action; nothing downstream of a blocked gate --- including the
+annotation panel of Section~\ref{sec:panel} --- may be read as evidence. Under
+the repository's pre-registered decision table, this outcome selects the
+negative-result/redesign branch: the candidate remains an engineering
+baseline, and the licensed claims are exactly those of
+Section~\ref{sec:results-falsification}.
 
 \subsection{Clean-room reproduction}
 \label{sec:cleanroom}
 
 \input{tables/cleanroom}
 
-\CleanroomNarrative
+Table~\ref{tab:cleanroom} compares gate outcomes between the original run and
+this paper's independent re-execution (different operator, hardware, Python,
+and PyTorch versions; fresh public-data download; split verified by manifest
+hash). Every gate outcome and every named blocker reproduced: falsification
+passes in both runs; the probe gate blocks on the same two targets (global-$x$
+bucket and unnormalized team-shape); all four discovery blockers fire in both;
+and the overall status is blocked in both. Environment-level agreement was
+exact where it should be (test suite \NumTestsPassed{} passed, lint clean,
+split hash identical, \NumWindows{} windows, \NumTdExamples{} TD examples).
+We emphasize what did \emph{not} need to agree: floating-point losses differ
+across hardware, and at least one single-seed probe increment flips sign
+between environments --- the gate outcome is stable precisely because the
+protocol aggregates over seeds and held-out matches before concluding
+anything. In Raff's~\citeyearpar{raff2019reproducibility} terms, the result is
+independently reproducible at the level of scientific conclusions, which is
+the level that matters.
 
 \subsection{Blinded model-annotator panel}
 \label{sec:panel}

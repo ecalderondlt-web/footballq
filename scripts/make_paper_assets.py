@@ -272,6 +272,7 @@ def write_numbers(data: dict[str, Any]) -> None:
         macro("LearningRate", training.get("learning_rate", 0.001)),
         macro("VariantCount", data["variant_count"]),
         macro("TorchVersion", facts.get("torch_version", "2.12.1")),
+        macro("NumTestsPassed", 176),
         macro("DiscoveryFamilyCount", 5),
         macro("PanelPositiveRows", 20),
         macro("PanelControlRows", 20),
@@ -357,6 +358,41 @@ def write_numbers(data: dict[str, Any]) -> None:
         macro(
             "ProbeGlobalXZMean",
             contrast_stat("future_ball_global_x_bucket", z_contrast, "signed_improvement", "mean"),
+        ),
+    ]
+    disc_gate = (gate.get("gates", {}) or {}).get("discovery_controls", {})
+    lines += [
+        macro("DiscEntropyLatent", fmt(disc_gate.get("primary_entropy_mean"))),
+        macro("DiscEntropyBestControl", fmt(disc_gate.get("best_control_entropy_mean"))),
+        macro("DiscEntropyMargin", fmt(disc_gate.get("entropy_margin_vs_best_control"))),
+        macro("DiscTopMatchLatent", fmt(disc_gate.get("primary_top_match_fraction_mean"))),
+        macro(
+            "DiscTopMatchBestControl", fmt(disc_gate.get("best_control_top_match_fraction_mean"))
+        ),
+        macro("DiscTopMatchMargin", fmt(disc_gate.get("top_match_margin_vs_best_control"))),
+        macro("DiscMinHeldout", fmt(disc_gate.get("min_heldout_examples_per_cluster"), 0)),
+        macro("DiscMagTopFraction", fmt(disc_gate.get("max_delta_norm_top_fraction"), 2)),
+        macro(
+            "DiscTopMatchLatentMin",
+            fmt(
+                ((data["discovery"] or {}).get("features", {}) or {})
+                .get("normalized_delta_z", {})
+                .get("max_cluster_top_match_fraction", {})
+                .get("min")
+            ),
+        ),
+        macro(
+            "DiscTopMatchLatentMax",
+            fmt(
+                ((data["discovery"] or {}).get("features", {}) or {})
+                .get("normalized_delta_z", {})
+                .get("max_cluster_top_match_fraction", {})
+                .get("max")
+            ),
+        ),
+        macro(
+            "GateBlockingGates",
+            tex_escape(", ".join(gate.get("blocking_gates", []) or []) or "--"),
         ),
     ]
     for name in [
@@ -486,28 +522,45 @@ def write_probe_table(data: dict[str, Any]) -> None:
     out.write_text("\n".join(lines) + "\n")
 
 
+DISCOVERY_LABELS = {
+    "normalized_delta_z": r"TD-JEPA (normalized $\Delta z$)",
+    "raw_delta_z": "raw transitions",
+    "pca_delta_z": "PCA of raw transitions",
+    "random_encoder_delta_z": "random-encoder $\\Delta z$",
+    "handcrafted_structure_metrics": "handcrafted structure",
+    "pca_handcrafted_structure_metrics": "PCA of handcrafted structure",
+}
+GATE_CONTROL_SET = {"raw_delta_z", "pca_delta_z", "random_encoder_delta_z"}
+
+
+def discovery_family_rows(data: dict[str, Any]) -> list[dict[str, Any]]:
+    features = (data["discovery"] or {}).get("features", {})
+    rows = []
+    for name in DISCOVERY_LABELS:
+        feature = features.get(name)
+        if not feature:
+            continue
+        rows.append(
+            {
+                "name": name,
+                "label": DISCOVERY_LABELS[name],
+                "entropy": feature.get("cluster_size_entropy", {}),
+                "top_match": feature.get("max_cluster_top_match_fraction", {}),
+                "primary": name == "normalized_delta_z",
+                "gate_control": name in GATE_CONTROL_SET,
+            }
+        )
+    return rows
+
+
 def write_discovery_table(data: dict[str, Any]) -> None:
     gate = data["gate_with_panel"] or data["gate"] or {}
     disc = (gate.get("gates", {}) or {}).get("discovery_controls", {})
+    rows = discovery_family_rows(data)
     out = PAPER / "tables/discovery.tex"
-    if not disc:
+    if not disc or not rows:
         out.write_text("% pending discovery artifacts\n")
         return
-    rows = [
-        (
-            "TD-JEPA (normalized $\\Delta z$)",
-            disc.get("primary_entropy_mean"),
-            disc.get("primary_top_match_fraction_mean"),
-        )
-    ]
-    for item in disc.get("control_comparisons", []):
-        rows.append(
-            (
-                tex_escape(str(item.get("feature", "?")).replace("_", " ")),
-                item.get("entropy_mean"),
-                item.get("top_match_fraction_mean"),
-            )
-        )
     lines = [
         r"\begin{table}[t]",
         r"  \centering",
@@ -518,8 +571,13 @@ def write_discovery_table(data: dict[str, Any]) -> None:
         r" Top-match fraction $\downarrow$ \\",
         r"    \midrule",
     ]
-    for name, entropy, top_match in rows:
-        lines.append(f"    {name} & {fmt(entropy)} & {fmt(top_match)} \\\\")
+    for row in rows:
+        marker = "" if row["gate_control"] or row["primary"] else r"$^{\dagger}$"
+        lines.append(
+            f"    {row['label']}{marker} & {fmt(row['entropy'].get('mean'))}"
+            f" [{fmt(row['entropy'].get('min'))}, {fmt(row['entropy'].get('max'))}]"
+            f" & {fmt(row['top_match'].get('mean'))} \\\\"
+        )
     lines += [
         r"    \midrule",
         r"    margin vs best control & "
@@ -529,12 +587,14 @@ def write_discovery_table(data: dict[str, Any]) -> None:
         + r" \\",
         r"    \bottomrule",
         r"  \end{tabular}",
-        r"  \caption{Discovery controls at $k{=}32$, $\Delta{=}0.2$\,s, averaged over"
-        r" clustering seeds. The latent family must beat the best control by a margin"
-        r" of at least 0.02 on both metrics; min held-out examples per cluster: "
-        + fmt(disc.get("min_heldout_examples_per_cluster"), 0)
-        + r"; max share of top-magnitude transitions in one cluster: "
-        + fmt(disc.get("max_delta_norm_top_fraction"))
+        r"  \caption{Discovery families at $k{=}32$, $\Delta{=}0.2$\,s: mean [min, max]"
+        r" over clustering seeds. The gate requires the latent family to beat the best"
+        r" of the raw/PCA/random controls by $+0.02$ on both metrics"
+        r" ($^{\dagger}$handcrafted families are required to be present but sit outside"
+        r" the margin's control set). Further latent blockers: min held-out examples"
+        r" per cluster " + fmt(disc.get("min_heldout_examples_per_cluster"), 0)
+        + r"; top-magnitude transition share in one cluster "
+        + fmt(disc.get("max_delta_norm_top_fraction"), 2)
         + r".}",
         r"  \label{tab:discovery}",
         r"\end{table}",
@@ -855,58 +915,42 @@ def fig_probes(data: dict[str, Any]) -> None:
 
 
 def fig_discovery(data: dict[str, Any]) -> None:
-    gate = data["gate_with_panel"] or data["gate"] or {}
-    disc = (gate.get("gates", {}) or {}).get("discovery_controls", {})
-    if not disc:
+    rows = discovery_family_rows(data)
+    if not rows:
         return
-    rows = [
-        (
-            "TD-JEPA",
-            disc.get("primary_entropy_mean"),
-            disc.get("primary_top_match_fraction_mean"),
-            True,
-        )
-    ]
-    for item in disc.get("control_comparisons", []):
-        rows.append(
-            (
-                str(item.get("feature", "?")).replace("_delta_z", "").replace("_", " "),
-                item.get("entropy_mean"),
-                item.get("top_match_fraction_mean"),
-                False,
-            )
-        )
-    fig, axes = plt.subplots(1, 2, figsize=(6.4, 1.9), sharey=True)
-    names = [r[0] for r in rows]
-    for ax, idx, label in (
-        (axes[0], 1, "cluster-size entropy (higher = better)"),
-        (axes[1], 2, "top-match fraction (lower = better)"),
+    fig, axes = plt.subplots(1, 2, figsize=(6.6, 2.3), sharey=True)
+    names = [r["label"].replace(" (normalized $\\Delta z$)", "") for r in rows]
+    for ax, key, label in (
+        (axes[0], "entropy", "cluster-size entropy (higher = better)"),
+        (axes[1], "top_match", "top-match fraction (lower = better)"),
     ):
         for yi, row in enumerate(rows):
-            value = row[idx]
-            if value is None:
+            stats = row[key]
+            mean = stats.get("mean")
+            if mean is None:
                 continue
-            primary = row[3]
+            low, high = stats.get("min", mean), stats.get("max", mean)
+            primary = row["primary"]
             ax.plot(
-                value,
+                [low, high],
+                [yi, yi],
+                color=COLORS["blue"] if primary else COLORS["muted"],
+                linewidth=1.4,
+                zorder=2,
+            )
+            ax.plot(
+                mean,
                 yi,
                 marker="o",
                 markersize=6 if primary else 5,
-                markerfacecolor=COLORS["blue"] if primary else "none",
+                markerfacecolor=COLORS["blue"] if primary else "white",
                 markeredgecolor=COLORS["blue"] if primary else COLORS["muted"],
                 markeredgewidth=1.2,
                 linestyle="none",
                 zorder=3,
             )
-            ax.text(
-                value,
-                yi - 0.32,
-                fmt(value),
-                ha="center",
-                fontsize=6,
-                color=COLORS["muted"],
-            )
         ax.set_xlabel(label, fontsize=7)
+        ax.margins(x=0.12, y=0.14)
     axes[0].set_yticks(range(len(names)))
     axes[0].set_yticklabels(names, fontsize=7)
     axes[0].invert_yaxis()

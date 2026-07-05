@@ -105,12 +105,39 @@ gate is what makes this conclusion stable.
 
 ### Discovery controls
 
-<!-- TODO: fill from runs/discovery/v2_..._control_summary -->
+**Reproduces the original run: the latent family does not separate from
+controls.** At k=32, delta=0.2 s, averaged over clustering seeds 7/11/23:
+
+- cluster-size entropy: latent 0.8468 vs best control 0.8663
+  (margin **-0.0195**, requirement > +0.02)
+- top-match fraction: latent 0.5497 vs best control 0.4904
+  (margin **-0.0593**, requirement > +0.02; lower is better, latent is worse)
+- min held-out examples per cluster: **0** (sparse held-out clusters)
+- max share of top-magnitude transitions in one cluster: **1.0**
+  (transition-magnitude concentration)
+
+All four of the original run's discovery blockers fire here too.
 
 ### Combined gate
 
-<!-- TODO: fill from runs/integrity/v2_..._gate_summary.json; compare blocker
-list line-by-line against docs/INTEGRITY_SPRINT_README.md expectations -->
+**`overall_claim_status: blocked`** with blocking gates
+`probe_incremental` and `discovery_controls` (annotation gate not yet
+attached at this stage). Blocker-by-blocker comparison with
+`docs/INTEGRITY_SPRINT_README.md`:
+
+| blocker (original run) | clean-room |
+| --- | --- |
+| negative probe increments, global-x bucket | reproduced (both views) |
+| negative probe increments, unnormalized team-shape | reproduced |
+| latent entropy not separated from controls | reproduced |
+| latent match concentration not separated | reproduced |
+| sparse held-out clusters | reproduced |
+| transition-magnitude concentration | reproduced |
+| falsification controls_passed | reproduced |
+
+`next_scientific_action` (verbatim): "Resolve mixed incremental probe results
+or redesign the representation before treating discovery or annotation as
+evidence."
 
 ### Blinded package + model-annotator panel
 
