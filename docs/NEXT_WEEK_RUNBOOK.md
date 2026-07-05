@@ -280,6 +280,21 @@ python scripts/validate_blinded_annotation_package.py \
 Expected validation output: `validation_status: passed`, 40 rows, 40 clip paths,
 0 missing clips, and 0 filled annotation cells.
 
+After annotators fill the `annotation` column, summarize the blinded result
+without exposing private fields:
+
+```bash
+python scripts/analyze_blinded_annotations.py \
+  --annotator-csv runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/annotator/annotations.csv \
+  --key-csv runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/private/annotation_key.csv \
+  --manifest-json runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/render_manifest.json \
+  --positive-labels tactical yes positive \
+  --out runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/annotation_summary.json
+```
+
+Before annotation, the expected output is `annotation_status: incomplete` and
+`claim_status: diagnostic_only`.
+
 Expected outputs:
 
 - TD data has period-aware `sample_id`
@@ -494,6 +509,7 @@ python scripts/summarize_integrity_gates.py \
   --falsification runs/td_jepa/v2_nonoverlap_geometry_falsification_gate_extended/td_falsification_gate_summary.json \
   --probe runs/probe_suite/v2_nonoverlap_geometry_h2s_incremental_summary/probe_incremental_summary.json \
   --discovery runs/discovery/v2_nonoverlap_geometry_control_summary/discovery_control_summary.json \
+  --annotation runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/annotation_summary.json \
   --out runs/integrity/v2_nonoverlap_geometry_gate_summary_extended.json
 ```
 

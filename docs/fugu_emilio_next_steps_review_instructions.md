@@ -56,6 +56,9 @@ periods, so stale period-1-only cache files are not silently reused. Targeted
 rendering recover period-2 diagnostic media without creating a single huge
 combined h2s artifact. `scripts/validate_blinded_annotation_package.py` now
 passes on both current local diagnostic packages before human annotation.
+`scripts/analyze_blinded_annotations.py` now provides the post-review analysis
+path and currently reports the balanced package as incomplete until annotation
+cells are filled.
 
 ### 0.2 Before any real-data run
 

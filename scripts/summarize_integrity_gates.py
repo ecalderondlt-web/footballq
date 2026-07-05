@@ -101,6 +101,37 @@ def discovery_gate(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def annotation_gate(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return the blinded-annotation gate status."""
+
+    annotation_status = str(payload.get("annotation_status", "incomplete"))
+    if annotation_status == "invalid_package":
+        status = "blocked"
+    elif annotation_status == "analyzed":
+        status = "diagnostic_only"
+    else:
+        status = "incomplete"
+    enrichment = payload.get("enrichment", {})
+    return {
+        "status": status,
+        "annotation_status": annotation_status,
+        "completed_count": payload.get("completed_count"),
+        "completion_rate": payload.get("completion_rate"),
+        "positive_group_positive_label_rate": enrichment.get(
+            "positive_group_positive_label_rate"
+        ),
+        "control_group_positive_label_rate": enrichment.get(
+            "control_group_positive_label_rate"
+        ),
+        "risk_difference": enrichment.get("risk_difference"),
+        "fisher_greater_pvalue": enrichment.get("fisher_greater_pvalue"),
+        "note": (
+            "Blinded annotation is required before interpretive claims; annotation "
+            "summaries remain diagnostic until compared against matched controls."
+        ),
+    }
+
+
 def _next_scientific_action(gates: dict[str, dict[str, Any]]) -> str:
     falsification = gates["falsification"]
     if falsification["status"] != "controls_passed":
@@ -118,9 +149,19 @@ def _next_scientific_action(gates: dict[str, dict[str, Any]]) -> str:
             "Run discovery baselines against raw/PCA/random controls before any "
             "blinded visualization."
         )
+    annotation = gates.get("blinded_annotation")
+    if annotation is None:
+        return (
+            "Run blinded annotation against matched controls before any interpretive "
+            "claims."
+        )
+    if annotation["status"] == "incomplete":
+        return "Complete blinded annotation and analyze enrichment against matched controls."
+    if annotation["status"] == "blocked":
+        return "Fix the blinded annotation package before using annotation results."
     return (
-        "Review incremental-probe and discovery-control diagnostics against the "
-        "paper gates; proceed only to blinded annotation, not unblinded claims."
+        "Review incremental-probe, discovery-control, and blinded-annotation diagnostics "
+        "against the paper gates; do not make unblinded tactical claims."
     )
 
 
@@ -128,6 +169,7 @@ def combine_gates(
     falsification: dict[str, Any],
     probe: dict[str, Any],
     discovery: dict[str, Any],
+    annotation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Combine gate summaries into one paper-path status."""
 
@@ -136,6 +178,8 @@ def combine_gates(
         "probe_incremental": probe_gate(probe),
         "discovery_controls": discovery_gate(discovery),
     }
+    if annotation is not None:
+        gates["blinded_annotation"] = annotation_gate(annotation)
     blocking = [
         name
         for name, gate in gates.items()
@@ -158,6 +202,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--falsification", type=Path, required=True)
     parser.add_argument("--probe", type=Path, required=True)
     parser.add_argument("--discovery", type=Path, required=True)
+    parser.add_argument("--annotation", type=Path)
     parser.add_argument("--out", type=Path, required=True)
     return parser.parse_args()
 
@@ -168,6 +213,7 @@ def main() -> None:
         _read_json(args.falsification),
         _read_json(args.probe),
         _read_json(args.discovery),
+        _read_json(args.annotation) if args.annotation is not None else None,
     )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(summary, indent=2), encoding="utf-8")

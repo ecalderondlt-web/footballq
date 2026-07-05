@@ -61,6 +61,12 @@ diagnostic media only; no completed blinded annotation evidence exists yet.
 `scripts/validate_blinded_annotation_package.py` now checks annotator/key/manifest
 consistency, hidden-field separation, clip existence, and blank annotation cells;
 both current local diagnostic packages pass with 40 rows and 40 clip paths.
+`scripts/analyze_blinded_annotations.py` now provides the post-review summary
+path; the current balanced package correctly reports
+`annotation_status: incomplete` because no annotation cells are filled. The
+combined integrity gate can optionally include this annotation summary, and the
+current with-annotation gate remains blocked by probe, discovery, and blinded
+annotation.
 The SkillCorner availability report now exposes raw-vs-processed period
 coverage. Current local raw tracking reports `raw_periods=1,2` for all ten
 matches, while current h2s output reports `periods=1`, `window_count=315400`,

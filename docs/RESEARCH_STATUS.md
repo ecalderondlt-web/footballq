@@ -98,6 +98,14 @@ artifact.
 consistency, hidden-field separation, clip-path existence, and blank annotation
 cells before human review. Both current diagnostic packages pass locally with 40
 rows, 40 clip paths, zero missing clips, and zero filled annotation cells.
+`scripts/analyze_blinded_annotations.py` now joins completed annotator rows to
+the private key after review and reports completion, label counts, and
+positive/control enrichment diagnostics. On the current blank balanced package it
+correctly reports `annotation_status: incomplete`, `completed_count: 0`, and
+`claim_status: diagnostic_only`. `scripts/summarize_integrity_gates.py` can
+optionally include that annotation summary; the current with-annotation gate
+remains `blocked` by `probe_incremental`, `discovery_controls`, and
+`blinded_annotation`.
 
 A balanced diagnostic scaffold was also generated at
 `runs/diagnostics/v2_context_w0p05_slot_recon_margin_blinded_balanced_seed7_h02/`
@@ -197,8 +205,9 @@ Current focused verification:
 - blinded renderer focused tests and touched-file Ruff: passed
 - blinded annotation package validation: passed for both current diagnostic
   packages
+- blinded annotation analysis: current package correctly reports incomplete
 - repo-wide Ruff: passed
-- full test suite: `167 passed`
+- full test suite: `171 passed`
 
 The former repo-wide Ruff debt is retired and the current status is tracked in
 `docs/LINT_STATUS.md`.
