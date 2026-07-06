@@ -70,6 +70,71 @@ def fleiss_kappa(items: list[list[str]]) -> float:
     return (p_bar - p_e) / (1.0 - p_e)
 
 
+def per_annotator_metrics(
+    label_matrix: dict[str, dict[str, str]],
+    complete_ids: list[str],
+    names: list[str],
+) -> dict[str, dict[str, float]]:
+    """Per-annotator panel characterization over the fully-labeled items.
+
+    For each annotator this reports three diagnostics that back the paper's
+    "most consistent with the panel and most decisive under blinding" language.
+    No human gold standard exists, so these are panel-relative characterizations,
+    not accuracy, and never read key material:
+
+    - ``mean_pairwise_cohen_kappa``: mean Cohen's kappa against every other
+      annotator (consistency with the rest of the panel).
+    - ``decisiveness``: share of items where the annotator committed to a
+      non-``ambiguous`` label.
+    - ``agreement_with_majority``: share of items where the annotator matches
+      the item's unique plurality label; items with no unique plurality are
+      excluded from the denominator.
+    """
+
+    plurality: dict[str, str] = {}
+    for blind_id in complete_ids:
+        counts = Counter(label_matrix[blind_id][name] for name in names)
+        if not counts:
+            continue
+        top = counts.most_common()
+        if len(top) == 1 or top[0][1] > top[1][1]:
+            plurality[blind_id] = top[0][0]
+
+    metrics: dict[str, dict[str, float]] = {}
+    for name in names:
+        others = [other for other in names if other != name]
+        if complete_ids and others:
+            own = [label_matrix[i][name] for i in complete_ids]
+            kappas = [
+                cohen_kappa(own, [label_matrix[i][other] for i in complete_ids])
+                for other in others
+            ]
+            finite = [k for k in kappas if k == k]  # drop NaN
+            mean_kappa = sum(finite) / len(finite) if finite else float("nan")
+        else:
+            mean_kappa = float("nan")
+
+        if complete_ids:
+            decisive = sum(
+                1 for i in complete_ids if label_matrix[i][name] != "ambiguous"
+            ) / len(complete_ids)
+        else:
+            decisive = float("nan")
+
+        judged = [i for i in complete_ids if i in plurality]
+        if judged:
+            agree = sum(1 for i in judged if label_matrix[i][name] == plurality[i]) / len(judged)
+        else:
+            agree = float("nan")
+
+        metrics[name] = {
+            "mean_pairwise_cohen_kappa": mean_kappa,
+            "decisiveness": decisive,
+            "agreement_with_majority": agree,
+        }
+    return metrics
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -123,6 +188,7 @@ def main() -> None:
             ),
         }
     fleiss = fleiss_kappa([[label_matrix[i][name] for name in names] for i in complete_ids])
+    annotator_metrics = per_annotator_metrics(label_matrix, complete_ids, names)
 
     majority_rows = []
     for row in template_rows:
@@ -165,6 +231,7 @@ def main() -> None:
         },
         "pairwise": pairwise,
         "fleiss_kappa": fleiss,
+        "per_annotator_metrics": annotator_metrics,
         "majority_blank_items": sum(1 for row in majority_rows if not row["annotation"]),
         "claim_status": "model_annotator_diagnostic_only",
     }

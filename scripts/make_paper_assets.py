@@ -386,6 +386,33 @@ def write_numbers(data: dict[str, Any]) -> None:
         "codex": "Codex (GPT-5.5)",
         "kimi": "Kimi",
     }
+    # Back the manuscript's "most consistent under blinding" language with a
+    # computed value instead of a hand-asserted name. Consistency = highest mean
+    # pairwise Cohen's kappa with the rest of the panel; ties broken by
+    # decisiveness (fewest ambiguous labels). Diagnostic only, no gold standard.
+    annotator_metrics = panel.get("per_annotator_metrics", {}) or {}
+    if annotator_metrics:
+
+        def _consistency_key(item: tuple[str, dict[str, float]]) -> tuple[float, float]:
+            _, vals = item
+            mean_k = vals.get("mean_pairwise_cohen_kappa")
+            dec = vals.get("decisiveness")
+            mean_k = mean_k if isinstance(mean_k, int | float) and mean_k == mean_k else -1.0
+            dec = dec if isinstance(dec, int | float) and dec == dec else -1.0
+            return (mean_k, dec)
+
+        best_name, best_vals = max(annotator_metrics.items(), key=_consistency_key)
+        lines.append(
+            macro(
+                "PanelMostConsistent",
+                f"{display_names.get(best_name, best_name)} "
+                f"(mean pairwise $\\kappa$ = "
+                f"{fmt(best_vals.get('mean_pairwise_cohen_kappa'), 2)}; "
+                f"decisiveness = {fmt(best_vals.get('decisiveness'), 2)})",
+            )
+        )
+    else:
+        lines.append(macro("PanelMostConsistent", "--"))
     status = data.get("panel_status") or {}
     complete = [n for n, s in status.items() if s.get("filled") == s.get("total")]
     incomplete = [n for n in status if n not in complete]

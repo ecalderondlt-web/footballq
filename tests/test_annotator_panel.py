@@ -48,6 +48,48 @@ def test_fleiss_kappa_perfect_agreement() -> None:
     assert fleiss_kappa(items) == 1.0
 
 
+def test_per_annotator_metrics_consistency_decisiveness_and_majority() -> None:
+    from analyze_annotator_panel import per_annotator_metrics
+
+    # Three annotators, four items. `a` and `b` agree on every item; `c`
+    # dissents and hedges. `a`/`b` should be maximally consistent and decisive;
+    # `c` should be the least consistent and least decisive (one ambiguous).
+    label_matrix = {
+        "i0": {"a": "tactical_pattern", "b": "tactical_pattern", "c": "routine_motion"},
+        "i1": {"a": "routine_motion", "b": "routine_motion", "c": "tracking_artifact"},
+        "i2": {"a": "tracking_artifact", "b": "tracking_artifact", "c": "ambiguous"},
+        "i3": {"a": "tactical_pattern", "b": "tactical_pattern", "c": "tactical_pattern"},
+    }
+    complete_ids = ["i0", "i1", "i2", "i3"]
+    names = ["a", "b", "c"]
+
+    metrics = per_annotator_metrics(label_matrix, complete_ids, names)
+
+    # All three keys are present for every annotator.
+    for name in names:
+        assert set(metrics[name]) >= {
+            "mean_pairwise_cohen_kappa",
+            "decisiveness",
+            "agreement_with_majority",
+        }
+
+    # `c` hedges on one of four items, so decisiveness = 3/4.
+    assert metrics["c"]["decisiveness"] == 0.75
+    # `a` and `b` never hedge, so decisiveness = 1.0.
+    assert metrics["a"]["decisiveness"] == 1.0
+    assert metrics["b"]["decisiveness"] == 1.0
+
+    # `a` and `b` form the two-vote majority on every item; `c` agrees only on i3.
+    assert metrics["a"]["agreement_with_majority"] == 1.0
+    assert metrics["b"]["agreement_with_majority"] == 1.0
+    assert metrics["c"]["agreement_with_majority"] == 0.25
+
+    # Consistency: a and b are perfectly correlated, so their mean pairwise
+    # kappa strictly exceeds c's.
+    assert metrics["a"]["mean_pairwise_cohen_kappa"] > metrics["c"]["mean_pairwise_cohen_kappa"]
+    assert metrics["b"]["mean_pairwise_cohen_kappa"] > metrics["c"]["mean_pairwise_cohen_kappa"]
+
+
 def test_panel_analyzer_end_to_end(tmp_path: Path) -> None:
     template = tmp_path / "annotations.csv"
     fieldnames = ["blind_id", "clip_path", "annotation"]
@@ -97,6 +139,9 @@ def test_panel_analyzer_end_to_end(tmp_path: Path) -> None:
     assert summary["num_complete_items"] == 4
     assert summary["annotators"] == ["a", "b"]
     assert 0.0 < summary["pairwise"]["a|b"]["raw_agreement"] <= 1.0
+    assert summary["per_annotator_metrics"]["a"]["decisiveness"] == 0.75
+    assert summary["per_annotator_metrics"]["b"]["decisiveness"] == 0.75
+    assert summary["per_annotator_metrics"]["a"]["agreement_with_majority"] == 1.0
     with (out_dir / "panel_majority_annotations.csv").open() as handle:
         majority = list(csv.DictReader(handle))
     assert majority[0]["annotation"] == "tactical_pattern"
