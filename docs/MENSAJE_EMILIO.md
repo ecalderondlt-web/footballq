@@ -23,14 +23,14 @@ explico las dudas + lo que ya quedó:
 2. **Anotación ciega (PANEL DIAGNÓSTICO HECHO ✅ / humana pendiente)** — tú no
    puedes ser el anotador porque ya viste las llaves privadas. Regeneramos el
    paquete balanceado (20+20, 40 GIFs, validator passed) y lo anotaron A
-   CIEGAS 3 modelos frontera en contextos limpios (Fable, Codex GPT-5.5,
-   Kimi; Opus/Sonnet cayeron por límite de sesión, se reintentan hoy).
+   CIEGAS 5 modelos frontera en contextos limpios (Fable, Opus, Sonnet,
+   Codex GPT-5.5 y Kimi — 40/40 cada uno).
    Resultado durísimo y útil: **enriquecimiento NEGATIVO** — los clips de
-   residual alto salieron "tácticos" solo 5% vs 35% de los controles ocultos
-   (RD −0.30, Fisher p≈1.0), y el label dominante fue `tracking_artifact`.
+   residual alto salieron "tácticos" solo 5% vs 47% de los controles ocultos
+   (RD −0.42, Fisher p=1.0), y el label dominante fue `tracking_artifact`.
    O sea: el residual detecta tracking roto, no táctica — confirmación ciega
    de tu regla "no llamarlo tactical surprise". Acuerdo entre modelos:
-   Fleiss κ=0.41 (codex↔fable κ=0.67). Tu pasada humana sigue siendo la
+   Fleiss κ=0.33; los más alineados fable↔opus κ=0.80 y codex↔opus κ=0.77. Tu pasada humana sigue siendo la
    compuerta oficial: 40 GIFs, ~30-40 min, guía en
    `docs/BLINDED_ANNOTATION_GUIDE.md`.
 

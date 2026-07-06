@@ -167,12 +167,13 @@ anti-collapse — and they trade away temporal directedness.
 - Balanced package re-rendered fresh (20 high-residual + 20 hidden controls,
   40/40 GIFs, `validation_status: passed`, 0 filled cells before the panel).
 - Model panel (diagnostic only; fresh headless contexts; keys never exposed):
-  Fable, Codex (GPT-5.5), Kimi completed 40/40; Opus and Sonnet hit a provider
-  session limit (retry pending). Fleiss' kappa = 0.41; pairwise Cohen's kappa:
-  codex-fable 0.67, fable-kimi 0.37, codex-kimi 0.24.
+  all five annotators — Fable, Opus, Sonnet, Codex (GPT-5.5), Kimi — completed
+  40/40. Fleiss' kappa = 0.33 across five; strongest pairwise agreement
+  fable-opus 0.80, codex-opus 0.77, codex-fable 0.67; sonnet is the outlier
+  (kappa 0.08-0.19), kimi middling.
 - **Enrichment is NEGATIVE for every annotator**: majority-vote positive-label
-  rate 0.05 on high-residual clips vs 0.35 on hidden controls (risk difference
-  -0.30, Fisher greater-p ~= 1.0). Dominant high-residual label:
+  rate 0.05 on high-residual clips vs 0.47 on hidden controls (risk difference
+  -0.42, Fisher greater-p = 1.0). Dominant high-residual label:
   `tracking_artifact`. Under blinding, the latent-residual score selects
   broken tracking, not tactics — quantitative confirmation of the repo's
   "do not call residuals tactical surprise" rule.
