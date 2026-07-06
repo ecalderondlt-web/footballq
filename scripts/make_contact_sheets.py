@@ -74,7 +74,11 @@ def main() -> None:
             continue
         gif_path = Path(clip_path)
         if not gif_path.is_absolute():
-            gif_path = package_root / clip_path
+            for base in (Path.cwd(), package_root):
+                candidate = base / clip_path
+                if candidate.exists():
+                    gif_path = candidate
+                    break
         if not gif_path.exists():
             entries.append({"blind_id": blind_id, "sheet_path": "", "status": "clip_not_found"})
             continue
