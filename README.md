@@ -115,6 +115,53 @@ python scripts/prepare_tracking_data.py `
   --match-id sample_game_1
 ```
 
+Google Research Football can be used as a synthetic simulator source after separately
+installing `gfootball`. Collect raw observations, then run the normal footballq data
+builders:
+
+```powershell
+python scripts/collect_gfootball_tracking.py `
+  --out data/raw/gfootball/11v11_easy_seed123.jsonl `
+  --env-name 11_vs_11_easy_stochastic `
+  --episodes 10 `
+  --max-steps 3000 `
+  --action-policy random
+
+python scripts/prepare_tracking_data.py `
+  --source gfootball `
+  --raw data/raw/gfootball `
+  --out data/processed/gfootball_windows_h2s.pt `
+  --match-id grf `
+  --fps-out 10 `
+  --context-seconds 2.0 `
+  --horizon-seconds 2.0 `
+  --stride-seconds 0.2
+```
+
+Treat GRF as simulator pretraining or domain-randomized control data only. SkillCorner
+held-out matches remain the real-data evaluation path; see
+`docs/GFOOTBALL_SYNTHETIC_PRETRAINING.md`.
+
+The current balanced GRF path uses the immutable V2 curriculum, a train-only PFF
+visibility profile, and lazy per-job tensor shards:
+
+```powershell
+python scripts/collect_gfootball_curriculum.py `
+  --plan configs/gfootball_v2_pilot_collection.json `
+  --dry-run
+
+python scripts/prepare_gfootball_td_shards.py `
+  --plan configs/gfootball_v2_pilot_collection.json `
+  --raw-root data/raw/gfootball/v2_pilot `
+  --out data/processed/gfootball_v2_pilot `
+  --split-manifest splits/gfootball_v2_pilot_episode_split.json `
+  --visibility-profile data/processed/pff_wc2022_visibility_profile_train_v1.json
+```
+
+Collection itself must run in the separately installed Linux GRF runtime. Exact pins,
+scenario counts, hashes, audit commands, and interpretation limits are recorded in
+`docs/GFOOTBALL_SYNTHETIC_PRETRAINING.md`.
+
 Assumptions for public data are intentionally conservative: if possession, phase, event labels, or
 stable home/away metadata are missing, the pipeline leaves those features empty instead of
 inventing them. Missing or invisible entities keep the fixed `[23]` entity shape and are handled by
@@ -1027,6 +1074,42 @@ clusters that are not dominated by one match and are enriched for future ball di
 team-shape change, or high-residual/stress windows. Negative or weak evidence still leaves a useful
 harness for visual inspection and blinded annotation. Current limitations include sparse/unknown
 phase and event labels, no human tactical labels, and fully unsupervised cluster semantics.
+
+## PFF World Cup 2022 Pipeline
+
+Use `wc2022datav2` as the authoritative 64-match raw source. Prepare checksummed canonical-v2
+shards and the dataset quality report:
+
+```powershell
+python scripts/prepare_pff_tracking_shards.py --raw wc2022datav2 --out data/processed/pff_wc2022_canonical_v2 --workers 4
+python scripts/summarize_pff_shard_quality.py --canonical-root data/processed/pff_wc2022_canonical_v2
+```
+
+Prepare and finalize the geometry-only future-nonoverlap tensor shards:
+
+```powershell
+python scripts/prepare_pff_td_jepa_shards.py --canonical-root data/processed/pff_wc2022_canonical_v2 --out data/processed/pff_wc2022_td_jepa_v2 --visibility-mode all_available --workers 8
+python scripts/finalize_pff_td_jepa_manifest.py data/processed/pff_wc2022_td_jepa_v2/all_available/dataset_manifest.json
+python scripts/prepare_pff_td_jepa_shards.py --canonical-root data/processed/pff_wc2022_canonical_v2 --out data/processed/pff_wc2022_td_jepa_v2 --visibility-mode observed_only --workers 8
+python scripts/finalize_pff_td_jepa_manifest.py data/processed/pff_wc2022_td_jepa_v2/observed_only/dataset_manifest.json
+```
+
+Run the bounded production-manifest integration diagnostic:
+
+```powershell
+python scripts/train_td_jepa.py --config configs/td_jepa_pff_wc2022_sharded_diagnostic.yaml
+```
+
+The full real-only config is `configs/td_jepa_pff_wc2022_real_only.yaml`. Matched short-budget
+configs are `configs/td_jepa_pff_wc2022_matched_diagnostic.yaml` and
+`configs/td_jepa_pff_wc2022_observed_only_matched_diagnostic.yaml`. The observed-only control and
+three-seed short-budget diagnostic are complete. The longer repeat is blocked on validation, so
+held-out falsification and downstream controls are not authorized. Detailed provenance and current findings are in
+`docs/PFF_WORLD_CUP_2022_INTEGRATION.md` and `docs/PFF_GRF_TRANSFER_DIAGNOSTIC_V1.md`.
+
+The frozen longer-run config is `configs/td_jepa_pff_wc2022_observed_only_longer_v1.yaml`. Its
+three-seed validation gate is blocked, so no PFF test evaluation was run. See
+`docs/PFF_GRF_TRANSFER_LONGER_RESULT_V1.md` before scheduling more PFF compute.
 
 ## Synthetic Demo
 

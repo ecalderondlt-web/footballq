@@ -11,6 +11,12 @@ def test_geometry_only_excludes_possession_channels():
     assert "visible_mask" not in names
 
 
+def test_position_only_excludes_velocity_and_possession_channels():
+    names = feature_view_names(list(FEATURE_NAMES), "position_only")
+
+    assert names == ["x_norm", "y_norm", "is_ball", "is_home", "is_away"]
+
+
 def test_missingness_only_control_runs():
     state = torch.randn(2, 3, 23, len(FEATURE_NAMES))
     selected, names = apply_feature_view(state, list(FEATURE_NAMES), "missingness_only_control")

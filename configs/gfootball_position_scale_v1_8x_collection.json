@@ -1,0 +1,21 @@
+{
+  "name": "gfootball_position_scale_v1",
+  "version": 1,
+  "dataset": "gfootball",
+  "creation_timestamp_utc": "2026-07-15T00:00:00Z",
+  "output_root": "data/raw/gfootball/position_scale_v1_8x",
+  "split_manifest_path": "splits/gfootball_position_scale_v1_8x_episode_split.json",
+  "purpose": "Deterministic train-only master collection for nested 1x/4x/8x GRF scaling.",
+  "jobs": [
+    {"id": "easy_train", "split": "train", "env_name": "11_vs_11_easy_stochastic", "episodes": 48, "max_steps": 3000, "seed": 3101, "action_policy": "builtin_ai"},
+    {"id": "standard_train", "split": "train", "env_name": "11_vs_11_stochastic", "episodes": 48, "max_steps": 3000, "seed": 3102, "action_policy": "builtin_ai"},
+    {"id": "hard_train", "split": "train", "env_name": "11_vs_11_hard_stochastic", "episodes": 48, "max_steps": 3000, "seed": 3103, "action_policy": "builtin_ai"},
+    {"id": "standard_perturbed_train", "split": "train", "env_name": "11_vs_11_stochastic", "episodes": 16, "max_steps": 3000, "seed": 3104, "action_policy": "builtin_ai_perturbed", "perturbation_rate": 0.05},
+    {"id": "counter_easy_train", "split": "train", "env_name": "academy_counterattack_easy", "episodes": 96, "max_steps": 600, "seed": 3201, "action_policy": "builtin_ai"},
+    {"id": "counter_hard_train", "split": "train", "env_name": "academy_counterattack_hard", "episodes": 96, "max_steps": 600, "seed": 3202, "action_policy": "builtin_ai"},
+    {"id": "corner_train", "split": "train", "env_name": "academy_corner", "episodes": 96, "max_steps": 600, "seed": 3203, "action_policy": "builtin_ai"},
+    {"id": "pass_shoot_train", "split": "train", "env_name": "academy_pass_and_shoot_with_keeper", "episodes": 96, "max_steps": 600, "seed": 3204, "action_policy": "builtin_ai"},
+    {"id": "run_pass_shoot_train", "split": "train", "env_name": "academy_run_pass_and_shoot_with_keeper", "episodes": 96, "max_steps": 600, "seed": 3205, "action_policy": "builtin_ai"},
+    {"id": "three_v_one_train", "split": "train", "env_name": "academy_3_vs_1_with_keeper", "episodes": 96, "max_steps": 600, "seed": 3206, "action_policy": "builtin_ai"}
+  ]
+}

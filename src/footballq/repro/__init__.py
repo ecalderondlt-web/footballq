@@ -1,12 +1,9 @@
 """Reproducibility, identity, and provenance helpers."""
 
-from footballq.repro.identity import (
-    ensure_unique_sample_ids,
-    make_sample_id,
-    sample_ids_from_components,
-)
-from footballq.repro.manifest import build_run_manifest, validate_run_manifest, write_run_manifest
-from footballq.repro.splits import SplitManifest, load_split_manifest
+from __future__ import annotations
+
+from importlib import import_module
+from typing import Any
 
 __all__ = [
     "SplitManifest",
@@ -18,3 +15,29 @@ __all__ = [
     "validate_run_manifest",
     "write_run_manifest",
 ]
+
+_EXPORT_MODULES = {
+    "SplitManifest": "footballq.repro.splits",
+    "build_run_manifest": "footballq.repro.manifest",
+    "ensure_unique_sample_ids": "footballq.repro.identity",
+    "load_split_manifest": "footballq.repro.splits",
+    "make_sample_id": "footballq.repro.identity",
+    "sample_ids_from_components": "footballq.repro.identity",
+    "validate_run_manifest": "footballq.repro.manifest",
+    "write_run_manifest": "footballq.repro.manifest",
+}
+
+
+def __getattr__(name: str) -> Any:
+    """Load public helpers only when callers request them."""
+
+    module_name = _EXPORT_MODULES.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(import_module(module_name), name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__))

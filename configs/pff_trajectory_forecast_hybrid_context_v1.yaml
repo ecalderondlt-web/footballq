@@ -1,0 +1,31 @@
+experiment: pff_trajectory_forecast_hybrid_context_v1
+family: raw
+
+data:
+  manifest: data/processed/pff_wc2022_trajectory_forecast_v1/dataset_manifest.json
+  split_manifest: splits/pff_wc2022_64match_inductive_v1.json
+
+sources:
+  tracking_checkpoint: runs/pff_4x_tracking_complete_v1/models/td_jepa/20260716_120651/latest.pt
+
+model:
+  representation_mode: entity_tokens
+  decoder_mode: player_global_ball
+  hidden_dim: 256
+  dropout: 0.1
+
+training:
+  seed: 7
+  batch_size: 128
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  grad_clip: 1.0
+  max_epochs: 1
+  max_train_updates: 2000
+  validation_curve_steps: [100, 500, 1000, 2000]
+  validation_curve_max_batches: 50
+  max_val_batches: 500
+  num_workers: 0
+  device: auto
+  validation_split: val
+  run_root: runs/pff_trajectory_forecast_hybrid_context_v1/models

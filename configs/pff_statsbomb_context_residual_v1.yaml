@@ -1,0 +1,29 @@
+experiment: pff_statsbomb_context_residual_v1
+family: tracking
+data:
+  tracking_manifest: data/processed/pff_wc2022_td_jepa_position_only_train_val_v1/observed_only/dataset_manifest.json
+  event_manifest: data/processed/pff_statsbomb_event_context_v1/manifest.json
+  statsbomb_manifest: data/processed/statsbomb_event_sequence_v1/manifest.json
+  split_manifest: splits/pff_wc2022_64match_inductive_v1.json
+  event_history_length: 32
+sources:
+  tracking_checkpoint: null
+  event_checkpoint: null
+model:
+  z_dim: 128
+  hidden_dim: 256
+training:
+  seed: 7
+  device: auto
+  batch_size: 128
+  num_workers: 0
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip: 1.0
+  max_epochs: 3
+  max_train_updates: 2000
+  validation_split: val
+  validation_curve_steps: [100, 500, 1000, 2000]
+  validation_curve_max_batches: 50
+  max_val_batches: 500
+  run_root: runs/pff_statsbomb_context_residual_v1/models

@@ -14,8 +14,10 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from footballq.data.td_jepa_dataset import build_td_jepa_examples, save_td_jepa_data  # noqa: E402
+from footballq.io.gfootball import GFootballAdapter  # noqa: E402
 from footballq.io.idsse import IDSSEAdapter  # noqa: E402
 from footballq.io.metrica import MetricaAdapter  # noqa: E402
+from footballq.io.pff import PFFAdapter  # noqa: E402
 from footballq.io.skillcorner import SkillCornerAdapter  # noqa: E402
 from footballq.repro.manifest import build_run_manifest, write_run_manifest  # noqa: E402
 
@@ -24,7 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--source",
-        choices=["synthetic", "skillcorner", "idsse", "metrica"],
+        choices=["synthetic", "skillcorner", "gfootball", "pff", "idsse", "metrica"],
         required=True,
     )
     parser.add_argument("--raw", type=Path, required=True)
@@ -68,6 +70,10 @@ def load_source(source: str, raw: Path, match_id: str) -> pd.DataFrame:
         return _read_table(raw)
     if source == "skillcorner":
         return SkillCornerAdapter(raw_dir=raw, match_id=match_id).load_tracking()
+    if source == "gfootball":
+        return GFootballAdapter(raw_dir=raw, match_id=match_id).load_tracking()
+    if source == "pff":
+        return PFFAdapter(raw_dir=raw, match_id=match_id).load_tracking()
     if source == "idsse":
         return IDSSEAdapter(raw_dir=raw, match_id=match_id).load_tracking()
     if source == "metrica":

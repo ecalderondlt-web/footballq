@@ -10,6 +10,7 @@ from typing import Any
 import torch
 from torch.utils.data import DataLoader
 
+from footballq.data.sharded_td_dataset import ShardedTDJEPADataset, ShardGroupedSampler
 from footballq.data.td_jepa_dataset import TDJEPADataset, load_td_jepa_data
 from footballq.training.train_td_jepa import (
     create_td_jepa_model,
@@ -37,13 +38,21 @@ def load_td_checkpoint_model(
     payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     cfg = payload["config"]
     actual_data_path = data_path or cfg.get("data", {}).get("path")
-    data = load_td_jepa_data(actual_data_path)
+    actual_data_path = Path(actual_data_path)
+    if actual_data_path.suffix.lower() == ".json":
+        data = ShardedTDJEPADataset(actual_data_path, "train").prototype
+    else:
+        data = load_td_jepa_data(actual_data_path)
     model = create_td_jepa_model(cfg, data)
     model.online_encoder.load_state_dict(payload["online_encoder"])
     model.target_encoder.load_state_dict(payload["target_encoder"])
     model.motion_encoder.load_state_dict(payload["motion_encoder"])
     if model.state_decoder is not None and payload.get("state_decoder") is not None:
         model.state_decoder.load_state_dict(payload["state_decoder"])
+    if model.temporal_motion_head is not None and payload.get("temporal_motion_head") is not None:
+        model.temporal_motion_head.load_state_dict(payload["temporal_motion_head"])
+    if model.transition_decoder is not None and payload.get("transition_decoder") is not None:
+        model.transition_decoder.load_state_dict(payload["transition_decoder"])
     torch_device = resolve_device(device)
     model = model.to(torch_device)
     return model, data, cfg, payload, torch_device
@@ -63,12 +72,22 @@ def evaluate_td_checkpoint(
     split_indices = payload.get("split_indices", {})
     if split not in split_indices:
         raise ValueError(f"Split {split!r} not found. Available: {sorted(split_indices)}")
-    loader = DataLoader(
-        TDJEPADataset(data, indices=split_indices[split]),
-        batch_size=int(cfg.get("training", {}).get("batch_size", 64)),
-        shuffle=False,
-        num_workers=int(cfg.get("training", {}).get("num_workers", 0)),
-    )
+    actual_data_path = Path(data_path or cfg.get("data", {}).get("path"))
+    if actual_data_path.suffix.lower() == ".json":
+        dataset = ShardedTDJEPADataset(actual_data_path, split)
+        loader = DataLoader(
+            dataset,
+            batch_size=int(cfg.get("training", {}).get("batch_size", 64)),
+            sampler=ShardGroupedSampler(dataset, shuffle=False),
+            num_workers=int(cfg.get("training", {}).get("num_workers", 0)),
+        )
+    else:
+        loader = DataLoader(
+            TDJEPADataset(data, indices=split_indices[split]),
+            batch_size=int(cfg.get("training", {}).get("batch_size", 64)),
+            shuffle=False,
+            num_workers=int(cfg.get("training", {}).get("num_workers", 0)),
+        )
     metrics = evaluate_td_model(model, loader, torch_device, cfg.get("loss", {}))
     run_dir = Path(payload.get("run_dir", Path(checkpoint).parent))
     run_dir.mkdir(parents=True, exist_ok=True)

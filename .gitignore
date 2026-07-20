@@ -11,6 +11,8 @@ dist/
 /data/
 /artifacts/
 /runs/
+/tmp/
+/wc2022data*/
 
 *.mp4
 *.gif

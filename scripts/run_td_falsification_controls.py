@@ -17,6 +17,10 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from footballq.data.sharded_td_dataset import (  # noqa: E402
+    ShardedTDJEPADataset,
+    ShardGroupedSampler,
+)
 from footballq.data.td_jepa_dataset import TDJEPADataset  # noqa: E402
 from footballq.repro.falsification import (  # noqa: E402
     CONTROL_CONDITIONS,
@@ -88,6 +92,33 @@ def _finalize(totals: dict[str, float], num_examples: int, skipped_batches: int)
     } | {"num_examples": num_examples, "skipped_batches": skipped_batches}
 
 
+def _build_falsification_loader(
+    data_path: Path,
+    split: str,
+    data: Any,
+    split_indices: dict[str, Any],
+    *,
+    batch_size: int,
+    seed: int,
+) -> DataLoader:
+    if data_path.suffix.lower() == ".json":
+        dataset = ShardedTDJEPADataset(data_path, split)
+        return DataLoader(
+            dataset,
+            batch_size=batch_size,
+            sampler=ShardGroupedSampler(dataset, shuffle=True, seed=seed),
+            num_workers=0,
+        )
+    generator = torch.Generator(device="cpu").manual_seed(seed)
+    return DataLoader(
+        TDJEPADataset(data, indices=split_indices[split]),
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=0,
+        generator=generator,
+    )
+
+
 def _condition_losses(
     model: torch.nn.Module,
     batch: dict[str, Any],
@@ -119,6 +150,18 @@ def _condition_losses(
             ),
             no_motion_margin_weight=float(loss_cfg.get("no_motion_margin_weight", 0.0)),
             no_motion_margin=float(loss_cfg.get("no_motion_margin", 0.01)),
+            transition_reconstruction=(
+                torch.zeros_like(outputs["transition_reconstruction"])
+                if outputs.get("transition_reconstruction") is not None
+                else None
+            ),
+            transition_target=(
+                batch["state_t_plus_delta"][..., :2] - batch["state_t"][..., :2]
+            ),
+            transition_mask=batch["mask_t_plus_delta"] & batch["mask_t"],
+            transition_reconstruction_weight=float(
+                loss_cfg.get("transition_reconstruction_weight", 0.0)
+            ),
         )
     controlled = apply_td_falsification_control(
         batch,
@@ -145,6 +188,16 @@ def _condition_losses(
         ),
         no_motion_margin_weight=float(loss_cfg.get("no_motion_margin_weight", 0.0)),
         no_motion_margin=float(loss_cfg.get("no_motion_margin", 0.01)),
+        transition_reconstruction=outputs.get("transition_reconstruction"),
+        transition_target=(
+            controlled["state_t_plus_delta"][..., :2] - controlled["state_t"][..., :2]
+        ),
+        transition_mask=(
+            controlled["mask_t_plus_delta"] & controlled["mask_t"]
+        ),
+        transition_reconstruction_weight=float(
+            loss_cfg.get("transition_reconstruction_weight", 0.0)
+        ),
     )
 
 
@@ -164,13 +217,13 @@ def main() -> None:
         raise ValueError(f"Split {args.split!r} not found. Available: {sorted(split_indices)}")
 
     batch_size = args.batch_size or int(cfg.get("training", {}).get("batch_size", 64))
-    generator = torch.Generator(device="cpu").manual_seed(int(args.seed))
-    loader = DataLoader(
-        TDJEPADataset(data, indices=split_indices[args.split]),
+    loader = _build_falsification_loader(
+        Path(args.data),
+        args.split,
+        data,
+        split_indices,
         batch_size=int(batch_size),
-        shuffle=True,
-        num_workers=0,
-        generator=generator,
+        seed=int(args.seed),
     )
     loss_cfg = cfg.get("loss", {})
     totals = {condition: _empty_totals() for condition in args.conditions}

@@ -64,6 +64,8 @@ class SoccerTDJEPA(nn.Module):
         motion_hidden_dim: int = 256,
         pooling: str = "mean",
         state_decoder_hidden_dim: int | None = None,
+        temporal_motion_head_hidden_dim: int | None = None,
+        transition_decoder_hidden_dim: int | None = None,
     ) -> None:
         super().__init__()
         self.context_steps = int(context_steps)
@@ -99,6 +101,43 @@ class SoccerTDJEPA(nn.Module):
                 nn.LayerNorm(hidden_dim),
                 nn.Linear(hidden_dim, context_steps * n_entities * n_features),
             )
+        self.temporal_motion_head = None
+        if temporal_motion_head_hidden_dim is not None:
+            hidden_dim = int(temporal_motion_head_hidden_dim)
+            self.temporal_motion_head = nn.Sequential(
+                nn.Linear(z_dim, hidden_dim),
+                nn.GELU(),
+                nn.Linear(hidden_dim, n_entities * 2),
+            )
+        self.transition_decoder = None
+        if transition_decoder_hidden_dim is not None:
+            hidden_dim = int(transition_decoder_hidden_dim)
+            self.transition_decoder = nn.Sequential(
+                nn.Linear(z_dim, hidden_dim),
+                nn.GELU(),
+                nn.LayerNorm(hidden_dim),
+                nn.Linear(hidden_dim, context_steps * n_entities * 2),
+            )
+
+    def predict_temporal_motion(self, z: torch.Tensor) -> torch.Tensor:
+        """Reconstruct signed per-entity endpoint displacement from a context."""
+
+        if self.temporal_motion_head is None:
+            raise RuntimeError("Temporal-motion head is not configured for this TD-JEPA model.")
+        return self.temporal_motion_head(z).view(z.shape[0], self.n_entities, 2)
+
+    def decode_transition(self, delta_z: torch.Tensor) -> torch.Tensor:
+        """Decode aligned future-minus-current coordinates from latent motion."""
+
+        if self.transition_decoder is None:
+            raise RuntimeError("Transition decoder is not configured for this TD-JEPA model.")
+        decoded = self.transition_decoder(delta_z)
+        return decoded.view(
+            delta_z.shape[0],
+            self.context_steps,
+            self.n_entities,
+            2,
+        )
 
     def decode_state(self, z: torch.Tensor) -> torch.Tensor:
         """Decode a latent into a slot-aligned target context tensor."""
@@ -131,4 +170,6 @@ class SoccerTDJEPA(nn.Module):
         if self.state_decoder is not None:
             outputs["state_reconstruction"] = self.decode_state(z_pred)
             outputs["context_reconstruction"] = self.decode_state(z_t)
+        if self.transition_decoder is not None:
+            outputs["transition_reconstruction"] = self.decode_transition(delta_z)
         return outputs

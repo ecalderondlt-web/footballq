@@ -1,4 +1,5 @@
 import pandas as pd
+import torch
 
 from footballq.data.td_jepa_dataset import build_td_jepa_examples
 from footballq.synthetic.generate import generate_synthetic_tracking
@@ -52,3 +53,34 @@ def test_td_jepa_dataset_split_has_multiple_match_ids():
     ]
     data = build_td_jepa_examples(pd.concat(frames, ignore_index=True), fps_out=10.0)
     assert sorted(set(data.match_id)) == ["m0", "m1", "m2"]
+
+
+def test_position_only_vectorized_path_matches_full_feature_projection():
+    tracking = generate_synthetic_tracking(duration_s=4.0, fps=10.0)
+    full = build_td_jepa_examples(
+        tracking,
+        fps_out=10.0,
+        context_seconds=0.5,
+        delta_seconds=0.2,
+        stride_seconds=0.2,
+    )
+    position = build_td_jepa_examples(
+        tracking,
+        fps_out=10.0,
+        context_seconds=0.5,
+        delta_seconds=0.2,
+        stride_seconds=0.2,
+        feature_view="position_only",
+    )
+    indices = [full.feature_names.index(name) for name in position.feature_names]
+
+    assert full.sample_id == position.sample_id
+    for full_tensor, position_tensor in (
+        (full.state_t, position.state_t),
+        (full.state_t_plus_delta, position.state_t_plus_delta),
+        (full.delta_state, position.delta_state),
+    ):
+        assert torch.equal(full_tensor[..., indices], position_tensor)
+    assert torch.equal(full.mask_t, position.mask_t)
+    assert torch.equal(full.mask_t_plus_delta, position.mask_t_plus_delta)
+    assert torch.equal(full.delta_mask, position.delta_mask)

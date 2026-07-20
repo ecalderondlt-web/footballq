@@ -415,7 +415,10 @@ def _with_causal_velocity(df: pd.DataFrame) -> pd.DataFrame:
 
     out["vx_mps"] = pd.to_numeric(out.get("vx_mps", np.nan), errors="coerce")
     out["vy_mps"] = pd.to_numeric(out.get("vy_mps", np.nan), errors="coerce")
-    group_cols = ["match_id", "period", "agent_id"]
+    group_cols = ["match_id", "period"]
+    if "temporal_segment_id" in out.columns:
+        group_cols.append("temporal_segment_id")
+    group_cols.append("agent_id")
     for _, group in out.groupby(group_cols, dropna=False, sort=False):
         idx = group.index
         times = group["time_s"].to_numpy(dtype=float)

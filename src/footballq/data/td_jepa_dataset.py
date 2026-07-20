@@ -11,9 +11,13 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
+from footballq.data.normalize import normalize_xy_from_meters
 from footballq.data.windows import (
+    ENTITY_BALL,
     FEATURE_NAMES,
     N_ENTITIES,
+    TEAM_AWAY,
+    TEAM_HOME,
     _agents_for_period,
     _row_features,
     _selected_times,
@@ -21,7 +25,12 @@ from footballq.data.windows import (
     _static_entity_arrays,
     _with_causal_velocity,
 )
-from footballq.repro.feature_views import FULL_STATE_LEGACY, apply_feature_view, feature_view_names
+from footballq.repro.feature_views import (
+    FULL_STATE_LEGACY,
+    POSITION_ONLY,
+    apply_feature_view,
+    feature_view_names,
+)
 from footballq.repro.identity import sample_ids_from_components
 from footballq.repro.splits import split_manifest_metadata
 
@@ -224,6 +233,48 @@ def _state_at_times(
     return state, mask
 
 
+def _position_state_at_times(
+    times: np.ndarray,
+    period_df: pd.DataFrame,
+    agent_ids: list[str],
+    entity_type: np.ndarray,
+    team_id: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build the full-layout state without materializing unused dynamic channels."""
+
+    state = np.zeros((len(times), N_ENTITIES, len(FEATURE_NAMES)), dtype=np.float32)
+    mask = np.zeros((len(times), N_ENTITIES), dtype=bool)
+    rows = period_df.drop_duplicates(["time_s", "agent_id"], keep="last")
+    time_lookup = {float(value): index for index, value in enumerate(times)}
+    agent_lookup = {str(value): index for index, value in enumerate(agent_ids) if value}
+    time_index = rows["time_s"].astype(float).map(time_lookup)
+    entity_index = rows["agent_id"].astype(str).map(agent_lookup)
+    visible = rows["visible"].fillna(False).astype(bool)
+    selected = time_index.notna() & entity_index.notna() & visible
+    if not selected.any():
+        return state, mask
+
+    selected_rows = rows.loc[selected]
+    selected_time = time_index.loc[selected].to_numpy(dtype=int)
+    selected_entity = entity_index.loc[selected].to_numpy(dtype=int)
+    xy = normalize_xy_from_meters(
+        selected_rows[["x_m", "y_m"]].to_numpy(dtype=np.float32)
+    )
+    state[selected_time, selected_entity, :2] = xy
+    state[selected_time, selected_entity, 4] = (
+        entity_type[selected_entity] == ENTITY_BALL
+    ).astype(np.float32)
+    state[selected_time, selected_entity, 5] = (
+        team_id[selected_entity] == TEAM_HOME
+    ).astype(np.float32)
+    state[selected_time, selected_entity, 6] = (
+        team_id[selected_entity] == TEAM_AWAY
+    ).astype(np.float32)
+    state[selected_time, selected_entity, 9] = 1.0
+    mask[selected_time, selected_entity] = True
+    return state, mask
+
+
 def build_td_jepa_examples(
     tracking_df: pd.DataFrame,
     fps_out: float = 10.0,
@@ -278,16 +329,52 @@ def build_td_jepa_examples(
         period_df = period_df[period_df["time_s"].astype(float).isin({float(t) for t in times})]
         agent_ids = _agents_for_period(period_df)
         entity_type_arr, team_id_arr = _static_entity_arrays(agent_ids, period_df)
-        indexed = {
-            (float(row.time_s), str(row.agent_id)): row for row in period_df.itertuples(index=False)
-        }
+        if feature_view == POSITION_ONLY:
+            period_state, period_mask = _position_state_at_times(
+                times,
+                period_df,
+                agent_ids,
+                entity_type_arr,
+                team_id_arr,
+            )
+        else:
+            indexed = {
+                (float(row.time_s), str(row.agent_id)): row
+                for row in period_df.itertuples(index=False)
+            }
+            period_state, period_mask = _state_at_times(
+                times,
+                indexed,
+                agent_ids,
+                entity_type_arr,
+                team_id_arr,
+            )
         frame_by_time = (
             period_df.drop_duplicates("time_s").set_index("time_s")["frame_id"].to_dict()
         )
+        segmented = "temporal_segment_id" in period_df.columns
+        if segmented:
+            segment_by_time = (
+                period_df.drop_duplicates("time_s")
+                .set_index("time_s")["temporal_segment_id"]
+                .to_dict()
+            )
+            stride_origin = int(period_df["temporal_stride_origin_frame_id"].iloc[0])
 
         for start in range(0, len(times) - total_steps + 1, stride_steps):
             context_times = times[start : start + context_steps]
+            if segmented:
+                frame_start = int(frame_by_time[float(context_times[0])])
+                if (frame_start - stride_origin) % stride_steps != 0:
+                    continue
+                window_times = times[start : start + total_steps]
+                window_segments = {
+                    int(segment_by_time[float(value)]) for value in window_times
+                }
+                if len(window_segments) != 1:
+                    continue
             if objective_mode == LEGACY_SHIFTED_OVERLAP:
+                target_start = start + delta_frames
                 target_times = times[start + delta_frames : start + delta_frames + context_steps]
                 delta_times = times[start + context_steps : start + context_steps + delta_frames]
             else:
@@ -296,27 +383,13 @@ def build_td_jepa_examples(
                 delta_times = times[start + context_steps : start + context_steps + delta_frames]
             if len(target_times) != context_steps or len(delta_times) != delta_frames:
                 continue
-            state_t, mask_t = _state_at_times(
-                context_times,
-                indexed,
-                agent_ids,
-                entity_type_arr,
-                team_id_arr,
-            )
-            state_target, mask_target = _state_at_times(
-                target_times,
-                indexed,
-                agent_ids,
-                entity_type_arr,
-                team_id_arr,
-            )
-            delta_state, delta_mask = _state_at_times(
-                delta_times,
-                indexed,
-                agent_ids,
-                entity_type_arr,
-                team_id_arr,
-            )
+            state_t = period_state[start : start + context_steps]
+            mask_t = period_mask[start : start + context_steps]
+            state_target = period_state[target_start : target_start + context_steps]
+            mask_target = period_mask[target_start : target_start + context_steps]
+            delta_start = start + context_steps
+            delta_state = period_state[delta_start : delta_start + delta_frames]
+            delta_mask = period_mask[delta_start : delta_start + delta_frames]
             if objective_mode == FUTURE_NONOVERLAP_CONTEXT_ONLY:
                 delta_state = np.zeros_like(delta_state)
                 delta_mask = np.zeros_like(delta_mask)

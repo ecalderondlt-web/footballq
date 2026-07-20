@@ -1,0 +1,26 @@
+{
+  "name": "gfootball_v2_pilot",
+  "version": 1,
+  "dataset": "gfootball",
+  "creation_timestamp_utc": "2026-07-13T00:00:00Z",
+  "output_root": "data/raw/gfootball/v2_pilot",
+  "split_manifest_path": "splits/gfootball_v2_pilot_episode_split.json",
+  "purpose": "Equal-lineage multi-scenario pilot before the 300k-500k window collection.",
+  "jobs": [
+    {"id": "easy_train", "split": "train", "env_name": "11_vs_11_easy_stochastic", "episodes": 6, "max_steps": 3000, "seed": 2101, "action_policy": "builtin_ai"},
+    {"id": "standard_train", "split": "train", "env_name": "11_vs_11_stochastic", "episodes": 6, "max_steps": 3000, "seed": 2102, "action_policy": "builtin_ai"},
+    {"id": "hard_train", "split": "train", "env_name": "11_vs_11_hard_stochastic", "episodes": 6, "max_steps": 3000, "seed": 2103, "action_policy": "builtin_ai"},
+    {"id": "standard_perturbed_train", "split": "train", "env_name": "11_vs_11_stochastic", "episodes": 2, "max_steps": 3000, "seed": 2104, "action_policy": "builtin_ai_perturbed", "perturbation_rate": 0.05},
+    {"id": "counter_easy_train", "split": "train", "env_name": "academy_counterattack_easy", "episodes": 12, "max_steps": 600, "seed": 2201, "action_policy": "builtin_ai"},
+    {"id": "counter_hard_train", "split": "train", "env_name": "academy_counterattack_hard", "episodes": 12, "max_steps": 600, "seed": 2202, "action_policy": "builtin_ai"},
+    {"id": "corner_train", "split": "train", "env_name": "academy_corner", "episodes": 12, "max_steps": 600, "seed": 2203, "action_policy": "builtin_ai"},
+    {"id": "pass_shoot_train", "split": "train", "env_name": "academy_pass_and_shoot_with_keeper", "episodes": 12, "max_steps": 600, "seed": 2204, "action_policy": "builtin_ai"},
+    {"id": "run_pass_shoot_train", "split": "train", "env_name": "academy_run_pass_and_shoot_with_keeper", "episodes": 12, "max_steps": 600, "seed": 2205, "action_policy": "builtin_ai"},
+    {"id": "three_v_one_train", "split": "train", "env_name": "academy_3_vs_1_with_keeper", "episodes": 12, "max_steps": 600, "seed": 2206, "action_policy": "builtin_ai"},
+    {"id": "easy_val", "split": "val", "env_name": "11_vs_11_easy_stochastic", "episodes": 2, "max_steps": 1000, "seed": 2301, "action_policy": "builtin_ai"},
+    {"id": "hard_val", "split": "val", "env_name": "11_vs_11_hard_stochastic", "episodes": 2, "max_steps": 1000, "seed": 2302, "action_policy": "builtin_ai"},
+    {"id": "counter_hard_val", "split": "val", "env_name": "academy_counterattack_hard", "episodes": 4, "max_steps": 600, "seed": 2303, "action_policy": "builtin_ai"},
+    {"id": "standard_test", "split": "test", "env_name": "11_vs_11_stochastic", "episodes": 2, "max_steps": 1000, "seed": 2401, "action_policy": "builtin_ai"},
+    {"id": "corner_test", "split": "test", "env_name": "academy_corner", "episodes": 4, "max_steps": 600, "seed": 2402, "action_policy": "builtin_ai"}
+  ]
+}

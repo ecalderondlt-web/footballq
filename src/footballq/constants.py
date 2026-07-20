@@ -7,6 +7,8 @@ PITCH_CENTER_Y_M = PITCH_WIDTH_M / 2.0
 
 DATASET_METRICA = "metrica"
 DATASET_SKILLCORNER = "skillcorner"
+DATASET_GFOOTBALL = "gfootball"
+DATASET_PFF = "pff_fc"
 DATASET_SOCCERTRACK = "soccertrack"
 DATASET_STATSBOMB = "statsbomb"
 DATASET_SYNTHETIC = "synthetic"

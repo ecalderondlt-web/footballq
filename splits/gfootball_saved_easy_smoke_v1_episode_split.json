@@ -1,0 +1,59 @@
+{
+  "name": "gfootball_saved_easy_smoke_v1_episode_split",
+  "version": 1,
+  "dataset": "gfootball",
+  "protocol": "inductive_episode_holdout",
+  "train_match_ids": [
+    "gfootball_saved_easy_smoke_v1_seed101_episode_0",
+    "gfootball_saved_easy_smoke_v1_seed101_episode_1",
+    "gfootball_saved_easy_smoke_v1_seed101_episode_2",
+    "gfootball_saved_easy_smoke_v1_seed101_episode_3",
+    "gfootball_saved_easy_smoke_v1_seed101_episode_4",
+    "gfootball_saved_easy_smoke_v1_seed202_episode_0",
+    "gfootball_saved_easy_smoke_v1_seed202_episode_1",
+    "gfootball_saved_easy_smoke_v1_seed202_episode_2",
+    "gfootball_saved_easy_smoke_v1_seed202_episode_3",
+    "gfootball_saved_easy_smoke_v1_seed202_episode_4"
+  ],
+  "val_match_ids": [
+    "gfootball_saved_easy_smoke_v1_seed303_episode_0",
+    "gfootball_saved_easy_smoke_v1_seed303_episode_1",
+    "gfootball_saved_easy_smoke_v1_seed303_episode_2",
+    "gfootball_saved_easy_smoke_v1_seed303_episode_3",
+    "gfootball_saved_easy_smoke_v1_seed303_episode_4"
+  ],
+  "test_match_ids": [
+    "gfootball_saved_easy_smoke_v1_seed404_episode_0",
+    "gfootball_saved_easy_smoke_v1_seed404_episode_1",
+    "gfootball_saved_easy_smoke_v1_seed404_episode_2",
+    "gfootball_saved_easy_smoke_v1_seed404_episode_3",
+    "gfootball_saved_easy_smoke_v1_seed404_episode_4"
+  ],
+  "all_match_ids": [
+    "gfootball_saved_easy_smoke_v1_seed101_episode_0",
+    "gfootball_saved_easy_smoke_v1_seed101_episode_1",
+    "gfootball_saved_easy_smoke_v1_seed101_episode_2",
+    "gfootball_saved_easy_smoke_v1_seed101_episode_3",
+    "gfootball_saved_easy_smoke_v1_seed101_episode_4",
+    "gfootball_saved_easy_smoke_v1_seed202_episode_0",
+    "gfootball_saved_easy_smoke_v1_seed202_episode_1",
+    "gfootball_saved_easy_smoke_v1_seed202_episode_2",
+    "gfootball_saved_easy_smoke_v1_seed202_episode_3",
+    "gfootball_saved_easy_smoke_v1_seed202_episode_4",
+    "gfootball_saved_easy_smoke_v1_seed303_episode_0",
+    "gfootball_saved_easy_smoke_v1_seed303_episode_1",
+    "gfootball_saved_easy_smoke_v1_seed303_episode_2",
+    "gfootball_saved_easy_smoke_v1_seed303_episode_3",
+    "gfootball_saved_easy_smoke_v1_seed303_episode_4",
+    "gfootball_saved_easy_smoke_v1_seed404_episode_0",
+    "gfootball_saved_easy_smoke_v1_seed404_episode_1",
+    "gfootball_saved_easy_smoke_v1_seed404_episode_2",
+    "gfootball_saved_easy_smoke_v1_seed404_episode_3",
+    "gfootball_saved_easy_smoke_v1_seed404_episode_4"
+  ],
+  "source": "frozen_gfootball_collection_plan",
+  "source_collection_plan_sha256": "c291b58ddc78aea9ac4d35b68030ab2eb43b8e1238b8c4fb04cb193fbf4c4486",
+  "creation_timestamp_utc": "2026-07-13T00:00:00Z",
+  "expected_count": 20,
+  "notes": "Frozen before GRF V2 collection or model training."
+}

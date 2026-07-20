@@ -1,0 +1,87 @@
+experiment: skillcorner_tactical_transfer_v1
+
+data:
+  raw_root: data/raw/skillcorner
+  td_path: data/processed/skillcorner_td_jepa_nonoverlap_gap1p0.pt
+  split_manifest: splits/skillcorner_10match_inductive_v1.json
+  input_feature_names:
+    - x_norm
+    - y_norm
+    - is_ball
+    - is_home
+    - is_away
+  context_rule: strictly_before_phase_start
+  max_alignment_gap_frames: 2
+  min_visible_entities_at_anchor: 8
+  require_ball_visible_at_anchor: true
+  prediction_horizon_seconds: 5.0
+
+targets:
+  - turnover_within_5s
+  - penalty_area_entry_within_5s
+
+controls:
+  pca_dimensions: 128
+  random_projection_dimensions: 128
+  random_seed: 20260717
+
+probe:
+  type: frozen_linear_logistic
+  optimizer: lbfgs
+  max_iterations: 80
+  history_size: 10
+  l2_weight: 0.001
+  class_balance: inverse_frequency
+
+checkpoints:
+  pff_only:
+    - seed: 7
+      path: runs/grf_position_scale_v1/pff/td_jepa/20260715_214715/latest.pt
+      sha256: 1a59b4d61e8aabeb2ed769a7118316bebd7a7495fc2dfe000edac24805323ab5
+    - seed: 11
+      path: runs/grf_position_scale_v1/pff/td_jepa/20260715_215204/latest.pt
+      sha256: 0b0c9100f4020eac43943bf94c8aba73179111245de90d36e7c2917a79a3880c
+    - seed: 23
+      path: runs/grf_position_scale_v1/pff/td_jepa/20260715_215723/latest.pt
+      sha256: f8bfd19399ffb28d2533a8d31511c428e3b28047fc3926da924ab31d4ca0db50
+  grf_1x_pff:
+    - seed: 7
+      path: runs/grf_position_scale_v1/pff/td_jepa/20260715_220228/latest.pt
+      sha256: 2ac8ce1e589abf9113aae3a7ac26bdf73731c7caef8a7cf2afd0f2f7e72e7190
+    - seed: 11
+      path: runs/grf_position_scale_v1/pff/td_jepa/20260715_220738/latest.pt
+      sha256: db9db1bb8edc873e7d43ac95f55768717d39485543ae30fabe3e5c437794fc41
+    - seed: 23
+      path: runs/grf_position_scale_v1/pff/td_jepa/20260715_221246/latest.pt
+      sha256: af48a7278797c5a28262a24370bef00d801477c7cb5d1df8e655c045c0e16f57
+  grf_4x_pff:
+    - seed: 7
+      path: runs/grf_position_scale_v1/pff/td_jepa/20260715_223324/latest.pt
+      sha256: 93a693cfb52495cc4d79efaa6ae7df4b5d275ded7c77e4e1bb0e55848f7d355b
+    - seed: 11
+      path: runs/grf_position_scale_v1/pff/td_jepa/20260715_223830/latest.pt
+      sha256: b163fcdd821d588eb05612b5250e804e9ca03878841869ddfcb32edac8f47a4b
+    - seed: 23
+      path: runs/grf_position_scale_v1/pff/td_jepa/20260715_224352/latest.pt
+      sha256: de854e9d61bd61a45df3ad9aeb0b2fa4b64d300fb43102eb0bef8326a9ebe7f5
+  grf_8x_pff:
+    - seed: 7
+      path: runs/grf_position_scale_v1/pff/td_jepa/20260715_224805/latest.pt
+      sha256: 4e0a3d82791b5105bc730abd6b0b46a794c2364542801fc93ea485eb744504ae
+    - seed: 11
+      path: runs/grf_position_scale_v1/pff/td_jepa/20260715_225243/latest.pt
+      sha256: 313fcd93d380028899bdd081c911694245f03c527537456976f75580166893b9
+    - seed: 23
+      path: runs/grf_position_scale_v1/pff/td_jepa/20260715_225650/latest.pt
+      sha256: 42b7261e4916accc1060e8374093f3acdcbda34f5e2bf2dc9bc90c5e3a2d66bf
+
+gates:
+  minimum_examples_per_split: 100
+  minimum_positive_examples_per_target_split: 15
+  grf_material_macro_f1_gain: 0.02
+  incremental_macro_f1_gain_over_raw: 0.01
+
+integrity:
+  test_model_predictions_unopened_until_protocol_frozen: true
+  test_label_support_manually_audited_before_protocol_freeze: true
+  interpretation: exploratory_two_match_transfer_test

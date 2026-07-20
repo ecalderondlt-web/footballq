@@ -20,8 +20,10 @@ from footballq.data.windows import (  # noqa: E402
     load_windows_pt,
     save_windows_pt,
 )
+from footballq.io.gfootball import GFootballAdapter  # noqa: E402
 from footballq.io.idsse import IDSSEAdapter  # noqa: E402
 from footballq.io.metrica import MetricaAdapter  # noqa: E402
+from footballq.io.pff import PFFAdapter  # noqa: E402
 from footballq.io.skillcorner import SkillCornerAdapter  # noqa: E402
 from footballq.io.skillcorner_report import (  # noqa: E402
     SkillCornerRawMatch,
@@ -32,7 +34,11 @@ from footballq.io.skillcorner_report import (  # noqa: E402
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source", choices=["skillcorner", "idsse", "metrica"], required=True)
+    parser.add_argument(
+        "--source",
+        choices=["skillcorner", "gfootball", "pff", "idsse", "metrica"],
+        required=True,
+    )
     parser.add_argument("--raw", type=Path, required=True)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--prefix", default="skillcorner_windows")
@@ -52,6 +58,10 @@ def parse_args() -> argparse.Namespace:
 def _load_source(source: str, raw: Path, match_id: str) -> pd.DataFrame:
     if source == "skillcorner":
         return SkillCornerAdapter(raw_dir=raw, match_id=match_id).load_tracking()
+    if source == "gfootball":
+        return GFootballAdapter(raw_dir=raw, match_id=match_id).load_tracking()
+    if source == "pff":
+        return PFFAdapter(raw_dir=raw, match_id=match_id).load_tracking()
     if source == "idsse":
         return IDSSEAdapter(raw_dir=raw, match_id=match_id).load_tracking()
     if source == "metrica":

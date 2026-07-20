@@ -24,7 +24,7 @@ def test_state_and_motion_encoder_shapes():
     assert delta_z.shape == (4, 16)
 
 
-def test_state_encoder_cls_pooling_shapes_and_rejects_bad_pooling():
+def test_state_encoder_alternative_pooling_shapes_and_rejects_bad_pooling():
     state, mask, _, _ = _batch()
     encoder = SoccerStateEncoder(
         3,
@@ -37,6 +37,20 @@ def test_state_encoder_cls_pooling_shapes_and_rejects_bad_pooling():
         pooling="cls",
     )
     assert encoder(state, mask).shape == (4, 16)
+    temporal_encoder = SoccerStateEncoder(
+        3,
+        23,
+        10,
+        z_dim=16,
+        d_model=32,
+        n_heads=4,
+        n_layers=1,
+        pooling="temporal_gru",
+    )
+    ordered = temporal_encoder(state, mask)
+    reversed_state = temporal_encoder(torch.flip(state, dims=[1]), torch.flip(mask, dims=[1]))
+    assert ordered.shape == (4, 16)
+    assert not torch.allclose(ordered, reversed_state)
     try:
         SoccerStateEncoder(3, 23, 10, pooling="unknown")
     except ValueError as exc:
@@ -101,6 +115,34 @@ def test_td_jepa_forward_with_cls_pooling_is_finite():
     assert torch.isfinite(outputs["z_target"]).all()
 
 
+def test_td_jepa_forward_with_temporal_gru_pooling_is_finite():
+    state, mask, delta, delta_mask = _batch()
+    model = SoccerTDJEPA(
+        context_steps=3,
+        delta_steps=2,
+        n_entities=23,
+        n_features=10,
+        z_dim=16,
+        d_model=32,
+        n_heads=4,
+        n_layers=1,
+        motion_hidden_dim=32,
+        pooling="temporal_gru",
+    )
+    outputs = model(
+        {
+            "state_t": state,
+            "mask_t": mask,
+            "state_t_plus_delta": state + 0.01,
+            "mask_t_plus_delta": mask,
+            "delta_state": delta,
+            "delta_mask": delta_mask,
+        }
+    )
+    assert torch.isfinite(outputs["z_pred"]).all()
+    assert torch.isfinite(outputs["z_target"]).all()
+
+
 def test_td_jepa_forward_with_state_decoder_outputs_slot_reconstruction():
     state, mask, delta, delta_mask = _batch()
     model = SoccerTDJEPA(
@@ -128,6 +170,34 @@ def test_td_jepa_forward_with_state_decoder_outputs_slot_reconstruction():
     assert outputs["state_reconstruction"].shape == state.shape
     assert outputs["context_reconstruction"].shape == state.shape
     assert model.decode_state(outputs["z_t"]).shape == state.shape
+
+
+def test_td_jepa_forward_with_transition_decoder_outputs_coordinate_delta():
+    state, mask, delta, delta_mask = _batch()
+    model = SoccerTDJEPA(
+        context_steps=3,
+        delta_steps=2,
+        n_entities=23,
+        n_features=10,
+        z_dim=16,
+        d_model=32,
+        n_heads=4,
+        n_layers=1,
+        motion_hidden_dim=32,
+        transition_decoder_hidden_dim=32,
+    )
+    outputs = model(
+        {
+            "state_t": state,
+            "mask_t": mask,
+            "state_t_plus_delta": state + 0.01,
+            "mask_t_plus_delta": mask,
+            "delta_state": delta,
+            "delta_mask": delta_mask,
+        }
+    )
+    assert outputs["transition_reconstruction"].shape == state[..., :2].shape
+    assert model.decode_transition(outputs["delta_z"]).shape == state[..., :2].shape
 
 
 def test_target_encoder_has_no_grad_and_ema_updates():

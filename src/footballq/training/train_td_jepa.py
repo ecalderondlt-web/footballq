@@ -24,12 +24,21 @@ except ImportError:  # pragma: no cover - minimal environments
         return iterable
 
 
+from footballq.data.sharded_td_dataset import (
+    ShardedTDJEPADataset,
+    ShardGroupedSampler,
+    ShardTemperatureSampler,
+)
 from footballq.data.td_jepa_dataset import TDJEPAData, TDJEPADataset, load_td_jepa_data
 from footballq.models.td_jepa import SoccerTDJEPA
-from footballq.repro.manifest import build_run_manifest, write_run_manifest
+from footballq.repro.manifest import build_run_manifest, file_sha256, write_run_manifest
 from footballq.repro.splits import split_indices_from_manifest
 from footballq.training.ema import update_ema
-from footballq.training.td_jepa_losses import td_jepa_loss
+from footballq.training.td_jepa_losses import (
+    match_mean_invariance_loss,
+    td_jepa_loss,
+    temporal_motion_reconstruction_loss,
+)
 from footballq.training.train import resolve_device, split_indices_by_match
 
 
@@ -67,7 +76,158 @@ def create_td_jepa_model(config: dict[str, Any], data: TDJEPAData) -> SoccerTDJE
             if model_cfg.get("state_decoder_hidden_dim") is not None
             else None
         ),
+        temporal_motion_head_hidden_dim=(
+            int(model_cfg["temporal_motion_head_hidden_dim"])
+            if model_cfg.get("temporal_motion_head_hidden_dim") is not None
+            else None
+        ),
+        transition_decoder_hidden_dim=(
+            int(model_cfg["transition_decoder_hidden_dim"])
+            if model_cfg.get("transition_decoder_hidden_dim") is not None
+            else None
+        ),
     )
+
+
+def _transfer_signature(config: dict[str, Any], data: TDJEPAData) -> dict[str, Any]:
+    model_cfg = config.get("model", {})
+    return {
+        "context_steps": data.context_steps,
+        "delta_steps": data.delta_steps,
+        "n_entities": int(data.state_t.shape[2]),
+        "n_features": data.n_features,
+        "z_dim": int(model_cfg.get("z_dim", 128)),
+        "d_model": int(model_cfg.get("d_model", 128)),
+        "n_heads": int(model_cfg.get("n_heads", 4)),
+        "n_layers": int(model_cfg.get("n_layers", 2)),
+        "motion_hidden_dim": int(model_cfg.get("motion_hidden_dim", 256)),
+        "pooling": str(model_cfg.get("pooling", "mean")),
+        "temporal_motion_head_hidden_dim": (
+            int(model_cfg["temporal_motion_head_hidden_dim"])
+            if model_cfg.get("temporal_motion_head_hidden_dim") is not None
+            else None
+        ),
+        "transition_decoder_hidden_dim": (
+            int(model_cfg["transition_decoder_hidden_dim"])
+            if model_cfg.get("transition_decoder_hidden_dim") is not None
+            else None
+        ),
+    }
+
+
+def initialize_td_jepa_from_checkpoint(
+    model: SoccerTDJEPA,
+    config: dict[str, Any],
+    data: TDJEPAData,
+    checkpoint: str | Path,
+) -> dict[str, Any]:
+    """Initialize a fresh TD-JEPA run from a compatible pretrained checkpoint."""
+
+    checkpoint_path = Path(checkpoint)
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f"TD-JEPA initialization checkpoint not found: {checkpoint_path}")
+    payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    source_config = payload.get("config")
+    source_meta = payload.get("data_meta")
+    if not isinstance(source_config, dict) or not isinstance(source_meta, dict):
+        raise ValueError(
+            "TD-JEPA initialization checkpoint is missing config or data_meta provenance."
+        )
+
+    mismatches: list[str] = []
+    for field, target_value in {
+        "feature_names": list(data.feature_names),
+        "feature_view": data.feature_view,
+        "objective_mode": data.objective_mode,
+    }.items():
+        source_value = source_meta.get(field)
+        if source_value != target_value:
+            mismatches.append(f"{field}: source={source_value!r}, target={target_value!r}")
+
+    source_signature = {
+        "context_steps": source_meta.get("context_steps"),
+        "delta_steps": source_meta.get("delta_steps"),
+        "n_entities": source_meta.get("n_entities"),
+        "n_features": source_meta.get("n_features"),
+        **{
+            key: value
+            for key, value in _transfer_signature(source_config, data).items()
+            if key not in {"context_steps", "delta_steps", "n_entities", "n_features"}
+        },
+    }
+    target_signature = _transfer_signature(config, data)
+    for field, target_value in target_signature.items():
+        source_value = source_signature.get(field)
+        if source_value != target_value:
+            mismatches.append(f"{field}: source={source_value!r}, target={target_value!r}")
+    if mismatches:
+        raise ValueError(
+            "TD-JEPA initialization checkpoint is incompatible with the target run: "
+            + "; ".join(mismatches)
+        )
+
+    loaded_components = ["online_encoder", "target_encoder", "motion_encoder"]
+    try:
+        for component in loaded_components:
+            getattr(model, component).load_state_dict(payload[component], strict=True)
+    except (KeyError, RuntimeError) as exc:
+        raise ValueError(
+            "TD-JEPA initialization checkpoint component shapes are incompatible with the "
+            "target model."
+        ) from exc
+
+    skipped_components: list[str] = []
+    if model.state_decoder is not None and payload.get("state_decoder") is not None:
+        try:
+            model.state_decoder.load_state_dict(payload["state_decoder"], strict=True)
+            loaded_components.append("state_decoder")
+        except RuntimeError as exc:
+            raise ValueError(
+                "TD-JEPA initialization checkpoint state decoder is incompatible with the "
+                "target model."
+            ) from exc
+    elif model.state_decoder is not None or payload.get("state_decoder") is not None:
+        skipped_components.append("state_decoder")
+
+    if model.temporal_motion_head is not None and payload.get("temporal_motion_head") is not None:
+        try:
+            model.temporal_motion_head.load_state_dict(
+                payload["temporal_motion_head"], strict=True
+            )
+            loaded_components.append("temporal_motion_head")
+        except RuntimeError as exc:
+            raise ValueError(
+                "TD-JEPA initialization checkpoint temporal-motion head is incompatible with "
+                "the target model."
+            ) from exc
+    elif model.temporal_motion_head is not None or payload.get("temporal_motion_head") is not None:
+        skipped_components.append("temporal_motion_head")
+
+    if model.transition_decoder is not None and payload.get("transition_decoder") is not None:
+        try:
+            model.transition_decoder.load_state_dict(
+                payload["transition_decoder"], strict=True
+            )
+            loaded_components.append("transition_decoder")
+        except RuntimeError as exc:
+            raise ValueError(
+                "TD-JEPA initialization checkpoint transition decoder is incompatible with "
+                "the target model."
+            ) from exc
+    elif model.transition_decoder is not None or payload.get("transition_decoder") is not None:
+        skipped_components.append("transition_decoder")
+
+    return {
+        "mode": "pretrained_weights_fresh_optimizer",
+        "checkpoint": str(checkpoint_path),
+        "checkpoint_sha256": file_sha256(checkpoint_path),
+        "source_run_dir": payload.get("run_dir"),
+        "source_experiment": source_config.get("experiment"),
+        "source_dataset": source_config.get("data", {}).get("source"),
+        "source_data_meta": source_meta,
+        "loaded_components": loaded_components,
+        "skipped_components": skipped_components,
+    }
 
 
 def td_batch_to_device(batch: dict[str, Any], device: torch.device) -> dict[str, Any]:
@@ -115,7 +275,65 @@ def _loss_from_outputs(
         ),
         no_motion_margin_weight=float(loss_cfg.get("no_motion_margin_weight", 0.0)),
         no_motion_margin=float(loss_cfg.get("no_motion_margin", 0.01)),
+        transition_reconstruction=outputs.get("transition_reconstruction"),
+        transition_target=(
+            batch["state_t_plus_delta"][..., :2] - batch["state_t"][..., :2]
+        ),
+        transition_mask=batch["mask_t_plus_delta"] & batch["mask_t"],
+        transition_reconstruction_weight=float(
+            loss_cfg.get("transition_reconstruction_weight", 0.0)
+        ),
     )
+
+
+def _loss_from_model(
+    model: SoccerTDJEPA,
+    batch: dict[str, Any],
+    loss_cfg: dict[str, Any],
+) -> dict[str, torch.Tensor]:
+    outputs = model(batch)
+    losses = _loss_from_outputs(outputs, batch, loss_cfg)
+    losses["base_total_loss"] = losses["total_loss"]
+
+    temporal_weight = float(loss_cfg.get("temporal_motion_weight", 0.0))
+    temporal_loss = outputs["z_pred"].new_tensor(0.0)
+    temporal_cosine = outputs["z_pred"].new_tensor(0.0)
+    if temporal_weight > 0.0:
+        if model.temporal_motion_head is None:
+            raise ValueError(
+                "temporal_motion_weight requires model.temporal_motion_head_hidden_dim."
+            )
+        reversed_state = torch.flip(batch["state_t"], dims=[1])
+        reversed_mask = torch.flip(batch["mask_t"], dims=[1])
+        z_reversed = model.online_encoder(reversed_state, reversed_mask)
+        displacement = batch["state_t"][:, -1, :, :2] - batch["state_t"][:, 0, :, :2]
+        endpoint_mask = batch["mask_t"][:, -1, :] & batch["mask_t"][:, 0, :]
+        temporal_loss, temporal_cosine = temporal_motion_reconstruction_loss(
+            model.predict_temporal_motion(outputs["z_t"]),
+            model.predict_temporal_motion(z_reversed),
+            displacement,
+            endpoint_mask,
+        )
+
+    match_weight = float(loss_cfg.get("match_invariance_weight", 0.0))
+    match_loss = outputs["z_t"].new_tensor(0.0)
+    match_groups = 0
+    if match_weight > 0.0:
+        match_loss, match_groups = match_mean_invariance_loss(
+            outputs["z_t"],
+            batch.get("match_id", []),
+        )
+
+    losses["temporal_motion_loss"] = temporal_loss
+    losses["temporal_motion_cosine_similarity"] = temporal_cosine
+    losses["match_invariance_loss"] = match_loss
+    losses["match_groups_in_batch"] = outputs["z_t"].new_tensor(float(match_groups))
+    losses["total_loss"] = (
+        losses["total_loss"]
+        + temporal_weight * temporal_loss
+        + match_weight * match_loss
+    )
+    return losses
 
 
 def evaluate_td_model(
@@ -123,15 +341,17 @@ def evaluate_td_model(
     loader: DataLoader,
     device: torch.device,
     loss_cfg: dict[str, Any],
+    max_batches: int | None = None,
 ) -> dict[str, float]:
     model.eval()
     totals: dict[str, float] = {}
     num_examples = 0
     with torch.no_grad():
-        for batch in loader:
+        for batch_index, batch in enumerate(loader):
+            if max_batches is not None and batch_index >= int(max_batches):
+                break
             batch = td_batch_to_device(batch, device)
-            outputs = model(batch)
-            losses = _loss_from_outputs(outputs, batch, loss_cfg)
+            losses = _loss_from_model(model, batch, loss_cfg)
             batch_size = int(batch["state_t"].shape[0])
             num_examples += batch_size
             for key, value in losses.items():
@@ -149,11 +369,12 @@ def _save_checkpoint(
     optimizer: torch.optim.Optimizer,
     config: dict[str, Any],
     data: TDJEPAData,
-    split_indices: dict[str, list[int]],
+    split_indices: dict[str, Any],
     run_dir: Path,
     epoch: int,
     step: int,
     best_metric: float,
+    initialization: dict[str, Any] | None,
 ) -> None:
     torch.save(
         {
@@ -163,11 +384,22 @@ def _save_checkpoint(
             "state_decoder": (
                 model.state_decoder.state_dict() if model.state_decoder is not None else None
             ),
+            "temporal_motion_head": (
+                model.temporal_motion_head.state_dict()
+                if model.temporal_motion_head is not None
+                else None
+            ),
+            "transition_decoder": (
+                model.transition_decoder.state_dict()
+                if model.transition_decoder is not None
+                else None
+            ),
             "optimizer": optimizer.state_dict(),
             "config": config,
             "epoch": epoch,
             "step": step,
             "best_validation_metric": best_metric,
+            "initialization": initialization,
             "split_indices": split_indices,
             "run_dir": str(run_dir),
             "data_meta": {
@@ -179,6 +411,10 @@ def _save_checkpoint(
                 "context_seconds": data.context_seconds,
                 "delta_seconds": data.delta_seconds,
                 "delta_frames": data.delta_frames,
+                "context_steps": data.context_steps,
+                "delta_steps": data.delta_steps,
+                "n_entities": int(data.state_t.shape[2]),
+                "n_features": data.n_features,
                 "repro_metadata": data.metadata or {},
             },
         },
@@ -213,8 +449,39 @@ def _save_embedding_sample(
     )
 
 
-def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, Any]:
+def _configured_optional_split(
+    train_cfg: dict[str, Any],
+    key: str,
+    *,
+    default: str | None,
+) -> str | None:
+    value = train_cfg[key] if key in train_cfg else default
+    if value is None:
+        return None
+    normalized = str(value).strip().lower()
+    if normalized in {"", "none", "null", "disabled"}:
+        return None
+    if normalized not in {"train", "val", "test"}:
+        raise ValueError(f"training.{key} must be train, val, test, or null.")
+    return normalized
+
+
+def train_td_jepa_from_config(
+    config: str | Path | dict[str, Any],
+    *,
+    init_checkpoint: str | Path | None = None,
+) -> dict[str, Any]:
     cfg = load_td_config(config)
+    configured_init = cfg.get("initialization", {}).get("checkpoint")
+    if init_checkpoint is not None and configured_init is not None:
+        if Path(init_checkpoint) != Path(configured_init):
+            raise ValueError(
+                "Initialization checkpoint was supplied both in config and as an argument "
+                "with different paths."
+            )
+    selected_init = init_checkpoint if init_checkpoint is not None else configured_init
+    if selected_init is not None:
+        cfg.setdefault("initialization", {})["checkpoint"] = str(selected_init)
     seed = int(cfg.get("seed", cfg.get("training", {}).get("seed", 7)))
     set_td_seed(seed)
     data_path = Path(cfg.get("data", {}).get("path", cfg.get("data", {}).get("td_jepa", "")))
@@ -222,41 +489,135 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
         raise FileNotFoundError(
             f"TD-JEPA data file not found: {data_path}. Run scripts/prepare_td_jepa_data.py first."
         )
-    data = load_td_jepa_data(data_path)
-    if len(data.match_id) == 0:
-        raise ValueError("TD-JEPA data file contains zero examples.")
-
     split_cfg = cfg.get("split", {})
     split_manifest = split_cfg.get("manifest_path") or split_cfg.get("manifest")
-    if split_manifest:
-        split_indices = split_indices_from_manifest(data.match_id, split_manifest)
-    else:
-        split_indices = split_indices_by_match(
-            data.match_id,
-            val_fraction=float(split_cfg.get("val_fraction", 0.2)),
-            test_fraction=float(split_cfg.get("test_fraction", 0.2)),
-            seed=seed,
-        )
     train_cfg = cfg.get("training", {})
     batch_size = int(train_cfg.get("batch_size", cfg.get("data", {}).get("batch_size", 64)))
     num_workers = int(train_cfg.get("num_workers", cfg.get("data", {}).get("num_workers", 0)))
-    loaders = {
-        split: DataLoader(
-            TDJEPADataset(data, indices=indices),
-            batch_size=batch_size,
-            shuffle=(split == "train"),
-            num_workers=num_workers,
-        )
-        for split, indices in split_indices.items()
-    }
+    drop_last_train = bool(train_cfg.get("drop_last_train", False))
+    validation_split = _configured_optional_split(
+        train_cfg, "validation_split", default="val"
+    )
+    embedding_sample_split = _configured_optional_split(
+        train_cfg, "embedding_sample_split", default=None
+    )
+    if data_path.suffix.lower() == ".json":
+        dataset_manifest = json.loads(data_path.read_text(encoding="utf-8"))
+        available_splits = {
+            str(shard["split"]) for shard in dataset_manifest.get("shards", [])
+        }
+        requested_splits = {"train"}
+        if validation_split is not None:
+            requested_splits.add(validation_split)
+        if embedding_sample_split is not None:
+            requested_splits.add(embedding_sample_split)
+        missing_splits = requested_splits - available_splits
+        if missing_splits:
+            raise ValueError(
+                "Sharded TD-JEPA manifest is missing configured tensor splits: "
+                f"{sorted(missing_splits)}"
+            )
+        sharded = {
+            split_name: ShardedTDJEPADataset(data_path, split_name)
+            for split_name in sorted(requested_splits)
+        }
+        data = sharded["train"].prototype
+        manifest_split_counts = {
+            split_name: sum(
+                int(shard["example_count"])
+                for shard in dataset_manifest["shards"]
+                if str(shard["split"]) == split_name
+            )
+            for split_name in sorted(available_splits)
+        }
+        split_indices: dict[str, Any] = {
+            split_name: {
+                "mode": "sharded_manifest",
+                "num_examples": example_count,
+                "loaded_during_training": split_name in sharded,
+            }
+            for split_name, example_count in manifest_split_counts.items()
+        }
+        train_sampler_mode = str(train_cfg.get("sharded_train_sampler", "grouped"))
+        if train_sampler_mode not in {"grouped", "shard_temperature"}:
+            raise ValueError(
+                "training.sharded_train_sampler must be 'grouped' or 'shard_temperature'."
+            )
+        loaders = {}
+        for split_name, dataset in sharded.items():
+            if split_name == "train" and train_sampler_mode == "shard_temperature":
+                sampler = ShardTemperatureSampler(
+                    dataset,
+                    num_samples=int(train_cfg["sampler_num_samples"]),
+                    temperature=float(train_cfg.get("sampler_temperature", 0.5)),
+                    seed=seed,
+                )
+                split_indices["train"]["sampler"] = {
+                    "mode": "shard_temperature",
+                    "temperature": sampler.temperature,
+                    "num_samples": len(sampler),
+                    "allocations": sampler.allocations,
+                }
+            else:
+                sampler = ShardGroupedSampler(
+                    dataset,
+                    shuffle=(split_name == "train"),
+                    seed=seed,
+                )
+            loaders[split_name] = DataLoader(
+                dataset,
+                batch_size=batch_size,
+                sampler=sampler,
+                num_workers=num_workers,
+                drop_last=drop_last_train and split_name == "train",
+            )
+    else:
+        data = load_td_jepa_data(data_path)
+        if len(data.match_id) == 0:
+            raise ValueError("TD-JEPA data file contains zero examples.")
+        if split_manifest:
+            split_indices = split_indices_from_manifest(data.match_id, split_manifest)
+        else:
+            split_indices = split_indices_by_match(
+                data.match_id,
+                val_fraction=float(split_cfg.get("val_fraction", 0.2)),
+                test_fraction=float(split_cfg.get("test_fraction", 0.2)),
+                seed=seed,
+            )
+        loaders = {
+            split_name: DataLoader(
+                TDJEPADataset(data, indices=indices),
+                batch_size=batch_size,
+                shuffle=(split_name == "train"),
+                num_workers=num_workers,
+                drop_last=drop_last_train and split_name == "train",
+            )
+            for split_name, indices in split_indices.items()
+        }
+
+    for purpose, split_name in {
+        "validation": validation_split,
+        "embedding sample": embedding_sample_split,
+    }.items():
+        if split_name is not None and split_name not in loaders:
+            raise ValueError(f"Configured {purpose} split {split_name!r} is unavailable.")
 
     device = resolve_device(train_cfg.get("device", "auto"))
     model = create_td_jepa_model(cfg, data).to(device)
+    initialization = (
+        initialize_td_jepa_from_checkpoint(model, cfg, data, selected_init)
+        if selected_init is not None
+        else None
+    )
     trainable_parameters = list(model.online_encoder.parameters()) + list(
         model.motion_encoder.parameters()
     )
     if model.state_decoder is not None:
         trainable_parameters += list(model.state_decoder.parameters())
+    if model.temporal_motion_head is not None:
+        trainable_parameters += list(model.temporal_motion_head.parameters())
+    if model.transition_decoder is not None:
+        trainable_parameters += list(model.transition_decoder.parameters())
     optimizer = torch.optim.AdamW(
         trainable_parameters,
         lr=float(train_cfg.get("learning_rate", 1e-3)),
@@ -278,6 +639,23 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
     epochs = int(train_cfg.get("max_epochs", train_cfg.get("epochs", 1)))
     max_train_batches = train_cfg.get("max_train_batches")
     max_train_batches = int(max_train_batches) if max_train_batches is not None else None
+    max_train_updates = train_cfg.get("max_train_updates")
+    max_train_updates = int(max_train_updates) if max_train_updates is not None else None
+    if max_train_updates is not None and max_train_updates <= 0:
+        raise ValueError("training.max_train_updates must be positive when provided.")
+    validation_curve_steps = sorted(
+        {int(value) for value in train_cfg.get("validation_curve_steps", [])}
+    )
+    if any(value <= 0 for value in validation_curve_steps):
+        raise ValueError("training.validation_curve_steps must contain positive updates.")
+    if validation_curve_steps and validation_split is None:
+        raise ValueError("training.validation_curve_steps requires a validation split.")
+    validation_curve_max_batches = train_cfg.get("validation_curve_max_batches")
+    validation_curve_max_batches = (
+        int(validation_curve_max_batches)
+        if validation_curve_max_batches is not None
+        else train_cfg.get("max_val_batches")
+    )
     metric_name = str(train_cfg.get("best_metric", "total_loss"))
 
     for epoch in range(1, epochs + 1):
@@ -286,10 +664,11 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
         train_examples = 0
         iterator = tqdm(loaders["train"], desc=f"td-jepa epoch {epoch}", leave=False)
         for batch_idx, batch in enumerate(iterator, start=1):
+            if max_train_updates is not None and step >= max_train_updates:
+                break
             batch = td_batch_to_device(batch, device)
             optimizer.zero_grad(set_to_none=True)
-            outputs = model(batch)
-            losses = _loss_from_outputs(outputs, batch, loss_cfg)
+            losses = _loss_from_model(model, batch, loss_cfg)
             losses["total_loss"].backward()
             torch.nn.utils.clip_grad_norm_(
                 trainable_parameters,
@@ -307,23 +686,53 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
                 )
             if hasattr(iterator, "set_postfix"):
                 iterator.set_postfix(total_loss=f"{losses['total_loss'].item():.4f}")
+            if step in validation_curve_steps:
+                curve_metrics = evaluate_td_model(
+                    model,
+                    loaders[validation_split],
+                    device,
+                    loss_cfg,
+                    max_batches=validation_curve_max_batches,
+                )
+                _append_jsonl(
+                    run_dir / "metrics_val_curve.jsonl",
+                    {
+                        "step": step,
+                        "split": validation_split,
+                        **_metric_row(curve_metrics),
+                    },
+                )
+                model.train()
             if max_train_batches is not None and batch_idx >= max_train_batches:
                 break
 
         train_metrics = {
             key: value / max(train_examples, 1) for key, value in train_totals.items()
         } | {"num_examples": train_examples}
-        val_metrics = evaluate_td_model(model, loaders["val"], device, loss_cfg)
         _append_jsonl(
             run_dir / "metrics_train.jsonl",
             {"epoch": epoch, **_metric_row(train_metrics)},
         )
-        _append_jsonl(
-            run_dir / "metrics_val.jsonl",
-            {"epoch": epoch, **_metric_row(val_metrics)},
-        )
-
-        current = float(val_metrics.get(metric_name, float("inf")))
+        if validation_split is not None:
+            val_metrics = evaluate_td_model(
+                model,
+                loaders[validation_split],
+                device,
+                loss_cfg,
+                max_batches=train_cfg.get("max_val_batches"),
+            )
+            _append_jsonl(
+                run_dir / "metrics_val.jsonl",
+                {
+                    "epoch": epoch,
+                    "step": step,
+                    "split": validation_split,
+                    **_metric_row(val_metrics),
+                },
+            )
+            current: float | None = float(val_metrics.get(metric_name, float("inf")))
+        else:
+            current = None
         _save_checkpoint(
             latest_path,
             model,
@@ -335,8 +744,9 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
             epoch,
             step,
             best_metric,
+            initialization,
         )
-        if current < best_metric:
+        if current is not None and current < best_metric:
             best_metric = current
             _save_checkpoint(
                 best_path,
@@ -349,11 +759,35 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
                 epoch,
                 step,
                 best_metric,
+                initialization,
             )
+        if max_train_updates is not None and step >= max_train_updates:
+            break
 
-    _save_embedding_sample(run_dir / "embeddings_sample.pt", model, loaders["test"], device)
+    if not best_path.exists():
+        shutil.copy2(latest_path, best_path)
+    embedding_path: Path | None = None
+    if embedding_sample_split is not None:
+        embedding_path = run_dir / "embeddings_sample.pt"
+        _save_embedding_sample(
+            embedding_path,
+            model,
+            loaders[embedding_sample_split],
+            device,
+        )
     if split_manifest:
         manifest_path = run_dir / "run_manifest.json"
+        dataset_paths: dict[str, str | Path] = {"td_jepa": data_path}
+        if initialization is not None:
+            dataset_paths["initialization_checkpoint"] = initialization["checkpoint"]
+        output_paths: dict[str, str | Path] = {
+            "run_dir": run_dir,
+            "latest_checkpoint": latest_path,
+            "best_checkpoint": best_path,
+            "run_manifest": manifest_path,
+        }
+        if embedding_path is not None and embedding_path.exists():
+            output_paths["embeddings_sample"] = embedding_path
         manifest = build_run_manifest(
             command=sys.argv,
             config_path=run_config_path,
@@ -361,24 +795,25 @@ def train_td_jepa_from_config(config: str | Path | dict[str, Any]) -> dict[str, 
             evaluation_protocol=str(split_cfg.get("protocol", "inductive")),
             feature_view=data.feature_view,
             objective_mode=data.objective_mode,
-            dataset_paths={"td_jepa": data_path},
-            output_paths={
-                "run_dir": run_dir,
-                "latest_checkpoint": latest_path,
-                "best_checkpoint": best_path,
-                "embeddings_sample": run_dir / "embeddings_sample.pt",
-                "run_manifest": manifest_path,
-            },
+            dataset_paths=dataset_paths,
+            output_paths=output_paths,
             warnings=list((data.metadata or {}).get("warnings", [])),
         )
+        manifest["initialization"] = initialization
+        manifest["data_access"] = {
+            "loaded_tensor_splits": sorted(loaders),
+            "validation_split": validation_split,
+            "embedding_sample_split": embedding_sample_split,
+        }
         write_run_manifest(manifest_path, manifest)
     model_root = run_root / "td_jepa"
     shutil.copy2(latest_path, model_root / "latest.pt")
     shutil.copy2(best_path, model_root / "best.pt")
-    shutil.copy2(run_dir / "embeddings_sample.pt", model_root / "embeddings_sample.pt")
+    if embedding_path is not None and embedding_path.exists():
+        shutil.copy2(embedding_path, model_root / "embeddings_sample.pt")
     return {
         "run_dir": run_dir,
         "latest_checkpoint": latest_path,
         "best_checkpoint": best_path,
-        "best_metric": best_metric,
+        "best_metric": best_metric if math.isfinite(best_metric) else None,
     }

@@ -1,0 +1,15 @@
+{
+  "name": "gfootball_saved_easy_smoke_v1",
+  "version": 1,
+  "dataset": "gfootball",
+  "creation_timestamp_utc": "2026-07-13T00:00:00Z",
+  "output_root": "data/raw/gfootball/pilot_v1",
+  "split_manifest_path": "splits/gfootball_saved_easy_smoke_v1_episode_split.json",
+  "purpose": "Compatibility smoke for V2 masking and sharding; not a diverse curriculum.",
+  "jobs": [
+    {"id": "seed101", "split": "train", "env_name": "11_vs_11_easy_stochastic", "episodes": 5, "max_steps": 1000, "seed": 101, "action_policy": "builtin_ai", "source_path": "11v11_seed101.jsonl"},
+    {"id": "seed202", "split": "train", "env_name": "11_vs_11_easy_stochastic", "episodes": 5, "max_steps": 1000, "seed": 202, "action_policy": "builtin_ai", "source_path": "11v11_seed202.jsonl"},
+    {"id": "seed303", "split": "val", "env_name": "11_vs_11_easy_stochastic", "episodes": 5, "max_steps": 1000, "seed": 303, "action_policy": "builtin_ai", "source_path": "11v11_seed303.jsonl"},
+    {"id": "seed404", "split": "test", "env_name": "11_vs_11_easy_stochastic", "episodes": 5, "max_steps": 1000, "seed": 404, "action_policy": "builtin_ai", "source_path": "11v11_seed404.jsonl"}
+  ]
+}

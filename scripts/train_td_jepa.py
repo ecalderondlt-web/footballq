@@ -18,6 +18,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--init-checkpoint", type=Path, default=None)
     return parser.parse_args()
 
 
@@ -30,11 +31,12 @@ def main() -> None:
         config = load_td_config(args.config)
         config["seed"] = int(args.seed)
         config.setdefault("training", {})["seed"] = int(args.seed)
-    result = train_td_jepa_from_config(config)
+    result = train_td_jepa_from_config(config, init_checkpoint=args.init_checkpoint)
     print(f"run_dir: {result['run_dir']}")
     print(f"latest: {result['latest_checkpoint']}")
     print(f"best: {result['best_checkpoint']}")
-    print(f"best_metric: {result['best_metric']:.6f}")
+    best_metric = result["best_metric"]
+    print(f"best_metric: {best_metric:.6f}" if best_metric is not None else "best_metric: none")
 
 
 if __name__ == "__main__":

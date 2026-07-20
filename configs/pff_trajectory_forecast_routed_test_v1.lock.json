@@ -1,0 +1,206 @@
+{
+  "version": 1,
+  "study": "pff_trajectory_forecast_routed_test_v1",
+  "status": "frozen",
+  "frozen_before_test_target_generation": true,
+  "approval_date": "2026-07-17",
+  "protocol_path": "docs/PFF_TRAJECTORY_FORECAST_ROUTED_TEST_PROTOCOL_V1.md",
+  "split_manifest": {
+    "path": "splits/pff_wc2022_64match_inductive_v1.json",
+    "file_sha256": "9f7d56184920e463f1aa5fdcee05dc9b59438184910afc93a7e0c12f4e322226",
+    "payload_sha256": "bee86c2c8f917a52a007dbdb92f6082a50f6a33fd278cc8e3f52213cb31f381b"
+  },
+  "test_match_ids": [
+    "3855",
+    "3859",
+    "10506",
+    "10517",
+    "3823",
+    "3836",
+    "3829",
+    "3828"
+  ],
+  "test_match_ids_sorted": [
+    "10506",
+    "10517",
+    "3823",
+    "3828",
+    "3829",
+    "3836",
+    "3855",
+    "3859"
+  ],
+  "expected_test_examples": 150229,
+  "seeds": [7, 11, 23],
+  "horizons_seconds": [0.5, 1.0, 2.0, 4.0],
+  "route": {
+    "0.5": "constant_velocity",
+    "1.0": "hybrid_context_raw",
+    "2.0": "hybrid_context_raw",
+    "4.0": "hybrid_context_raw"
+  },
+  "evaluation": {
+    "scope": "all_test_examples",
+    "batch_size": 128,
+    "num_workers": 0,
+    "device": "auto",
+    "retain_predictions": false,
+    "bootstrap_unit": "held_out_match",
+    "bootstrap_seed": 20260717,
+    "bootstrap_replicates": 10000
+  },
+  "gate_thresholds": {
+    "player_non_degraded_seed_minimum": 2,
+    "mean_player_ADE_improvement_vs_entity_minimum": -0.01,
+    "worst_player_horizon_improvement_vs_entity_minimum": -0.01,
+    "ball_non_degraded_seed_minimum": 2,
+    "mean_ball_ADE_improvement_vs_entity_minimum": 0.04,
+    "mean_ball_ADE_improvement_vs_global_minimum": -0.01,
+    "mean_ball_FDE_improvement_vs_global_minimum": -0.01,
+    "worst_ball_horizon_improvement_vs_global_minimum": -0.02,
+    "mean_all_entity_ADE_improvement_vs_global_minimum": 0.02
+  },
+  "checkpoints": {
+    "global_raw": {
+      "7": "runs/pff_trajectory_forecast_v1/models/raw/20260716_203253/latest.pt",
+      "11": "runs/pff_trajectory_forecast_v1/models/raw/20260716_203447/latest.pt",
+      "23": "runs/pff_trajectory_forecast_v1/models/raw/20260716_203751/latest.pt"
+    },
+    "entity_raw": {
+      "7": "runs/pff_trajectory_forecast_entity_v1/models/raw/20260716_221244/latest.pt",
+      "11": "runs/pff_trajectory_forecast_entity_v1/models/raw/20260716_221411/latest.pt",
+      "23": "runs/pff_trajectory_forecast_entity_v1/models/raw/20260716_221557/latest.pt"
+    },
+    "hybrid_context_raw": {
+      "7": "runs/pff_trajectory_forecast_hybrid_context_v1/models/raw/20260717_000848/latest.pt",
+      "11": "runs/pff_trajectory_forecast_hybrid_context_v1/models/raw/20260717_001218/latest.pt",
+      "23": "runs/pff_trajectory_forecast_hybrid_context_v1/models/raw/20260717_001715/latest.pt"
+    }
+  },
+  "frozen_files": {
+    "protocol": {
+      "path": "docs/PFF_TRAJECTORY_FORECAST_ROUTED_TEST_PROTOCOL_V1.md",
+      "sha256": "d28f88a7e0cd10526d7a73bc334d1654921b351f1b847a669101b44881b02325"
+    },
+    "runner": {
+      "path": "scripts/run_pff_trajectory_forecast_routed_test_v1.py",
+      "sha256": "fd1d50baeba925a4d37da0b3ee2055a7bf3d20da84584a0260583cd5c2a0c2df"
+    },
+    "split_manifest": {
+      "path": "splits/pff_wc2022_64match_inductive_v1.json",
+      "sha256": "9f7d56184920e463f1aa5fdcee05dc9b59438184910afc93a7e0c12f4e322226"
+    },
+    "source_manifest": {
+      "path": "data/processed/pff_wc2022_td_jepa_v2/observed_only/dataset_manifest.json",
+      "sha256": "798125e2ee58c80180690456c2dd9a6fc4d21f99031f13c539fbc3116db5a634"
+    },
+    "forecast_data_code": {
+      "path": "src/footballq/data/pff_forecasting.py",
+      "sha256": "016af7da716dbeb986524a533f95a1fa7dd5130ddb9c6acbc0dcc822be89d683"
+    },
+    "projection_code": {
+      "path": "src/footballq/data/td_jepa_projection.py",
+      "sha256": "d39530068480e15a88d5c9448c049128abecd88aa5abb5658bb161a741de5a97"
+    },
+    "forecaster_code": {
+      "path": "src/footballq/models/trajectory_forecaster.py",
+      "sha256": "d057fe6dacdc1f91762a7cdf74b2a6a107158faeb928c395d8d3aef59850a151"
+    },
+    "forecast_training_code": {
+      "path": "src/footballq/training/train_trajectory_forecast.py",
+      "sha256": "12440d2def20fb695baf26b0eb75a1844384854ede76aab989e8f91e02dfb4c7"
+    },
+    "hybrid_gate_code": {
+      "path": "scripts/run_pff_trajectory_forecast_hybrid_context_v1.py",
+      "sha256": "305e4b179ba971aefc6e87588a28b936118caa6bb6e6ed73bf59f6dbf774f175"
+    },
+    "state_encoder_code": {
+      "path": "src/footballq/models/soccer_state_encoder.py",
+      "sha256": "e21dda98c0605841be9df2fbd20c7ffa4ced5c7d9be910ae782d1ff3453c2eb0"
+    },
+    "td_jepa_model_code": {
+      "path": "src/footballq/models/td_jepa.py",
+      "sha256": "909d6c20a13d0d1c8a6c090cc13a964957735729c03251e7a3d73bc3a30fe578"
+    },
+    "td_jepa_model_factory_code": {
+      "path": "src/footballq/training/train_td_jepa.py",
+      "sha256": "4392a07ed111487876f99fee9a90a5e38a379c5cb4debc4e7d4eaa6654878386"
+    },
+    "td_jepa_dataset_code": {
+      "path": "src/footballq/data/td_jepa_dataset.py",
+      "sha256": "7be67a25185ba9941dc7c8458fed4e8df55e1c66f6c4a54e7338a1cd2bef9672"
+    },
+    "feature_view_code": {
+      "path": "src/footballq/repro/feature_views.py",
+      "sha256": "e919ca769bfecce0f8ae622c309f6a924f9083d59356f378b57bda92417432d7"
+    },
+    "split_code": {
+      "path": "src/footballq/repro/splits.py",
+      "sha256": "df31badb7ff4b7d6a2e9ad2005e073e9503771f4543b528028a817ea66428f7d"
+    },
+    "sampler_code": {
+      "path": "src/footballq/data/sharded_td_dataset.py",
+      "sha256": "c063d2043040cf73fb110d192d078769680f26c1a6d3183f47598f803842bb2e"
+    },
+    "constants_code": {
+      "path": "src/footballq/constants.py",
+      "sha256": "29852e309400b51e8fdca2c1283fe3584fe4ed94d5bfc77eb3372f1290de681b"
+    },
+    "device_code": {
+      "path": "src/footballq/training/train.py",
+      "sha256": "47a87f5e998f33679d135a762bbbf66afe6fb4d6dc4d70995847b1a61cd2b975"
+    },
+    "entity_constants_code": {
+      "path": "src/footballq/data/windows.py",
+      "sha256": "344ca9137570d54e946dcf1037ef74a0c8512c3f140b284b2ec08a4ac0c209c1"
+    },
+    "global_validation_summary": {
+      "path": "runs/pff_trajectory_forecast_v1/gate_summary.json",
+      "sha256": "7905300e4d1784a1786c08920e528b54c93b3c82408c63b6f5defa7d233ec688"
+    },
+    "entity_validation_summary": {
+      "path": "runs/pff_trajectory_forecast_entity_v1/gate_summary.json",
+      "sha256": "f4ed01a8aa1d470e66712e4b91c27fab1af02d692ac5c7477c2fd050843ece22"
+    },
+    "hybrid_validation_summary": {
+      "path": "runs/pff_trajectory_forecast_hybrid_context_v1/gate_summary.json",
+      "sha256": "2375a56b4d19a20147cae81d89ab9968297a1437392c2eee83413cbfe4c10f17"
+    },
+    "global_raw_seed7": {
+      "path": "runs/pff_trajectory_forecast_v1/models/raw/20260716_203253/latest.pt",
+      "sha256": "1be60bac1cc764aab9b943815a0c30de8c518da0c53e9a26c63b93f2ae706ed7"
+    },
+    "global_raw_seed11": {
+      "path": "runs/pff_trajectory_forecast_v1/models/raw/20260716_203447/latest.pt",
+      "sha256": "d5bd566b0f8e435901dd3162b54632a9566ba2d73ded6889cd78e467ba4ccb41"
+    },
+    "global_raw_seed23": {
+      "path": "runs/pff_trajectory_forecast_v1/models/raw/20260716_203751/latest.pt",
+      "sha256": "6d8887a40cc4baaaaee0d406edbd078b7983cebfc8cc62289e0170f9bc78be6c"
+    },
+    "entity_raw_seed7": {
+      "path": "runs/pff_trajectory_forecast_entity_v1/models/raw/20260716_221244/latest.pt",
+      "sha256": "0d2894f6b057a216b5126b27bc6c5369ef3db427ebbe76f86051db9d248e3bce"
+    },
+    "entity_raw_seed11": {
+      "path": "runs/pff_trajectory_forecast_entity_v1/models/raw/20260716_221411/latest.pt",
+      "sha256": "8d1d48529dfb979fafb4323b66ff3e281ee67234358078487a741864899d91b1"
+    },
+    "entity_raw_seed23": {
+      "path": "runs/pff_trajectory_forecast_entity_v1/models/raw/20260716_221557/latest.pt",
+      "sha256": "c65f4f7e853280813dd990c4c5dbd3721072313c123255f2f18eca3efa50d596"
+    },
+    "hybrid_raw_seed7": {
+      "path": "runs/pff_trajectory_forecast_hybrid_context_v1/models/raw/20260717_000848/latest.pt",
+      "sha256": "2d995ec13226cda547a3a52094d2e0d2f584e5392800db367e2414e4b73df5cf"
+    },
+    "hybrid_raw_seed11": {
+      "path": "runs/pff_trajectory_forecast_hybrid_context_v1/models/raw/20260717_001218/latest.pt",
+      "sha256": "859b7ae782007d4d342b9072f0eca090b0e4a6baef25119ce4cf40d62afa2a5a"
+    },
+    "hybrid_raw_seed23": {
+      "path": "runs/pff_trajectory_forecast_hybrid_context_v1/models/raw/20260717_001715/latest.pt",
+      "sha256": "30f6a7003c441a1c4472cb62a8e8cbd3e5bdbac2e91166f46c73dbb062251ab1"
+    }
+  }
+}

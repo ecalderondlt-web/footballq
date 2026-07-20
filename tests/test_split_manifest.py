@@ -52,3 +52,13 @@ def test_split_manifest_rejects_unknown_dataset_name():
     payload["dataset"] = "mystery_provider"
     with pytest.raises(ValueError, match="dataset"):
         validate_split_manifest(payload)
+
+
+def test_pff_world_cup_split_covers_all_64_matches_without_overlap():
+    split = load_split_manifest("splits/pff_wc2022_64match_inductive_v1.json")
+
+    assert split.payload["dataset"] == "pff_fc"
+    assert len(split.train_match_ids) == 48
+    assert len(split.val_match_ids) == 8
+    assert len(split.test_match_ids) == 8
+    assert len(split.all_match_ids) == 64

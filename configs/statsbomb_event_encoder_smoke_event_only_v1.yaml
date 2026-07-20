@@ -1,0 +1,28 @@
+seed: 5
+data:
+  manifest: data/processed/statsbomb_event_sequence_v1/manifest.json
+  split_manifest: splits/statsbomb_open_data_b0bc9f2_match_inductive_v1.json
+  cache_size: 2
+model:
+  feature_view: event_only
+  categorical_dim: 8
+  d_model: 32
+  n_heads: 4
+  n_layers: 1
+  dropout: 0.0
+  max_sequence_length: 32
+training:
+  seed: 5
+  device: auto
+  batch_size: 8
+  num_workers: 0
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  location_weight: 1.0
+  grad_clip: 1.0
+  max_epochs: 1
+  max_train_updates: 2
+  val_max_batches: 2
+  log_every_updates: 1
+run:
+  root: runs/statsbomb_event_smoke_event_only_v1

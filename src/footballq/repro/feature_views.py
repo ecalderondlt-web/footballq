@@ -8,6 +8,7 @@ import torch
 
 FULL_STATE_LEGACY = "full_state_legacy"
 GEOMETRY_ONLY = "geometry_only"
+POSITION_ONLY = "position_only"
 MISSINGNESS_ONLY_CONTROL = "missingness_only_control"
 RAW_KINEMATICS_CONTROL = "raw_kinematics_control"
 
@@ -22,6 +23,7 @@ class FeatureView:
 FEATURE_VIEW_NAMES = {
     FULL_STATE_LEGACY,
     GEOMETRY_ONLY,
+    POSITION_ONLY,
     MISSINGNESS_ONLY_CONTROL,
     RAW_KINEMATICS_CONTROL,
 }
@@ -35,6 +37,8 @@ def feature_view_names(source_feature_names: list[str], view: str) -> list[str]:
         return names
     if view == GEOMETRY_ONLY:
         wanted = ["x_norm", "y_norm", "vx_norm", "vy_norm", "is_ball", "is_home", "is_away"]
+    elif view == POSITION_ONLY:
+        wanted = ["x_norm", "y_norm", "is_ball", "is_home", "is_away"]
     elif view == MISSINGNESS_ONLY_CONTROL:
         wanted = ["is_ball", "is_home", "is_away", "visible_mask"]
     elif view == RAW_KINEMATICS_CONTROL:

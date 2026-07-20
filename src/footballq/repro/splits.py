@@ -8,7 +8,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-ALLOWED_SPLIT_DATASETS = {"idsse", "metrica", "skillcorner", "synthetic"}
+ALLOWED_SPLIT_DATASETS = {
+    "footpass",
+    "gfootball",
+    "idsse",
+    "metrica",
+    "pff_fc",
+    "skillcorner",
+    "statsbomb",
+    "synthetic",
+}
 
 
 @dataclass(frozen=True)

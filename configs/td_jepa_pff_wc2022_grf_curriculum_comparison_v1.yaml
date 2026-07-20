@@ -1,0 +1,45 @@
+experiment: td_jepa_pff_wc2022_grf_curriculum_comparison_v1
+seed: 7
+data:
+  path: data/processed/pff_wc2022_td_jepa_v2/observed_only/dataset_manifest.json
+  source: pff_fc
+  fps_out: 10
+  context_seconds: 1.0
+  delta_seconds: 0.2
+  stride_seconds: 0.2
+  objective_mode: future_nonoverlap_context_only
+  prediction_gap_seconds: 1.0
+  feature_view: geometry_only
+  visibility_mode: observed_only
+split:
+  manifest_path: splits/pff_wc2022_64match_inductive_v1.json
+  protocol: inductive_match_holdout
+model:
+  z_dim: 128
+  d_model: 128
+  n_layers: 2
+  n_heads: 4
+  dropout: 0.1
+  motion_hidden_dim: 256
+  state_decoder_hidden_dim: 256
+ema:
+  momentum: 0.996
+loss:
+  variance_weight: 1.0
+  variance_threshold: 0.05
+  slot_reconstruction_weight: 0.25
+  context_reconstruction_weight: 0.05
+  no_motion_margin_weight: 0.1
+  no_motion_margin: 0.01
+training:
+  seed: 7
+  batch_size: 128
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  max_epochs: 1
+  max_train_batches: 2000
+  max_val_batches: 500
+  num_workers: 0
+  device: auto
+  run_root: runs
+  best_metric: total_loss

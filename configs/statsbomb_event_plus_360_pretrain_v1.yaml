@@ -1,0 +1,30 @@
+seed: 7
+data:
+  manifest: data/processed/statsbomb_event_sequence_v1/manifest.json
+  split_manifest: splits/statsbomb_open_data_b0bc9f2_match_inductive_v1.json
+  cache_size: 2
+model:
+  feature_view: event_plus_360
+  categorical_dim: 24
+  d_model: 128
+  n_heads: 4
+  n_layers: 3
+  dropout: 0.1
+  max_sequence_length: 32
+training:
+  seed: 7
+  device: auto
+  batch_size: 128
+  num_workers: 0
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  location_weight: 1.0
+  grad_clip: 1.0
+  max_epochs: 1
+  max_train_updates: 5700
+  val_max_batches: null
+  validation_curve_steps: [100, 500, 1000, 2500, 5700]
+  validation_curve_max_batches: 50
+  log_every_updates: 100
+run:
+  root: runs/statsbomb_semantic_pretrain_v1/event_plus_360
