@@ -10,6 +10,7 @@ Before further model development, read:
 5. `docs/EXPERIMENT_PROTOCOL.md`
 6. `docs/RESEARCH_INTEGRITY_HANDOFF.md`
 7. `docs/EMILIO_INTEGRITY_SPRINT_PLAN.md`
+8. `docs/CURRENT_DATA_WALL.md`
 
 Do not treat current latent clusters as tactical concepts. Do not describe the
 current latent residual score as tactical surprise. Do not use possession or

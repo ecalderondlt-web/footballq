@@ -592,3 +592,12 @@ confirmation (`-0.4181%` relative improvement versus rolling involvement).
 Together with the PFF and FOOTPASS nulls, the current evidence says that
 player-specific signal exists in event histories but the tested mechanisms do
 not yet convert it into robust incremental outcome prediction.
+
+The limiting factor for the player-conditioned direction is now documented in
+`docs/CURRENT_DATA_WALL.md`. No current source combines continuous real
+all-player and ball tracking, stable identities across 10-20 earlier league
+appearances, aligned tactical events, and enough teams and dates for sealed
+chronological confirmation. The reasonable current-data workarounds have been
+run and are summarized in `docs/PLAYER_CONDITIONED_EXPERIMENT_LOG_V1.md`.
+Further tuning on the same cohorts is not treated as a substitute for that
+missing longitudinal evidence.

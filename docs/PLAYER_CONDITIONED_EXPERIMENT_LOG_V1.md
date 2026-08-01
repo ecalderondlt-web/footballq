@@ -315,3 +315,7 @@ but not yet that the current model uses it to improve tactical prediction. The
 next justified experiment must condition an appropriate predictive model on
 the confirmed fingerprint while preserving chronology, team-change controls,
 and a genuinely sealed outcome cohort.
+
+The data limitation that currently prevents that experiment from being
+decisive, together with the minimum acquisition target, is documented in
+`docs/CURRENT_DATA_WALL.md`.
