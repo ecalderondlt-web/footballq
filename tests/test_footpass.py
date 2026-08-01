@@ -10,6 +10,8 @@ from footballq.io.footpass import (
     FootpassHalfKey,
     FootpassTacticalStore,
     audit_footpass_tactical_data,
+    extract_footpass_lineup_signatures,
+    rank_footpass_lineup_matches,
 )
 from footballq.repro.splits import load_split_manifest
 
@@ -163,3 +165,22 @@ def test_footpass_action_class_mapping_is_stable():
     assert FOOTPASS_ACTION_CLASSES[1] == "drive"
     assert FOOTPASS_ACTION_CLASSES[2] == "pass"
     assert FOOTPASS_ACTION_CLASSES[7] == "tackle"
+
+
+def test_footpass_lineup_signatures_and_weighted_matches(tmp_path):
+    source = tmp_path / "train_tactical_data.h5"
+    _write_source(source, match_ids=(1, 2))
+
+    signatures = extract_footpass_lineup_signatures(source)
+    ranked = rank_footpass_lineup_matches(signatures, minimum_overlap=1)
+
+    assert [signature.appearance_id for signature in signatures] == [
+        "1:0",
+        "1:1",
+        "2:0",
+        "2:1",
+    ]
+    assert signatures[0].shirt_numbers == (1,)
+    assert signatures[0].shirt_role_pairs == ((1, 1),)
+    assert ranked[0]["weighted_jaccard"] == pytest.approx(1.0)
+    assert ranked[0]["overlap_shirt_numbers"] == [1]

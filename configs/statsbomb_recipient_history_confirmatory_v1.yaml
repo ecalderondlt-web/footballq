@@ -1,0 +1,77 @@
+experiment: statsbomb_recipient_history_confirmatory_v1
+experiment_protocol: frozen_online_recipient_history_tournament_replication_v1
+feature_view: event_start_zone_active_lineup_position_and_prior_player_target_histories
+objective_mode: active_lineup_pass_recipient_probability_ranking
+
+data:
+  statsbomb_root: data/raw/open-data-b0bc9f22dd77c206ddedc1d742893b3bbe64baec/data
+  source_commit: b0bc9f22dd77c206ddedc1d742893b3bbe64baec
+  split_manifest: splits/statsbomb_recipient_history_confirmatory_v1.json
+  development_config: configs/statsbomb_recipient_history_v1.yaml
+  development_results: runs/statsbomb_recipient_history_v1/development_results.json
+  development_run_manifest: runs/statsbomb_recipient_history_v1/run_manifest.json
+  confirmatory_protocol_doc: docs/STATSBOMB_RECIPIENT_HISTORY_CONFIRMATORY_PROTOCOL_V1.md
+  confirmatory_freeze_manifest: provenance/statsbomb_recipient_history_confirmatory_freeze_v1.json
+  source_inventory: provenance/statsbomb_open_data_b0bc9f22_confirmatory_inventory_v1.json
+  require_360_query: true
+
+development_cohorts:
+  - name: barcelona_2020_2021
+    split: train
+    competition_name: La Liga
+    season_name: 2020/2021
+    focal_team_name: Barcelona
+  - name: psg_2021_2022
+    split: train
+    competition_name: Ligue 1
+    season_name: 2021/2022
+    focal_team_name: Paris Saint-Germain
+  - name: psg_2022_2023
+    split: validation
+    competition_name: Ligue 1
+    season_name: 2022/2023
+    focal_team_name: Paris Saint-Germain
+  - name: euro_2024_primary
+    split: development_test
+    competition_name: UEFA Euro
+    season_name: "2024"
+    focal_team_name: "*"
+  - name: womens_euro_2025_external
+    split: development_test
+    competition_name: UEFA Women's Euro
+    season_name: "2025"
+    focal_team_name: "*"
+
+profiles:
+  support_sizes: [1, 3, 5, 10, 20]
+  support_policy: online_strictly_prior_appearances
+  chronology_rule: last_k_player_appearances_strictly_before_query_match_date
+
+confirmatory:
+  status: metric_sealed
+  cohort_order:
+    - euro_2024_primary
+    - womens_euro_2025_external
+  primary_cohort: euro_2024_primary
+  external_replication_cohorts:
+    - womens_euro_2025_external
+  frozen_support_size: 5
+  frozen_primary_metric: recipient_nll
+  top_k_metrics_status: secondary_not_gated
+
+evaluation:
+  match_bootstrap_samples: 2000
+  bootstrap_seed: 20260729
+  shuffle_seed: statsbomb-recipient-confirmatory-same-role-v1
+
+confirmatory_gate:
+  primary_minimum_relative_nll_improvement: 0.0025
+  require_primary_positive_match_bootstrap_lower_bound: true
+  require_primary_better_than_broad_role_shuffle: true
+  require_pooled_positive_match_bootstrap_lower_bound: true
+  require_external_positive_point_nll: true
+  require_external_better_than_broad_role_shuffle: true
+  require_exact_validation_reproduction: true
+
+output:
+  run_dir: runs/statsbomb_recipient_history_confirmatory_v1

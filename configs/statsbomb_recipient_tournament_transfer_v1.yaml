@@ -1,0 +1,72 @@
+experiment: statsbomb_recipient_tournament_transfer_v1
+experiment_protocol: chronology_safe_tournament_frozen_recipient_ranking_development_v1
+feature_view: event_start_zone_active_lineup_position_and_pretournament_player_target_histories
+objective_mode: active_lineup_pass_recipient_ranking
+
+data:
+  statsbomb_root: data/raw/open-data-b0bc9f22dd77c206ddedc1d742893b3bbe64baec/data
+  source_commit: b0bc9f22dd77c206ddedc1d742893b3bbe64baec
+  split_manifest: splits/statsbomb_recipient_tournament_development_v1.json
+  require_360_query: true
+
+development_cohorts:
+  - name: euro_2020
+    split: train
+    competition_name: UEFA Euro
+    season_name: "2020"
+    focal_team_name: "*"
+    support_before: "2021-06-11"
+  - name: womens_euro_2022
+    split: train
+    competition_name: UEFA Women's Euro
+    season_name: "2022"
+    focal_team_name: "*"
+    support_before: "2022-07-06"
+  - name: world_cup_2022
+    split: validation
+    competition_name: FIFA World Cup
+    season_name: "2022"
+    focal_team_name: "*"
+    support_before: "2022-11-20"
+  - name: womens_world_cup_2023
+    split: development_test
+    competition_name: Women's World Cup
+    season_name: "2023"
+    focal_team_name: "*"
+    support_before: "2023-07-20"
+
+sealed_confirmatory_cohorts:
+  - competition_name: UEFA Euro
+    season_name: "2024"
+    support_before: "2024-06-14"
+    status: label_audited_metric_sealed
+  - competition_name: UEFA Women's Euro
+    season_name: "2025"
+    support_before: "2025-07-02"
+    status: label_audited_metric_sealed
+  - note: Recipient labels were accessed only for aggregate support-coverage auditing; no model predictions or metrics have been computed.
+
+profiles:
+  support_sizes: [1, 3, 5, 10, 20]
+  support_policy: cohort_frozen_before_start
+  chronology_rule: support_match_date_strictly_before_tournament_start
+
+model_selection:
+  metric: validation_nll
+  weights: [0.0, 0.25, 0.5, 1.0, 2.0]
+  profile_prior_strengths: [1.0, 3.0, 10.0, 30.0]
+
+evaluation:
+  match_bootstrap_samples: 2000
+  bootstrap_seed: 20260729
+  shuffle_seed: statsbomb-recipient-tournament-same-role-v1
+
+gates:
+  minimum_nll_improvement_fraction: 0.005
+  minimum_top3_gain: 0.02
+  require_positive_match_bootstrap_mean: true
+  require_positive_match_bootstrap_ci: true
+  require_profile_better_than_same_role_shuffle: true
+
+output:
+  run_dir: runs/statsbomb_recipient_tournament_transfer_v1

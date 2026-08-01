@@ -1,0 +1,138 @@
+{
+  "name": "footpass_player_history_chronological_v1",
+  "version": 1,
+  "dataset": "footpass",
+  "protocol": "verified_repeated_team_strict_chronology_player_history_v1",
+  "train_match_ids": [
+    "6",
+    "10",
+    "2",
+    "11",
+    "12",
+    "28",
+    "27",
+    "32",
+    "13",
+    "35",
+    "38"
+  ],
+  "val_match_ids": [
+    "33",
+    "14",
+    "15"
+  ],
+  "test_match_ids": [
+    "40",
+    "43",
+    "22"
+  ],
+  "all_match_ids": [
+    "2",
+    "6",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "22",
+    "27",
+    "28",
+    "32",
+    "33",
+    "35",
+    "38",
+    "40",
+    "43"
+  ],
+  "expected_count": 17,
+  "source_hdf5_sha256": "bcc02cd2f05509d1e82ba16a81ada5349895410a349aeedcb13e539339379058",
+  "identity_manifests": [
+    "provenance/footpass_napoli_identity_v1.json",
+    "provenance/footpass_lazio_identity_v1.json",
+    "provenance/footpass_bayern_identity_v1.json"
+  ],
+  "profile_support_only_match_ids": [
+    "6",
+    "10"
+  ],
+  "development_fit_match_ids": [
+    "2",
+    "11",
+    "12",
+    "28",
+    "27",
+    "32",
+    "13",
+    "35",
+    "38"
+  ],
+  "development_validation_match_ids": [
+    "33",
+    "14",
+    "15"
+  ],
+  "confirmatory_reserve_match_ids": [
+    "40",
+    "43",
+    "22"
+  ],
+  "team_cohorts": [
+    {
+      "team_id": "fc_bayern_munich_2023_24",
+      "support_only": [
+        "6"
+      ],
+      "development_fit": [
+        "2",
+        "27"
+      ],
+      "development_validation": [
+        "33"
+      ],
+      "confirmatory_reserve": [
+        "40"
+      ]
+    },
+    {
+      "team_id": "ssc_napoli_2023_24",
+      "support_only": [
+        "10"
+      ],
+      "development_fit": [
+        "11",
+        "32",
+        "13",
+        "35"
+      ],
+      "development_validation": [
+        "14"
+      ],
+      "confirmatory_reserve": [
+        "22"
+      ]
+    },
+    {
+      "team_id": "ss_lazio_2023_24",
+      "support_only": [
+        "10"
+      ],
+      "development_fit": [
+        "12",
+        "28",
+        "38"
+      ],
+      "development_validation": [
+        "15"
+      ],
+      "confirmatory_reserve": [
+        "43"
+      ]
+    }
+  ],
+  "chronology_rule": "A query may use only focal-team appearances with match_date strictly earlier than the query match_date. The query match and all later matches are excluded from player histories.",
+  "shared_match_rule": "Match 10 is a support-only appearance for both Napoli and Lazio and is loaded once while preserving two distinct focal-team views.",
+  "confirmation_rule": "Test match action labels and outcomes remain unread until the development code, feature contract, hyperparameters, and gate are frozen after a passing development result.",
+  "creation_timestamp_utc": "2026-07-29T00:00:00Z",
+  "notes": "The official FOOTPASS train release is used as a research dataset. This is a small repeated-team longitudinal cohort, not a team-disjoint population estimate. Confirmation contains one later match per focal team."
+}

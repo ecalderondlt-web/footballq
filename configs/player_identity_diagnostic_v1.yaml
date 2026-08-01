@@ -1,0 +1,35 @@
+experiment: pff_frozen_player_identity_diagnostic_v1
+
+data:
+  pff_raw_root: wc2022datav2
+  canonical_root: data/processed/pff_wc2022_canonical_v2
+  statsbomb_root: data/raw/open-data-b0bc9f22dd77c206ddedc1d742893b3bbe64baec/data
+  td_manifests:
+    - data/processed/pff_wc2022_td_jepa_position_only_train_val_v1/observed_only/dataset_manifest.json
+    - data/processed/pff_wc2022_td_jepa_position_only_test_confirmatory_v1/observed_only/dataset_manifest.json
+  included_splits: [support, train, val]
+  profile_stride_examples: 75
+  min_visible_entities_at_anchor: 8
+
+encoder:
+  checkpoint: runs/position_only_longer_v1/td_jepa/best.pt
+  sha256: f7aaefae797f39f5ffad57f66427712e384bf7bb4027a1295b05aa2ec1455a33
+  batch_size: 512
+
+controls:
+  random_seed: 20260731
+  shuffle_seed: 20260801
+
+evaluation:
+  support_size: 2
+  player_bootstrap_samples: 2000
+  bootstrap_seed: 20260802
+
+gates:
+  minimum_pairwise_gain_over_raw: 0.03
+  minimum_top1_gain_over_raw: 0.03
+  minimum_pairwise_gain_over_shuffle: 0.05
+  minimum_top1_gain_over_chance: 0.10
+
+output:
+  run_dir: runs/player_identity_diagnostic_v1

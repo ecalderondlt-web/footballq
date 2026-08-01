@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from collections import Counter
 from dataclasses import dataclass
@@ -137,6 +138,39 @@ class FootpassWindow:
     @property
     def feature_names(self) -> tuple[str, ...]:
         return FOOTPASS_GEOMETRY_FEATURE_NAMES
+
+
+@dataclass(frozen=True)
+class FootpassLineupSignature:
+    """Starting-lineup fingerprint for one anonymized match-side appearance."""
+
+    match_id: str
+    team_index: int
+    period: int
+    frame_id: int
+    left_to_right: int
+    shirt_numbers: tuple[int, ...]
+    shirt_role_pairs: tuple[tuple[int, int], ...]
+
+    @property
+    def appearance_id(self) -> str:
+        return f"{self.match_id}:{self.team_index}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "appearance_id": self.appearance_id,
+            "match_id": self.match_id,
+            "team_index": self.team_index,
+            "period": self.period,
+            "frame_id": self.frame_id,
+            "left_to_right": self.left_to_right,
+            "starter_count": len(self.shirt_numbers),
+            "shirt_numbers": list(self.shirt_numbers),
+            "shirt_role_pairs": [
+                {"shirt_number": shirt, "role_id": role}
+                for shirt, role in self.shirt_role_pairs
+            ],
+        }
 
 
 class FootpassTacticalStore:
@@ -299,6 +333,122 @@ class FootpassTacticalStore:
             roi_valid_mask=roi_valid_mask,
             action_class=action_class,
         )
+
+
+def extract_footpass_lineup_signatures(
+    path: str | Path,
+) -> tuple[FootpassLineupSignature, ...]:
+    """Extract the first observed H1 lineup for both sides of every match."""
+
+    signatures: list[FootpassLineupSignature] = []
+    with FootpassTacticalStore(path) as store:
+        for match_id in store.match_ids:
+            half = FootpassHalfKey.from_components(match_id, 1)
+            dataset = store._file[half.dataset_key]
+            first_frame = int(dataset[0, FRAME])
+            end_index = store._search_frame(dataset, first_frame, right=True)
+            rows = np.asarray(dataset[:end_index], dtype=np.float32)
+            for team_index in (0, 1):
+                player_mask = (
+                    rows[:, PLAYER_ID] < 200
+                    if team_index == 0
+                    else rows[:, PLAYER_ID] >= 200
+                )
+                team_rows = rows[player_mask]
+                if team_rows.size == 0:
+                    raise ValueError(
+                        f"FOOTPASS {half.dataset_key} has no first-frame rows "
+                        f"for team_index={team_index}."
+                    )
+                shirt_role_pairs = tuple(
+                    sorted(
+                        {
+                            (int(row[SHIRT_NUMBER]), int(row[ROLE_ID]))
+                            for row in team_rows
+                        }
+                    )
+                )
+                directions = {int(value) for value in team_rows[:, LEFT_TO_RIGHT]}
+                if len(directions) != 1:
+                    raise ValueError(
+                        f"FOOTPASS {half.dataset_key} has inconsistent first-frame "
+                        f"directions for team_index={team_index}: {sorted(directions)}."
+                    )
+                signatures.append(
+                    FootpassLineupSignature(
+                        match_id=match_id,
+                        team_index=team_index,
+                        period=1,
+                        frame_id=first_frame,
+                        left_to_right=directions.pop(),
+                        shirt_numbers=tuple(
+                            sorted(shirt for shirt, _ in shirt_role_pairs)
+                        ),
+                        shirt_role_pairs=shirt_role_pairs,
+                    )
+                )
+    return tuple(
+        sorted(signatures, key=lambda item: (int(item.match_id), item.team_index))
+    )
+
+
+def rank_footpass_lineup_matches(
+    signatures: tuple[FootpassLineupSignature, ...] | list[FootpassLineupSignature],
+    *,
+    minimum_overlap: int = 5,
+    exclude_same_match: bool = True,
+) -> list[dict[str, Any]]:
+    """Rank candidate repeated-team appearances by IDF-weighted shirt overlap."""
+
+    if minimum_overlap < 1:
+        raise ValueError("minimum_overlap must be positive.")
+    if len(signatures) < 2:
+        return []
+
+    frequency = Counter(
+        shirt for signature in signatures for shirt in signature.shirt_numbers
+    )
+    appearance_count = len(signatures)
+    weights = {
+        shirt: math.log((1.0 + appearance_count) / (1.0 + count)) + 1.0
+        for shirt, count in frequency.items()
+    }
+    ranked: list[dict[str, Any]] = []
+    ordered = sorted(
+        signatures, key=lambda item: (int(item.match_id), item.team_index)
+    )
+    for left_index, left in enumerate(ordered):
+        left_shirts = set(left.shirt_numbers)
+        for right in ordered[left_index + 1 :]:
+            if exclude_same_match and left.match_id == right.match_id:
+                continue
+            right_shirts = set(right.shirt_numbers)
+            overlap = left_shirts & right_shirts
+            if len(overlap) < minimum_overlap:
+                continue
+            union = left_shirts | right_shirts
+            weighted_jaccard = sum(weights[shirt] for shirt in overlap) / sum(
+                weights[shirt] for shirt in union
+            )
+            ranked.append(
+                {
+                    "left_appearance_id": left.appearance_id,
+                    "right_appearance_id": right.appearance_id,
+                    "weighted_jaccard": weighted_jaccard,
+                    "plain_jaccard": len(overlap) / len(union),
+                    "overlap_count": len(overlap),
+                    "overlap_shirt_numbers": sorted(overlap),
+                }
+            )
+    return sorted(
+        ranked,
+        key=lambda item: (
+            -float(item["weighted_jaccard"]),
+            -int(item["overlap_count"]),
+            str(item["left_appearance_id"]),
+            str(item["right_appearance_id"]),
+        ),
+    )
 
 
 def _numeric_range(values: np.ndarray) -> tuple[float | None, float | None, int]:

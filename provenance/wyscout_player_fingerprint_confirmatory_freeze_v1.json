@@ -1,0 +1,62 @@
+{
+  "name": "wyscout_player_fingerprint_confirmatory_freeze_v1",
+  "version": 1,
+  "status": "metric_sealed_before_first_confirmatory_read",
+  "created_utc": "2026-07-29T22:17:12.519790+00:00",
+  "experiment_protocol": "wyscout_cross_team_player_fingerprint_v1",
+  "output_root": "runs\\wyscout_player_fingerprint_v1",
+  "primary_claim": "A player's outcome-free event-history behavior fingerprint persists across a club-to-national-team context change.",
+  "claim_exclusions": [
+    "critical-event prediction improvement",
+    "tracking-based tactical understanding",
+    "opponent-specific matchup planning"
+  ],
+  "development_gate_passed": true,
+  "development_result_payload_sha256": "b1f07058d980936066fd927fe187a85f891d49d6ff7eaa01c6c8f37051b7ae8b",
+  "confirmatory_metrics_read_before_freeze": false,
+  "confirmatory_unseal_command": "python scripts/run_wyscout_player_fingerprint_v1.py --unseal-confirmatory",
+  "files": {
+    "config": {
+      "path": "configs\\wyscout_player_fingerprint_v1.yaml",
+      "sha256": "bcd4f21801647c7454b0e1b9631a3f178f996d03b422f01f75ff3ce2bce486d7"
+    },
+    "analysis": {
+      "path": "src\\footballq\\analysis\\wyscout_player_fingerprint.py",
+      "sha256": "99a483bc4dc86140822dcf3f462fe8d15d0328544c9c8dc49029d6ecb9ff97f9"
+    },
+    "runner": {
+      "path": "scripts\\run_wyscout_player_fingerprint_v1.py",
+      "sha256": "ae1b03f615556ab87d10ec027543f498647b0784409f2229801a25a979a4188a"
+    },
+    "dataset_manifest": {
+      "path": "data\\processed\\wyscout_player_memory_v1\\manifest.json",
+      "sha256": "e28f473bb63c52c07fad218fa2584df22dbb3dec9f4f0b59c5ef1c76c2c86c8b"
+    },
+    "development_split_manifest": {
+      "path": "splits\\wyscout_player_fingerprint_club_to_world_cup_v1.json",
+      "sha256": "89141761b0b15c8f07a84292f51e0caa1560f7bc86ac637070e6156a1b07d97d"
+    },
+    "confirmatory_split_manifest": {
+      "path": "splits\\wyscout_player_fingerprint_euro_to_club_confirmatory_v1.json",
+      "sha256": "eba6abc965e4cd6edc632519e266c0b0ac026c05125f7f5b357c85bb06e11c6a"
+    },
+    "protocol_doc": {
+      "path": "docs\\WYSCOUT_CROSS_TEAM_FINGERPRINT_CONFIRMATORY_PROTOCOL_V1.md",
+      "sha256": "6954c34aba1e2b77dcc311ca6f0d5eda39c2dc812d2513d8d7a63495e718e651"
+    },
+    "development_results": {
+      "path": "runs\\wyscout_player_fingerprint_v1\\development\\results.json",
+      "sha256": "54a7883bef38bf2714fd54ffccd554f4ef551fc5ca828e416ccb114c74fde76e"
+    },
+    "development_run_manifest": {
+      "path": "runs\\wyscout_player_fingerprint_v1\\development\\run_manifest.json",
+      "sha256": "8481a2be3414ce2d250a46ba650ee8018280ab7d4580976a28d8497eb6cf40d9"
+    }
+  },
+  "git": {
+    "commit": "ef00d1733ff5562c3bb3c7e248c0e9af2fb40873",
+    "dirty": true,
+    "status_line_count": 47
+  },
+  "freeze_payload_sha256": "71fb7e78934f0d95f131edbaf0ba7ce98907673b1cf682f6095e521c278f0fa1"
+}

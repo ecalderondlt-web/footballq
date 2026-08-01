@@ -1,0 +1,90 @@
+experiment_protocol: wyscout_player_memory_club_to_country_v1
+
+data:
+  dataset_root: data/processed/wyscout_player_memory_v1
+  dataset_manifest: data/processed/wyscout_player_memory_v1/manifest.json
+  development_split_manifest: splits/wyscout_player_memory_development_v1.json
+  confirmatory_split_manifest: splits/wyscout_player_memory_world_cup_confirmatory_v1.json
+
+development:
+  support_competitions:
+    - England
+    - France
+    - Germany
+    - Italy
+    - Spain
+  support_end_dateutc_exclusive: "2018-01-01 00:00:00"
+  train_query_competitions:
+    - England
+    - Germany
+    - Italy
+  validation_query_competitions:
+    - Spain
+  development_query_competitions:
+    - France
+  query_start_dateutc_inclusive: "2018-02-01 00:00:00"
+
+confirmatory:
+  competition: World_Cup
+  profile_source_competitions:
+    - England
+    - France
+    - Germany
+    - Italy
+    - Spain
+  allow_metric_unseal: false
+
+task:
+  primary_outcome: shot_within_horizon
+  query_start_x_min: 50.0
+  horizon_seconds: 20.0
+  horizon_subsequent_events: 10
+  secondary_outcomes:
+    - destination_zone
+    - key_pass
+
+profiles:
+  minimum_prior_matches: 5
+  context_prior_strength: 100.0
+  support_match_caps:
+    - 3
+    - 5
+    - 10
+    - 15
+    - 20
+  beta_prior_strengths:
+    - 2.0
+    - 5.0
+    - 10.0
+    - 20.0
+    - 50.0
+    - 100.0
+  context_keys:
+    - role
+    - start_zone
+    - subevent_id
+  same_match_support_forbidden: true
+
+falsification:
+  shuffle_seeds:
+    - 7
+    - 11
+    - 23
+    - 41
+    - 73
+  shuffle_within:
+    - support_team
+    - role
+  include_team_history_baseline: true
+  include_role_history_baseline: true
+
+uncertainty:
+  bootstrap_unit: match_id
+  bootstrap_replicates: 2000
+  confidence_level: 0.95
+
+development_gate:
+  minimum_relative_nll_improvement: 0.005
+  require_match_bootstrap_lower_bound_above_zero: true
+  require_better_than_all_shuffled_controls: true
+  require_supported_subset_consistency: true

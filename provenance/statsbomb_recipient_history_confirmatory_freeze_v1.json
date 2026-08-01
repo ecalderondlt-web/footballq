@@ -1,0 +1,125 @@
+{
+  "name": "statsbomb_recipient_history_confirmatory_freeze_v1",
+  "version": 1,
+  "status": "metric_sealed_before_first_confirmatory_read",
+  "created_utc": "2026-07-29T23:13:54.394097+00:00",
+  "experiment_protocol": "frozen_online_recipient_history_tournament_replication_v1",
+  "output_root": "runs\\statsbomb_recipient_history_confirmatory_v1",
+  "primary_claim": "Strictly prior player receiving-location histories improve held-out pass-recipient probability ranking beyond role, current origin zone, fine position, static identity, and rolling frequency.",
+  "claim_exclusions": [
+    "tracking-based critical-event prediction",
+    "opponent-specific matchup understanding",
+    "causal tactical intervention",
+    "full-match planning",
+    "top-k accuracy improvement as a primary endpoint"
+  ],
+  "development_eligibility": {
+    "checks": {
+      "minimum_relative_nll_improvement_0_5_percent": true,
+      "positive_match_bootstrap_lower_bound": true,
+      "better_than_broad_role_shuffled_history": true,
+      "ten_match_gain_exceeds_one_match_gain": true,
+      "confirmatory_metrics_not_loaded": true
+    },
+    "passed": true,
+    "observed": {
+      "relative_nll_improvement": 0.005205693287383963,
+      "absolute_nll_improvement": 0.011904453405801263,
+      "bootstrap_ci_lower": 0.008193950433152242,
+      "top3_gain": 0.0055013493875856745,
+      "original_development_gate_status": "blocked"
+    }
+  },
+  "development_result_payload_sha256": "3677131bbdb311071f9271939e04b78820105e6baad470979a6871b3c4a059ce",
+  "original_development_gate_note": "The original exploratory gate remained blocked because its two-percentage-point top-3 threshold was not met. Before any tournament score was opened, the confirmatory claim was narrowed to NLL, a proper probability-ranking score.",
+  "confirmatory_cohorts": {
+    "primary": "euro_2024_primary",
+    "external_replications": [
+      "womens_euro_2025_external"
+    ]
+  },
+  "confirmatory_gate": {
+    "primary_minimum_relative_nll_improvement": 0.0025,
+    "require_primary_positive_match_bootstrap_lower_bound": true,
+    "require_primary_better_than_broad_role_shuffle": true,
+    "require_pooled_positive_match_bootstrap_lower_bound": true,
+    "require_external_positive_point_nll": true,
+    "require_external_better_than_broad_role_shuffle": true,
+    "require_exact_validation_reproduction": true
+  },
+  "confirmatory_metadata_accessed_before_freeze": [
+    "match identifiers",
+    "match dates",
+    "lineups",
+    "360 file availability",
+    "raw file content hashes"
+  ],
+  "confirmatory_metrics_read_before_freeze": false,
+  "confirmatory_unseal_command": "python scripts/run_statsbomb_recipient_history_confirmatory_v1.py --unseal-confirmatory",
+  "source_snapshot": {
+    "source_commit": "b0bc9f22dd77c206ddedc1d742893b3bbe64baec",
+    "file_count": 8977,
+    "total_size_bytes": 16126670930,
+    "inventory_payload_sha256": "929bb5ae690794ea38afe6d3053d3380d3a2c162a8ba4e72e0ad214472be75a8"
+  },
+  "files": {
+    "config": {
+      "path": "configs\\statsbomb_recipient_history_confirmatory_v1.yaml",
+      "sha256": "d478aee510c1dad25c9ae40de8e90e991df7e6f429009b6a8fa6a254d493f03e"
+    },
+    "analysis": {
+      "path": "src\\footballq\\analysis\\statsbomb_recipient_history.py",
+      "sha256": "9cce870cf5d404e1b87be5abf1ce5a89c0f9e74f14d83007d916c99a12ad51e0"
+    },
+    "runner": {
+      "path": "scripts\\run_statsbomb_recipient_history_confirmatory_v1.py",
+      "sha256": "09869a4567fdede7f9b05350e38a96725073cbfda99ec983172c48b52856453c"
+    },
+    "development_runner": {
+      "path": "scripts\\run_statsbomb_recipient_history_v1.py",
+      "sha256": "a2af9ed309c25fd1b00f9eb3bea1978be949effe9e6bd6558fb368a2d4b5ea83"
+    },
+    "source_inventory_builder": {
+      "path": "scripts\\build_statsbomb_source_inventory.py",
+      "sha256": "665b96dd8fbca773951e1074c89f9282c6dfb8de70d392ecb65fc2f3b0569557"
+    },
+    "split_builder": {
+      "path": "scripts\\build_statsbomb_recipient_split_manifest.py",
+      "sha256": "e3f9eb7691a563532ae8635212d9d34b3e8f0cc28ccd56180d83298424395b4c"
+    },
+    "source_inventory": {
+      "path": "provenance\\statsbomb_open_data_b0bc9f22_confirmatory_inventory_v1.json",
+      "sha256": "db3290f53f2b9e594f57e40a7a35cfd9811ab35b500c849a300ec73d846a7680"
+    },
+    "split_manifest": {
+      "path": "splits\\statsbomb_recipient_history_confirmatory_v1.json",
+      "sha256": "669efdc83d8425a2bcf3f893d9e4c1c002a31f978d0f6a22cd119de8ef641b77"
+    },
+    "protocol_doc": {
+      "path": "docs\\STATSBOMB_RECIPIENT_HISTORY_CONFIRMATORY_PROTOCOL_V1.md",
+      "sha256": "814b4e7c69e7d5de3f9f830d81ac09b45232ac7d09f2059c7f7ba86998b5ecbb"
+    },
+    "development_config": {
+      "path": "configs\\statsbomb_recipient_history_v1.yaml",
+      "sha256": "85a921bd40a4f9511fd91bc48dd75173d83d6503def41e0243702fea54e2dc31"
+    },
+    "development_results": {
+      "path": "runs\\statsbomb_recipient_history_v1\\development_results.json",
+      "sha256": "7978bff0f449f4c9fb799250a3199d89821a644bf552926105f8c862cbd5f13a"
+    },
+    "development_run_manifest": {
+      "path": "runs\\statsbomb_recipient_history_v1\\run_manifest.json",
+      "sha256": "846693a0487fd00e3628a67bb27ff011c8c458fdc4b5502187a02f4209c60ab2"
+    },
+    "development_source_audit": {
+      "path": "runs\\statsbomb_recipient_history_v1\\source_audit.json",
+      "sha256": "f8e7f5c145d3154f972511ac816d45295ca13d8ae3652e08b5972ed7b0ecf1a3"
+    }
+  },
+  "git": {
+    "commit": "ef00d1733ff5562c3bb3c7e248c0e9af2fb40873",
+    "dirty": true,
+    "status_line_count": 57
+  },
+  "freeze_payload_sha256": "9d1d37bce743b300d75237cf6e1833acafbc9bb919af728469755e72a54c8195"
+}

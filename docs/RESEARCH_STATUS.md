@@ -555,5 +555,40 @@ player rows, 7,160,226 unique frames, and 91,327 labelled action rows. A frozen
 reader, variable-player masks, and separate geometry/identity/ROI/label views are
 implemented. Both the labelled 14-column and unlabelled 13-column schemas are
 covered by focused tests. This is provenance and data plumbing only: FOOTPASS
-contains no ball coordinates, no FOOTPASS model has been trained, and this work
-does not establish tactical understanding. See `docs/FOOTPASS_INTEGRATION.md`.
+contains no ball coordinates, and the adapter work alone does not establish
+tactical understanding. See `docs/FOOTPASS_INTEGRATION.md`.
+
+Two repeated-team FOOTPASS player-history development studies are now complete.
+V1 used 11,908 opportunities from verified Bayern, Napoli, and Lazio identities.
+A large prior-history view improved NLL 6.57% over a weak current-match rolling
+baseline, but its bootstrap interval crossed zero, a role-mean and one shuffled
+history control performed better, turnover NLL worsened 4.01%, and geometry plus
+role remained substantially stronger. The V1 gate failed. See
+`docs/FOOTPASS_PLAYER_HISTORY_DEVELOPMENT_RESULTS_V1.md`.
+
+V2 then tested a compact 28-value, equal-match-weighted player residual shrunk
+toward a leave-one-player-out role prior and compared it directly with geometry
+plus role. The true player residual worsened primary NLL 3.13%, worsened two of
+three validation matches, lost to a shuffled-player control, and was negative
+in all three predeclared internal development folds. Average prior support was
+only 2.14 matches and never exceeded five. The V2 gate failed. No confirmation
+freeze was created, and FOOTPASS matches 22, 40, and 43 remain outcome-sealed.
+These results provide no evidence of predictive persistent-player memory or
+tactical understanding in the current FOOTPASS cohort. See
+`docs/FOOTPASS_COMPACT_PLAYER_RESIDUAL_RESULTS_V2.md`.
+
+The subsequent player-conditioned event studies are consolidated in
+`docs/PLAYER_CONDITIONED_EXPERIMENT_LOG_V1.md`. The key positive result is
+narrow: an outcome-free Wyscout pass fingerprint remains identifiable across
+club and national-team contexts. Its confirmatory same-role pairwise AUC is
+`0.8198`, and all frozen retrieval checks pass. This establishes persistent
+on-ball identity signal, not improved tactical prediction.
+
+Downstream predictive tests remain negative or blocked. Wyscout cross-team
+action conditioning missed its NLL and bootstrap gates; StatsBomb critical-
+event profiles were unstable; and the initially positive StatsBomb recipient-
+history development NLL effect reversed on the pooled 82-match tournament
+confirmation (`-0.4181%` relative improvement versus rolling involvement).
+Together with the PFF and FOOTPASS nulls, the current evidence says that
+player-specific signal exists in event histories but the tested mechanisms do
+not yet convert it into robust incremental outcome prediction.

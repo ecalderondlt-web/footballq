@@ -17,6 +17,7 @@ ALLOWED_SPLIT_DATASETS = {
     "skillcorner",
     "statsbomb",
     "synthetic",
+    "wyscout",
 }
 
 

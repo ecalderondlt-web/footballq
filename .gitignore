@@ -1,4 +1,8 @@
 .venv/
+.codex_deps/
+.footpass_deps/
+footpass_deps_py314/
+.research/
 __pycache__/
 *.py[cod]
 .pytest_cache/

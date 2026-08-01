@@ -1,0 +1,68 @@
+experiment: statsbomb_recipient_history_transfer_v1
+experiment_protocol: chronology_safe_cohort_frozen_recipient_ranking_development_v1
+feature_view: event_start_zone_active_lineup_position_and_precohort_player_target_histories
+objective_mode: active_lineup_pass_recipient_ranking
+
+data:
+  statsbomb_root: data/raw/open-data-b0bc9f22dd77c206ddedc1d742893b3bbe64baec/data
+  source_commit: b0bc9f22dd77c206ddedc1d742893b3bbe64baec
+  split_manifest: splits/statsbomb_recipient_history_development_v1.json
+  require_360_query: true
+
+development_cohorts:
+  - name: barcelona_2020_2021
+    split: train
+    competition_name: La Liga
+    season_name: 2020/2021
+    focal_team_name: Barcelona
+    support_before: "2020-09-27"
+  - name: psg_2021_2022
+    split: train
+    competition_name: Ligue 1
+    season_name: 2021/2022
+    focal_team_name: Paris Saint-Germain
+    support_before: "2021-08-29"
+  - name: psg_2022_2023
+    split: validation
+    competition_name: Ligue 1
+    season_name: 2022/2023
+    focal_team_name: Paris Saint-Germain
+    support_before: "2022-08-06"
+  - name: leverkusen_2023_2024
+    split: development_test
+    competition_name: 1. Bundesliga
+    season_name: 2023/2024
+    focal_team_name: Bayer Leverkusen
+    support_before: "2023-08-19"
+
+sealed_confirmatory_cohort:
+  competition_name: UEFA Euro
+  season_name: "2024"
+  status: metric_sealed
+  support_cutoff: "2024-06-13"
+  note: Do not load event labels until the confirmatory protocol is frozen.
+
+profiles:
+  support_sizes: [1, 3, 5, 10, 20]
+  support_policy: cohort_frozen_before_start
+  chronology_rule: support_match_date_strictly_before_cohort_start
+
+model_selection:
+  metric: validation_nll
+  weights: [0.0, 0.25, 0.5, 1.0, 2.0]
+  profile_prior_strengths: [1.0, 3.0, 10.0, 30.0]
+
+evaluation:
+  match_bootstrap_samples: 2000
+  bootstrap_seed: 20260729
+  shuffle_seed: statsbomb-recipient-same-role-transfer-v1
+
+gates:
+  minimum_nll_improvement_fraction: 0.005
+  minimum_top3_gain: 0.02
+  require_positive_match_bootstrap_mean: true
+  require_positive_match_bootstrap_ci: true
+  require_profile_better_than_same_role_shuffle: true
+
+output:
+  run_dir: runs/statsbomb_recipient_history_transfer_v1

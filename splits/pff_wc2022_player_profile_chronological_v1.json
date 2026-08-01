@@ -1,0 +1,723 @@
+{
+  "version": 1,
+  "name": "pff_wc2022_player_profile_chronological_v1",
+  "dataset": "pff_fc_world_cup_2022",
+  "protocol": "group_round_1_support; group_round_2_train; group_round_3_val; knockout_test; support_match_datetime_strictly_before_query",
+  "matches": [
+    {
+      "pff_match_id": "3814",
+      "statsbomb_match_id": "3857286",
+      "match_datetime": "2022-11-20T16:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Qatar",
+      "away_team_name": "Ecuador"
+    },
+    {
+      "pff_match_id": "3813",
+      "statsbomb_match_id": "3857271",
+      "match_datetime": "2022-11-21T13:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "England",
+      "away_team_name": "Iran"
+    },
+    {
+      "pff_match_id": "3812",
+      "statsbomb_match_id": "3857285",
+      "match_datetime": "2022-11-21T16:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Senegal",
+      "away_team_name": "Netherlands"
+    },
+    {
+      "pff_match_id": "3815",
+      "statsbomb_match_id": "3857282",
+      "match_datetime": "2022-11-21T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "United States",
+      "away_team_name": "Wales"
+    },
+    {
+      "pff_match_id": "3816",
+      "statsbomb_match_id": "3857300",
+      "match_datetime": "2022-11-22T10:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Argentina",
+      "away_team_name": "Saudi Arabia"
+    },
+    {
+      "pff_match_id": "3817",
+      "statsbomb_match_id": "3857254",
+      "match_datetime": "2022-11-22T13:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Denmark",
+      "away_team_name": "Tunisia"
+    },
+    {
+      "pff_match_id": "3818",
+      "statsbomb_match_id": "3857265",
+      "match_datetime": "2022-11-22T16:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Mexico",
+      "away_team_name": "Poland"
+    },
+    {
+      "pff_match_id": "3819",
+      "statsbomb_match_id": "3857279",
+      "match_datetime": "2022-11-22T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "France",
+      "away_team_name": "Australia"
+    },
+    {
+      "pff_match_id": "3820",
+      "statsbomb_match_id": "3857277",
+      "match_datetime": "2022-11-23T10:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Morocco",
+      "away_team_name": "Croatia"
+    },
+    {
+      "pff_match_id": "3821",
+      "statsbomb_match_id": "3857284",
+      "match_datetime": "2022-11-23T13:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Germany",
+      "away_team_name": "Japan"
+    },
+    {
+      "pff_match_id": "3822",
+      "statsbomb_match_id": "3857291",
+      "match_datetime": "2022-11-23T16:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Spain",
+      "away_team_name": "Costa Rica"
+    },
+    {
+      "pff_match_id": "3823",
+      "statsbomb_match_id": "3857268",
+      "match_datetime": "2022-11-23T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Belgium",
+      "away_team_name": "Canada"
+    },
+    {
+      "pff_match_id": "3824",
+      "statsbomb_match_id": "3857290",
+      "match_datetime": "2022-11-24T10:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Switzerland",
+      "away_team_name": "Cameroon"
+    },
+    {
+      "pff_match_id": "3825",
+      "statsbomb_match_id": "3857287",
+      "match_datetime": "2022-11-24T13:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Uruguay",
+      "away_team_name": "South Korea"
+    },
+    {
+      "pff_match_id": "3826",
+      "statsbomb_match_id": "3857298",
+      "match_datetime": "2022-11-24T16:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Portugal",
+      "away_team_name": "Ghana"
+    },
+    {
+      "pff_match_id": "3827",
+      "statsbomb_match_id": "3857258",
+      "match_datetime": "2022-11-24T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 1,
+      "split": "support",
+      "home_team_name": "Brazil",
+      "away_team_name": "Serbia"
+    },
+    {
+      "pff_match_id": "3828",
+      "statsbomb_match_id": "3857273",
+      "match_datetime": "2022-11-25T10:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Wales",
+      "away_team_name": "Iran"
+    },
+    {
+      "pff_match_id": "3829",
+      "statsbomb_match_id": "3857301",
+      "match_datetime": "2022-11-25T13:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Qatar",
+      "away_team_name": "Senegal"
+    },
+    {
+      "pff_match_id": "3830",
+      "statsbomb_match_id": "3857274",
+      "match_datetime": "2022-11-25T16:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Netherlands",
+      "away_team_name": "Ecuador"
+    },
+    {
+      "pff_match_id": "3831",
+      "statsbomb_match_id": "3857272",
+      "match_datetime": "2022-11-25T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "England",
+      "away_team_name": "United States"
+    },
+    {
+      "pff_match_id": "3832",
+      "statsbomb_match_id": "3857288",
+      "match_datetime": "2022-11-26T10:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Tunisia",
+      "away_team_name": "Australia"
+    },
+    {
+      "pff_match_id": "3833",
+      "statsbomb_match_id": "3857297",
+      "match_datetime": "2022-11-26T13:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Poland",
+      "away_team_name": "Saudi Arabia"
+    },
+    {
+      "pff_match_id": "3834",
+      "statsbomb_match_id": "3857266",
+      "match_datetime": "2022-11-26T16:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "France",
+      "away_team_name": "Denmark"
+    },
+    {
+      "pff_match_id": "3835",
+      "statsbomb_match_id": "3857289",
+      "match_datetime": "2022-11-26T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Argentina",
+      "away_team_name": "Mexico"
+    },
+    {
+      "pff_match_id": "3836",
+      "statsbomb_match_id": "3857295",
+      "match_datetime": "2022-11-27T10:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Japan",
+      "away_team_name": "Costa Rica"
+    },
+    {
+      "pff_match_id": "3837",
+      "statsbomb_match_id": "3857283",
+      "match_datetime": "2022-11-27T13:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Belgium",
+      "away_team_name": "Morocco"
+    },
+    {
+      "pff_match_id": "3838",
+      "statsbomb_match_id": "3857281",
+      "match_datetime": "2022-11-27T16:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Croatia",
+      "away_team_name": "Canada"
+    },
+    {
+      "pff_match_id": "3839",
+      "statsbomb_match_id": "3857263",
+      "match_datetime": "2022-11-27T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Spain",
+      "away_team_name": "Germany"
+    },
+    {
+      "pff_match_id": "3840",
+      "statsbomb_match_id": "3857259",
+      "match_datetime": "2022-11-28T10:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Cameroon",
+      "away_team_name": "Serbia"
+    },
+    {
+      "pff_match_id": "3841",
+      "statsbomb_match_id": "3857299",
+      "match_datetime": "2022-11-28T13:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "South Korea",
+      "away_team_name": "Ghana"
+    },
+    {
+      "pff_match_id": "3842",
+      "statsbomb_match_id": "3857269",
+      "match_datetime": "2022-11-28T16:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Brazil",
+      "away_team_name": "Switzerland"
+    },
+    {
+      "pff_match_id": "3843",
+      "statsbomb_match_id": "3857270",
+      "match_datetime": "2022-11-28T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 2,
+      "split": "train",
+      "home_team_name": "Portugal",
+      "away_team_name": "Uruguay"
+    },
+    {
+      "pff_match_id": "3844",
+      "statsbomb_match_id": "3857267",
+      "match_datetime": "2022-11-29T15:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Ecuador",
+      "away_team_name": "Senegal"
+    },
+    {
+      "pff_match_id": "3845",
+      "statsbomb_match_id": "3857294",
+      "match_datetime": "2022-11-29T15:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Netherlands",
+      "away_team_name": "Qatar"
+    },
+    {
+      "pff_match_id": "3846",
+      "statsbomb_match_id": "3857261",
+      "match_datetime": "2022-11-29T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Wales",
+      "away_team_name": "England"
+    },
+    {
+      "pff_match_id": "3847",
+      "statsbomb_match_id": "3857278",
+      "match_datetime": "2022-11-29T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Iran",
+      "away_team_name": "United States"
+    },
+    {
+      "pff_match_id": "3848",
+      "statsbomb_match_id": "3857257",
+      "match_datetime": "2022-11-30T15:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Australia",
+      "away_team_name": "Denmark"
+    },
+    {
+      "pff_match_id": "3849",
+      "statsbomb_match_id": "3857275",
+      "match_datetime": "2022-11-30T15:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Tunisia",
+      "away_team_name": "France"
+    },
+    {
+      "pff_match_id": "3850",
+      "statsbomb_match_id": "3857264",
+      "match_datetime": "2022-11-30T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Poland",
+      "away_team_name": "Argentina"
+    },
+    {
+      "pff_match_id": "3851",
+      "statsbomb_match_id": "3857260",
+      "match_datetime": "2022-11-30T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Saudi Arabia",
+      "away_team_name": "Mexico"
+    },
+    {
+      "pff_match_id": "3852",
+      "statsbomb_match_id": "3857296",
+      "match_datetime": "2022-12-01T15:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Croatia",
+      "away_team_name": "Belgium"
+    },
+    {
+      "pff_match_id": "3853",
+      "statsbomb_match_id": "3857276",
+      "match_datetime": "2022-12-01T15:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Canada",
+      "away_team_name": "Morocco"
+    },
+    {
+      "pff_match_id": "3854",
+      "statsbomb_match_id": "3857255",
+      "match_datetime": "2022-12-01T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Japan",
+      "away_team_name": "Spain"
+    },
+    {
+      "pff_match_id": "3855",
+      "statsbomb_match_id": "3857292",
+      "match_datetime": "2022-12-01T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Costa Rica",
+      "away_team_name": "Germany"
+    },
+    {
+      "pff_match_id": "3856",
+      "statsbomb_match_id": "3857293",
+      "match_datetime": "2022-12-02T15:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Ghana",
+      "away_team_name": "Uruguay"
+    },
+    {
+      "pff_match_id": "3857",
+      "statsbomb_match_id": "3857262",
+      "match_datetime": "2022-12-02T15:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "South Korea",
+      "away_team_name": "Portugal"
+    },
+    {
+      "pff_match_id": "3858",
+      "statsbomb_match_id": "3857256",
+      "match_datetime": "2022-12-02T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Serbia",
+      "away_team_name": "Switzerland"
+    },
+    {
+      "pff_match_id": "3859",
+      "statsbomb_match_id": "3857280",
+      "match_datetime": "2022-12-02T19:00:00",
+      "stage": "Group Stage",
+      "match_week": 3,
+      "split": "val",
+      "home_team_name": "Cameroon",
+      "away_team_name": "Brazil"
+    },
+    {
+      "pff_match_id": "10502",
+      "statsbomb_match_id": "3869117",
+      "match_datetime": "2022-12-03T17:00:00",
+      "stage": "Round of 16",
+      "match_week": 4,
+      "split": "test",
+      "home_team_name": "Netherlands",
+      "away_team_name": "United States"
+    },
+    {
+      "pff_match_id": "10503",
+      "statsbomb_match_id": "3869151",
+      "match_datetime": "2022-12-03T21:00:00",
+      "stage": "Round of 16",
+      "match_week": 4,
+      "split": "test",
+      "home_team_name": "Argentina",
+      "away_team_name": "Australia"
+    },
+    {
+      "pff_match_id": "10504",
+      "statsbomb_match_id": "3869152",
+      "match_datetime": "2022-12-04T17:00:00",
+      "stage": "Round of 16",
+      "match_week": 4,
+      "split": "test",
+      "home_team_name": "France",
+      "away_team_name": "Poland"
+    },
+    {
+      "pff_match_id": "10505",
+      "statsbomb_match_id": "3869118",
+      "match_datetime": "2022-12-04T21:00:00",
+      "stage": "Round of 16",
+      "match_week": 4,
+      "split": "test",
+      "home_team_name": "England",
+      "away_team_name": "Senegal"
+    },
+    {
+      "pff_match_id": "10506",
+      "statsbomb_match_id": "3869219",
+      "match_datetime": "2022-12-05T17:00:00",
+      "stage": "Round of 16",
+      "match_week": 4,
+      "split": "test",
+      "home_team_name": "Japan",
+      "away_team_name": "Croatia"
+    },
+    {
+      "pff_match_id": "10507",
+      "statsbomb_match_id": "3869253",
+      "match_datetime": "2022-12-05T21:00:00",
+      "stage": "Round of 16",
+      "match_week": 4,
+      "split": "test",
+      "home_team_name": "Brazil",
+      "away_team_name": "South Korea"
+    },
+    {
+      "pff_match_id": "10508",
+      "statsbomb_match_id": "3869220",
+      "match_datetime": "2022-12-06T17:00:00",
+      "stage": "Round of 16",
+      "match_week": 4,
+      "split": "test",
+      "home_team_name": "Morocco",
+      "away_team_name": "Spain"
+    },
+    {
+      "pff_match_id": "10509",
+      "statsbomb_match_id": "3869254",
+      "match_datetime": "2022-12-06T21:00:00",
+      "stage": "Round of 16",
+      "match_week": 4,
+      "split": "test",
+      "home_team_name": "Portugal",
+      "away_team_name": "Switzerland"
+    },
+    {
+      "pff_match_id": "10510",
+      "statsbomb_match_id": "3869420",
+      "match_datetime": "2022-12-09T17:00:00",
+      "stage": "Quarter-finals",
+      "match_week": 5,
+      "split": "test",
+      "home_team_name": "Croatia",
+      "away_team_name": "Brazil"
+    },
+    {
+      "pff_match_id": "10511",
+      "statsbomb_match_id": "3869321",
+      "match_datetime": "2022-12-09T19:00:00",
+      "stage": "Quarter-finals",
+      "match_week": 5,
+      "split": "test",
+      "home_team_name": "Netherlands",
+      "away_team_name": "Argentina"
+    },
+    {
+      "pff_match_id": "10512",
+      "statsbomb_match_id": "3869486",
+      "match_datetime": "2022-12-10T17:00:00",
+      "stage": "Quarter-finals",
+      "match_week": 5,
+      "split": "test",
+      "home_team_name": "Morocco",
+      "away_team_name": "Portugal"
+    },
+    {
+      "pff_match_id": "10513",
+      "statsbomb_match_id": "3869354",
+      "match_datetime": "2022-12-10T21:00:00",
+      "stage": "Quarter-finals",
+      "match_week": 5,
+      "split": "test",
+      "home_team_name": "England",
+      "away_team_name": "France"
+    },
+    {
+      "pff_match_id": "10514",
+      "statsbomb_match_id": "3869519",
+      "match_datetime": "2022-12-13T21:00:00",
+      "stage": "Semi-finals",
+      "match_week": 6,
+      "split": "test",
+      "home_team_name": "Argentina",
+      "away_team_name": "Croatia"
+    },
+    {
+      "pff_match_id": "10515",
+      "statsbomb_match_id": "3869552",
+      "match_datetime": "2022-12-14T21:00:00",
+      "stage": "Semi-finals",
+      "match_week": 6,
+      "split": "test",
+      "home_team_name": "France",
+      "away_team_name": "Morocco"
+    },
+    {
+      "pff_match_id": "10516",
+      "statsbomb_match_id": "3869684",
+      "match_datetime": "2022-12-17T17:00:00",
+      "stage": "3rd Place Final",
+      "match_week": 7,
+      "split": "test",
+      "home_team_name": "Croatia",
+      "away_team_name": "Morocco"
+    },
+    {
+      "pff_match_id": "10517",
+      "statsbomb_match_id": "3869685",
+      "match_datetime": "2022-12-18T17:00:00",
+      "stage": "Final",
+      "match_week": 7,
+      "split": "test",
+      "home_team_name": "Argentina",
+      "away_team_name": "France"
+    }
+  ],
+  "split_match_ids": {
+    "support": [
+      "3814",
+      "3813",
+      "3812",
+      "3815",
+      "3816",
+      "3817",
+      "3818",
+      "3819",
+      "3820",
+      "3821",
+      "3822",
+      "3823",
+      "3824",
+      "3825",
+      "3826",
+      "3827"
+    ],
+    "train": [
+      "3828",
+      "3829",
+      "3830",
+      "3831",
+      "3832",
+      "3833",
+      "3834",
+      "3835",
+      "3836",
+      "3837",
+      "3838",
+      "3839",
+      "3840",
+      "3841",
+      "3842",
+      "3843"
+    ],
+    "val": [
+      "3844",
+      "3845",
+      "3846",
+      "3847",
+      "3848",
+      "3849",
+      "3850",
+      "3851",
+      "3852",
+      "3853",
+      "3854",
+      "3855",
+      "3856",
+      "3857",
+      "3858",
+      "3859"
+    ],
+    "test": [
+      "10502",
+      "10503",
+      "10504",
+      "10505",
+      "10506",
+      "10507",
+      "10508",
+      "10509",
+      "10510",
+      "10511",
+      "10512",
+      "10513",
+      "10514",
+      "10515",
+      "10516",
+      "10517"
+    ]
+  },
+  "manifest_payload_sha256": "168ab95d68c10886fb8712c19b8bf9b4206e09c526c0187000e96b39b15e00b5"
+}

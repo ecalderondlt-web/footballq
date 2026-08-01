@@ -1,0 +1,69 @@
+experiment_protocol: footpass_player_history_prediction_v1
+
+data:
+  hdf5_path: C:/Users/emica/Downloads/tactical_data_TRAIN/train_tactical_data.h5
+  hdf5_sha256: bcc02cd2f05509d1e82ba16a81ada5349895410a349aeedcb13e539339379058
+  split_manifest: splits/footpass_player_history_chronological_v1.json
+  identity_manifests:
+    - provenance/footpass_napoli_identity_v1.json
+    - provenance/footpass_lazio_identity_v1.json
+    - provenance/footpass_bayern_identity_v1.json
+  protocol_doc: docs/FOOTPASS_PLAYER_HISTORY_PROTOCOL_V1.md
+  cache_path: runs/footpass_player_history_v1/development_cache.npz
+  output_root: runs/footpass_player_history_v1
+
+opportunities:
+  fps: 25.0
+  query_action_classes: [1, 2, 3, 4, 6]
+  possession_action_classes: [1, 2, 3, 4, 5, 6]
+  primary_horizon_seconds: 10.0
+  turnover_horizon_seconds: 5.0
+  penalty_area:
+    attacking_x_min: 0.8428571428571429
+    y_min: 0.20352941176470588
+    y_max: 0.7964705882352942
+  require_query_outside_penalty_area: true
+  minimum_active_players: 20
+
+features:
+  nearest_teammates: 5
+  nearest_opponents: 5
+  tracking_sample_stride_frames: 125
+  coordinate_clip_min: -0.25
+  coordinate_clip_max: 1.25
+  velocity_clip_abs: 0.25
+  history_support_caps: [1, 3, 5]
+  main_history_support_cap: 3
+  action_profile_classes: [1, 2, 3, 4, 5, 6, 7, 8]
+  spatial_x_bins: [0.0, 0.3333333333333333, 0.6666666666666666, 1.0000001]
+  spatial_y_bins: [0.0, 0.3333333333333333, 0.6666666666666666, 1.0000001]
+  shuffled_history_seeds: [7, 11, 23, 41, 73]
+
+probe:
+  l2_coefficient: 0.01
+  max_iterations: 250
+  tolerance_grad: 1.0e-8
+  tolerance_change: 1.0e-10
+  fit_seed: 7
+  standardize_epsilon: 1.0e-8
+
+evaluation:
+  bootstrap_replicates: 5000
+  bootstrap_seed: 20260729
+  ece_bins: 10
+  primary_target: penalty_area_action_10s
+  secondary_target: turnover_5s
+
+development_gate:
+  minimum_primary_relative_nll_improvement: 0.005
+  require_positive_primary_bootstrap_lower_bound: true
+  minimum_positive_validation_matches: 2
+  require_better_than_every_history_shuffle: true
+  require_primary_brier_noninferiority: true
+  minimum_secondary_relative_nll_change: -0.005
+  require_integrity_audits: true
+
+confirmation:
+  freeze_manifest: provenance/footpass_player_history_confirmatory_freeze_v1.json
+  unseal_started: runs/footpass_player_history_v1/confirmatory/UNSEAL_STARTED.json
+  unseal_completed: runs/footpass_player_history_v1/confirmatory/UNSEAL_COMPLETED.json

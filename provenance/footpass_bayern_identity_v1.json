@@ -1,0 +1,354 @@
+{
+  "name": "footpass_bayern_identity_v1",
+  "version": 1,
+  "status": "externally_verified_season_scoped_identity_bridge",
+  "dataset": "footpass_train_tactical",
+  "source_hdf5_sha256": "bcc02cd2f05509d1e82ba16a81ada5349895410a349aeedcb13e539339379058",
+  "team": {
+    "team_id": "fc_bayern_munich_2023_24",
+    "name": "FC Bayern Munich",
+    "season": "2023-24"
+  },
+  "identity_rule": {
+    "persistent_player_id": "fc_bayern_munich_2023_24:shirt_<shirt_number>",
+    "scope": "FC Bayern Munich from 2023-08-27 through 2023-10-24",
+    "source_fields": [
+      "match-local team side",
+      "shirt_number",
+      "externally verified starting lineup",
+      "fixture date"
+    ],
+    "warning": "These identifiers are season-scoped. They must not be treated as globally stable player IDs without another roster bridge."
+  },
+  "verification_method": {
+    "candidate_generation": "First observed H1 lineup extracted by scripts/report_footpass_lineup_signatures.py.",
+    "acceptance_rule": "Both 11-player shirt-number sets must exactly match a public dated starting lineup.",
+    "result": "Five FC Bayern Munich appearances accepted with exact 11-of-11 matches for both teams.",
+    "model_labels_or_future_outcomes_used": false
+  },
+  "research_partition": {
+    "profile_support_only": [
+      "6"
+    ],
+    "development_train": [
+      "2",
+      "27"
+    ],
+    "development_validation": [
+      "33"
+    ],
+    "confirmatory_reserve_do_not_read_until_frozen": [
+      "40"
+    ],
+    "partition_rule": "Strict chronological order; every profile support match must predate its query match."
+  },
+  "matches": [
+    {
+      "footpass_match_id": "6",
+      "match_date": "2023-08-27",
+      "competition": "Bundesliga",
+      "fixture": "FC Bayern Munich vs FC Augsburg",
+      "home_team": "FC Bayern Munich",
+      "away_team": "FC Augsburg",
+      "focal_team_index": 0,
+      "focal_starting_shirts": [
+        2,
+        3,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        19,
+        26,
+        40
+      ],
+      "opponent_starting_shirts": [
+        1,
+        3,
+        8,
+        9,
+        11,
+        16,
+        19,
+        20,
+        23,
+        27,
+        30
+      ],
+      "verification": {
+        "lineup_match": "22_of_22_exact",
+        "confidence": "high",
+        "sources": [
+          "https://fcbayern.com/de/spiele/profis/bundesliga/2023-2024/fc-bayern-muenchen-fc-augsburg-26-08-2023/aufstellung",
+          "https://fcbayern.com/en/matches/profis/bundesliga/2023-2024/fc-bayern-muenchen-fc-augsburg-26-08-2023/report"
+        ]
+      }
+    },
+    {
+      "footpass_match_id": "2",
+      "match_date": "2023-09-02",
+      "competition": "Bundesliga",
+      "fixture": "Borussia Monchengladbach vs FC Bayern Munich",
+      "home_team": "Borussia Monchengladbach",
+      "away_team": "FC Bayern Munich",
+      "focal_team_index": 1,
+      "focal_starting_shirts": [
+        2,
+        3,
+        6,
+        8,
+        9,
+        10,
+        11,
+        19,
+        25,
+        26,
+        40
+      ],
+      "opponent_starting_shirts": [
+        3,
+        5,
+        8,
+        10,
+        14,
+        19,
+        27,
+        29,
+        31,
+        33,
+        39
+      ],
+      "verification": {
+        "lineup_match": "22_of_22_exact",
+        "confidence": "high",
+        "sources": [
+          "https://fcbayern.com/es/matches/profis/bundesliga/2023-2024/borussia-moenchengladbach-fc-bayern-muenchen-02-09-2023/lineup",
+          "https://fcbayern.com/en/matches/profis/bundesliga/2023-2024/borussia-moenchengladbach-fc-bayern-muenchen-02-09-2023/report"
+        ]
+      }
+    },
+    {
+      "footpass_match_id": "27",
+      "match_date": "2023-09-20",
+      "competition": "UEFA Champions League",
+      "fixture": "FC Bayern Munich vs Manchester United",
+      "home_team": "FC Bayern Munich",
+      "away_team": "Manchester United",
+      "focal_team_index": 0,
+      "focal_starting_shirts": [
+        2,
+        3,
+        6,
+        7,
+        8,
+        9,
+        10,
+        19,
+        26,
+        27,
+        42
+      ],
+      "opponent_starting_shirts": [
+        2,
+        6,
+        8,
+        10,
+        11,
+        14,
+        15,
+        18,
+        20,
+        24,
+        28
+      ],
+      "verification": {
+        "lineup_match": "22_of_22_exact",
+        "confidence": "high",
+        "sources": [
+          "https://fcbayern.com/de/spiele/profis/champions-league/2023-2024/fc-bayern-muenchen-manchester-united-20-09-2023/aufstellung",
+          "https://www.skysports.com/football/bayern-munich-vs-manchester-united/teams/498889"
+        ]
+      }
+    },
+    {
+      "footpass_match_id": "33",
+      "match_date": "2023-10-03",
+      "competition": "UEFA Champions League",
+      "fixture": "FC Copenhagen vs FC Bayern Munich",
+      "home_team": "FC Copenhagen",
+      "away_team": "FC Bayern Munich",
+      "focal_team_index": 1,
+      "focal_starting_shirts": [
+        2,
+        3,
+        6,
+        9,
+        10,
+        11,
+        19,
+        26,
+        27,
+        40,
+        42
+      ],
+      "opponent_starting_shirts": [
+        1,
+        2,
+        3,
+        7,
+        9,
+        10,
+        12,
+        22,
+        24,
+        30,
+        33
+      ],
+      "verification": {
+        "lineup_match": "22_of_22_exact",
+        "confidence": "high",
+        "sources": [
+          "https://www.fck.dk/en/news/starting-xi-vs-bayern-munich",
+          "https://www.skysports.com/football/fc-copenhagen-vs-bayern-munich/teams/498896"
+        ]
+      }
+    },
+    {
+      "footpass_match_id": "40",
+      "match_date": "2023-10-24",
+      "competition": "UEFA Champions League",
+      "fixture": "Galatasaray SK vs FC Bayern Munich",
+      "home_team": "Galatasaray SK",
+      "away_team": "FC Bayern Munich",
+      "focal_team_index": 1,
+      "focal_starting_shirts": [
+        3,
+        4,
+        6,
+        9,
+        10,
+        11,
+        19,
+        26,
+        27,
+        40,
+        42
+      ],
+      "opponent_starting_shirts": [
+        1,
+        6,
+        7,
+        9,
+        14,
+        20,
+        23,
+        34,
+        42,
+        88,
+        93
+      ],
+      "verification": {
+        "lineup_match": "22_of_22_exact",
+        "confidence": "high",
+        "sources": [
+          "https://fcbayern.com/es/matches/profis/champions-league/2023-2024/galatasaray-istanbul-fc-bayern-muenchen-24-10-2023/lineup",
+          "https://sport.sky.it/calcio/champions-league/partite/2023/giornata-3/galatasaray-bayern-monaco/formazioni"
+        ]
+      }
+    }
+  ],
+  "players": [
+    {
+      "shirt_number": 2,
+      "player_id": "fc_bayern_munich_2023_24:shirt_2",
+      "player_name": "Dayot Upamecano"
+    },
+    {
+      "shirt_number": 3,
+      "player_id": "fc_bayern_munich_2023_24:shirt_3",
+      "player_name": "Kim Min-jae"
+    },
+    {
+      "shirt_number": 4,
+      "player_id": "fc_bayern_munich_2023_24:shirt_4",
+      "player_name": "Matthijs de Ligt"
+    },
+    {
+      "shirt_number": 6,
+      "player_id": "fc_bayern_munich_2023_24:shirt_6",
+      "player_name": "Joshua Kimmich"
+    },
+    {
+      "shirt_number": 7,
+      "player_id": "fc_bayern_munich_2023_24:shirt_7",
+      "player_name": "Serge Gnabry"
+    },
+    {
+      "shirt_number": 8,
+      "player_id": "fc_bayern_munich_2023_24:shirt_8",
+      "player_name": "Leon Goretzka"
+    },
+    {
+      "shirt_number": 9,
+      "player_id": "fc_bayern_munich_2023_24:shirt_9",
+      "player_name": "Harry Kane"
+    },
+    {
+      "shirt_number": 10,
+      "player_id": "fc_bayern_munich_2023_24:shirt_10",
+      "player_name": "Leroy Sane"
+    },
+    {
+      "shirt_number": 11,
+      "player_id": "fc_bayern_munich_2023_24:shirt_11",
+      "player_name": "Kingsley Coman"
+    },
+    {
+      "shirt_number": 13,
+      "player_id": "fc_bayern_munich_2023_24:shirt_13",
+      "player_name": "Eric Maxim Choupo-Moting"
+    },
+    {
+      "shirt_number": 19,
+      "player_id": "fc_bayern_munich_2023_24:shirt_19",
+      "player_name": "Alphonso Davies"
+    },
+    {
+      "shirt_number": 25,
+      "player_id": "fc_bayern_munich_2023_24:shirt_25",
+      "player_name": "Thomas Muller"
+    },
+    {
+      "shirt_number": 26,
+      "player_id": "fc_bayern_munich_2023_24:shirt_26",
+      "player_name": "Sven Ulreich"
+    },
+    {
+      "shirt_number": 27,
+      "player_id": "fc_bayern_munich_2023_24:shirt_27",
+      "player_name": "Konrad Laimer"
+    },
+    {
+      "shirt_number": 38,
+      "player_id": "fc_bayern_munich_2023_24:shirt_38",
+      "player_name": "Ryan Gravenberch"
+    },
+    {
+      "shirt_number": 39,
+      "player_id": "fc_bayern_munich_2023_24:shirt_39",
+      "player_name": "Mathys Tel"
+    },
+    {
+      "shirt_number": 40,
+      "player_id": "fc_bayern_munich_2023_24:shirt_40",
+      "player_name": "Noussair Mazraoui"
+    },
+    {
+      "shirt_number": 42,
+      "player_id": "fc_bayern_munich_2023_24:shirt_42",
+      "player_name": "Jamal Musiala"
+    }
+  ]
+}

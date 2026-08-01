@@ -1,0 +1,462 @@
+{
+  "name": "footpass_napoli_identity_v1",
+  "version": 1,
+  "status": "externally_verified_season_scoped_identity_bridge",
+  "dataset": "footpass_train_tactical",
+  "source_hdf5_sha256": "bcc02cd2f05509d1e82ba16a81ada5349895410a349aeedcb13e539339379058",
+  "team": {
+    "team_id": "ssc_napoli_2023_24",
+    "name": "SSC Napoli",
+    "season": "2023-24"
+  },
+  "identity_rule": {
+    "persistent_player_id": "ssc_napoli_2023_24:shirt_<shirt_number>",
+    "scope": "SSC Napoli from 2023-09-02 through 2023-12-03",
+    "source_fields": [
+      "match-local team side",
+      "shirt_number",
+      "externally verified starting lineup",
+      "fixture date"
+    ],
+    "warning": "These identifiers are season-scoped. They must not be treated as globally stable player IDs without another roster bridge."
+  },
+  "verification_method": {
+    "candidate_generation": "First observed H1 lineup extracted by scripts/report_footpass_lineup_signatures.py.",
+    "acceptance_rule": "Both 11-player shirt-number sets must exactly match a public dated starting lineup.",
+    "result": "Seven SSC Napoli appearances accepted with exact 11-of-11 matches for both teams.",
+    "model_labels_or_future_outcomes_used": false
+  },
+  "research_partition": {
+    "profile_support_only": [
+      "10"
+    ],
+    "development_train": [
+      "11",
+      "32",
+      "13",
+      "35"
+    ],
+    "development_validation": [
+      "14"
+    ],
+    "confirmatory_reserve_do_not_read_until_frozen": [
+      "22"
+    ],
+    "partition_rule": "Strict chronological order; every profile support match must predate its query match."
+  },
+  "matches": [
+    {
+      "footpass_match_id": "10",
+      "match_date": "2023-09-02",
+      "competition": "Serie A",
+      "fixture": "SSC Napoli vs SS Lazio",
+      "home_team": "SSC Napoli",
+      "away_team": "SS Lazio",
+      "focal_team_index": 0,
+      "focal_starting_shirts": [
+        1,
+        5,
+        9,
+        13,
+        17,
+        20,
+        21,
+        22,
+        68,
+        77,
+        99
+      ],
+      "opponent_starting_shirts": [
+        6,
+        7,
+        10,
+        13,
+        15,
+        17,
+        20,
+        23,
+        32,
+        77,
+        94
+      ],
+      "verification": {
+        "lineup_match": "22_of_22_exact",
+        "confidence": "high",
+        "sources": [
+          "https://www.skysports.com/football/napoli-vs-lazio/teams/489124",
+          "https://img.legaseriea.it/vimages/64f4a26d/2023-24_A_UNICO_UNI_3_NAPLAZ_ENG.pdf"
+        ]
+      }
+    },
+    {
+      "footpass_match_id": "11",
+      "match_date": "2023-09-16",
+      "competition": "Serie A",
+      "fixture": "Genoa CFC vs SSC Napoli",
+      "home_team": "Genoa CFC",
+      "away_team": "SSC Napoli",
+      "focal_team_index": 1,
+      "focal_starting_shirts": [
+        1,
+        5,
+        6,
+        7,
+        9,
+        20,
+        22,
+        55,
+        68,
+        77,
+        99
+      ],
+      "opponent_starting_shirts": [
+        1,
+        3,
+        4,
+        5,
+        8,
+        11,
+        13,
+        19,
+        20,
+        32,
+        47
+      ],
+      "verification": {
+        "lineup_match": "22_of_22_exact",
+        "confidence": "high",
+        "sources": [
+          "https://sport.sky.it/calcio/serie-a/partite/2023/giornata-4/genoa-napoli/formazioni",
+          "https://www.foxsports.com/soccer/serie-a-genoa-vs-napoli-sep-16-2023-game-boxscore-125046"
+        ]
+      }
+    },
+    {
+      "footpass_match_id": "32",
+      "match_date": "2023-09-20",
+      "competition": "UEFA Champions League",
+      "fixture": "SC Braga vs SSC Napoli",
+      "home_team": "SC Braga",
+      "away_team": "SSC Napoli",
+      "focal_team_index": 1,
+      "focal_starting_shirts": [
+        1,
+        5,
+        9,
+        13,
+        17,
+        20,
+        21,
+        22,
+        68,
+        77,
+        99
+      ],
+      "opponent_starting_shirts": [
+        1,
+        2,
+        4,
+        6,
+        7,
+        8,
+        9,
+        14,
+        18,
+        21,
+        26
+      ],
+      "verification": {
+        "lineup_match": "22_of_22_exact",
+        "confidence": "high",
+        "sources": [
+          "https://sport.sky.it/calcio/champions-league/partite/2023/giornata-1/braga-napoli/formazioni",
+          "https://www.transfermarkt.com/sc-braga_ssc-napoli/index/spielbericht/4171254"
+        ]
+      }
+    },
+    {
+      "footpass_match_id": "13",
+      "match_date": "2023-09-27",
+      "competition": "Serie A",
+      "fixture": "SSC Napoli vs Udinese Calcio",
+      "home_team": "SSC Napoli",
+      "away_team": "Udinese Calcio",
+      "focal_team_index": 0,
+      "focal_starting_shirts": [
+        1,
+        3,
+        6,
+        9,
+        20,
+        21,
+        22,
+        55,
+        68,
+        77,
+        99
+      ],
+      "opponent_starting_shirts": [
+        1,
+        2,
+        4,
+        11,
+        12,
+        17,
+        18,
+        26,
+        29,
+        31,
+        32
+      ],
+      "verification": {
+        "lineup_match": "22_of_22_exact",
+        "confidence": "high",
+        "sources": [
+          "https://www.skysports.com/football/napoli-vs-udinese/teams/489157",
+          "https://www.transfermarkt.com/napoli-udinese-calcio/index/spielbericht/4103531"
+        ]
+      }
+    },
+    {
+      "footpass_match_id": "35",
+      "match_date": "2023-10-03",
+      "competition": "UEFA Champions League",
+      "fixture": "SSC Napoli vs Real Madrid CF",
+      "home_team": "SSC Napoli",
+      "away_team": "Real Madrid CF",
+      "focal_team_index": 0,
+      "focal_starting_shirts": [
+        1,
+        3,
+        9,
+        17,
+        20,
+        21,
+        22,
+        55,
+        68,
+        77,
+        99
+      ],
+      "opponent_starting_shirts": [
+        2,
+        5,
+        6,
+        7,
+        8,
+        11,
+        12,
+        15,
+        18,
+        22,
+        25
+      ],
+      "verification": {
+        "lineup_match": "22_of_22_exact",
+        "confidence": "high",
+        "sources": [
+          "https://www.skysports.com/football/napoli-vs-real-madrid/teams/498901",
+          "https://www.realmadrid.com/es-ES/noticias/futbol/primer-equipo/actualidad/once-inicial-del-real-madrid-contra-el-napoles"
+        ]
+      }
+    },
+    {
+      "footpass_match_id": "14",
+      "match_date": "2023-10-08",
+      "competition": "Serie A",
+      "fixture": "SSC Napoli vs ACF Fiorentina",
+      "home_team": "SSC Napoli",
+      "away_team": "ACF Fiorentina",
+      "focal_team_index": 0,
+      "focal_starting_shirts": [
+        1,
+        3,
+        9,
+        17,
+        20,
+        21,
+        22,
+        55,
+        68,
+        77,
+        99
+      ],
+      "opponent_starting_shirts": [
+        1,
+        4,
+        5,
+        6,
+        11,
+        18,
+        28,
+        32,
+        33,
+        65,
+        77
+      ],
+      "verification": {
+        "lineup_match": "22_of_22_exact",
+        "confidence": "high",
+        "sources": [
+          "https://www.skysports.com/football/napoli-vs-fiorentina/teams/489178",
+          "https://sscnapoli.it/en/serie-a-napoli-fiorentina-le-formazioni/"
+        ]
+      }
+    },
+    {
+      "footpass_match_id": "22",
+      "match_date": "2023-12-03",
+      "competition": "Serie A",
+      "fixture": "SSC Napoli vs FC Internazionale Milano",
+      "home_team": "SSC Napoli",
+      "away_team": "FC Internazionale Milano",
+      "focal_team_index": 0,
+      "focal_starting_shirts": [
+        1,
+        3,
+        7,
+        9,
+        13,
+        21,
+        22,
+        55,
+        68,
+        77,
+        99
+      ],
+      "opponent_starting_shirts": [
+        1,
+        2,
+        6,
+        9,
+        10,
+        15,
+        20,
+        22,
+        23,
+        32,
+        36
+      ],
+      "verification": {
+        "lineup_match": "22_of_22_exact",
+        "confidence": "high",
+        "sources": [
+          "https://www.inter.it/en/news/official-line-ups-napoli-inter-serie-a-23-24",
+          "https://www.skysports.com/football/napoli-vs-inter-milan/teams/489235"
+        ]
+      }
+    }
+  ],
+  "players": [
+    {
+      "shirt_number": 1,
+      "player_id": "ssc_napoli_2023_24:shirt_1",
+      "player_name": "Alex Meret"
+    },
+    {
+      "shirt_number": 3,
+      "player_id": "ssc_napoli_2023_24:shirt_3",
+      "player_name": "Natan"
+    },
+    {
+      "shirt_number": 5,
+      "player_id": "ssc_napoli_2023_24:shirt_5",
+      "player_name": "Juan Jesus"
+    },
+    {
+      "shirt_number": 6,
+      "player_id": "ssc_napoli_2023_24:shirt_6",
+      "player_name": "Mario Rui"
+    },
+    {
+      "shirt_number": 7,
+      "player_id": "ssc_napoli_2023_24:shirt_7",
+      "player_name": "Eljif Elmas"
+    },
+    {
+      "shirt_number": 9,
+      "player_id": "ssc_napoli_2023_24:shirt_9",
+      "player_name": "Victor Osimhen"
+    },
+    {
+      "shirt_number": 13,
+      "player_id": "ssc_napoli_2023_24:shirt_13",
+      "player_name": "Amir Rrahmani"
+    },
+    {
+      "shirt_number": 17,
+      "player_id": "ssc_napoli_2023_24:shirt_17",
+      "player_name": "Mathias Olivera"
+    },
+    {
+      "shirt_number": 18,
+      "player_id": "ssc_napoli_2023_24:shirt_18",
+      "player_name": "Giovanni Simeone"
+    },
+    {
+      "shirt_number": 20,
+      "player_id": "ssc_napoli_2023_24:shirt_20",
+      "player_name": "Piotr Zielinski"
+    },
+    {
+      "shirt_number": 21,
+      "player_id": "ssc_napoli_2023_24:shirt_21",
+      "player_name": "Matteo Politano"
+    },
+    {
+      "shirt_number": 22,
+      "player_id": "ssc_napoli_2023_24:shirt_22",
+      "player_name": "Giovanni Di Lorenzo"
+    },
+    {
+      "shirt_number": 23,
+      "player_id": "ssc_napoli_2023_24:shirt_23",
+      "player_name": "Alessio Zerbin"
+    },
+    {
+      "shirt_number": 24,
+      "player_id": "ssc_napoli_2023_24:shirt_24",
+      "player_name": "Jens Cajuste"
+    },
+    {
+      "shirt_number": 29,
+      "player_id": "ssc_napoli_2023_24:shirt_29",
+      "player_name": "Jesper Lindstrom"
+    },
+    {
+      "shirt_number": 55,
+      "player_id": "ssc_napoli_2023_24:shirt_55",
+      "player_name": "Leo Ostigard"
+    },
+    {
+      "shirt_number": 68,
+      "player_id": "ssc_napoli_2023_24:shirt_68",
+      "player_name": "Stanislav Lobotka"
+    },
+    {
+      "shirt_number": 70,
+      "player_id": "ssc_napoli_2023_24:shirt_70",
+      "player_name": "Gianluca Gaetano"
+    },
+    {
+      "shirt_number": 77,
+      "player_id": "ssc_napoli_2023_24:shirt_77",
+      "player_name": "Khvicha Kvaratskhelia"
+    },
+    {
+      "shirt_number": 81,
+      "player_id": "ssc_napoli_2023_24:shirt_81",
+      "player_name": "Giacomo Raspadori"
+    },
+    {
+      "shirt_number": 99,
+      "player_id": "ssc_napoli_2023_24:shirt_99",
+      "player_name": "Andre-Frank Zambo Anguissa"
+    }
+  ],
+  "claim_boundary": [
+    "The manifest establishes a reproducible identity and chronology bridge, not model performance.",
+    "Exact lineup agreement strongly identifies the fixtures but does not replace manual review of every substitute mapping.",
+    "The confirmatory reserve remains sealed until the predictive protocol, features, metrics, and gate are frozen."
+  ]
+}

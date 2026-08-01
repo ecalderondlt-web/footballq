@@ -1,0 +1,55 @@
+{
+  "name": "wyscout_public_source_v1",
+  "version": 1,
+  "dataset": "wyscout_public_soccer_match_event_dataset",
+  "collection_doi": "10.6084/m9.figshare.c.4415000",
+  "paper_doi": "10.1038/s41597-019-0247-7",
+  "license": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  "retrieved_utc_date": "2026-07-29",
+  "raw_root": "data/raw/wyscout_public",
+  "files": [
+    {
+      "name": "events.zip",
+      "figshare_file_id": 14464685,
+      "download_url": "https://ndownloader.figshare.com/files/14464685",
+      "bytes": 77323413,
+      "md5": "7c20e8647e7eda58d7838a0c7b1ec6ab",
+      "sha256": "877e015b716ffdeea18f04418e3f24fed307ed03c37ff305cabe1f47c4822a45"
+    },
+    {
+      "name": "matches.zip",
+      "figshare_file_id": 14464622,
+      "download_url": "https://ndownloader.figshare.com/files/14464622",
+      "bytes": 645097,
+      "md5": "51d80beb17480919f69a53a0152c2d71",
+      "sha256": "c8f92bb7533e5c127e043cee764c991b5c25b4f5e70a65be931baae0b1765ce9"
+    },
+    {
+      "name": "players.json",
+      "figshare_file_id": 15073721,
+      "download_url": "https://ndownloader.figshare.com/files/15073721",
+      "bytes": 1737347,
+      "md5": "f28ddf6326281efeda6488b2169f5609",
+      "sha256": "877a111cb1005b73df5645e9338bd74fb4b496bace2fbc545a72abb3b73efa2e"
+    },
+    {
+      "name": "teams.json",
+      "figshare_file_id": 15073697,
+      "download_url": "https://ndownloader.figshare.com/files/15073697",
+      "bytes": 27404,
+      "md5": "1381ff9449f21105090729cf0e086b5b",
+      "sha256": "9f7a4a3b3d92c0be33f40613ad6e6eb4316c3b9771ec74c61a22c9b8ece23a4d"
+    },
+    {
+      "name": "competitions.json",
+      "figshare_file_id": 15073685,
+      "download_url": "https://ndownloader.figshare.com/files/15073685",
+      "bytes": 1209,
+      "md5": "3dc210a4805dda5337b0ff9f7eaa407a",
+      "sha256": "39a738d2bc97638502e1ead01d661b54c623d6d6b37f77de3846f9a94db7a3a1"
+    }
+  ]
+}
