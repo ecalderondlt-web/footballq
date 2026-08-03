@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "experiment": "rlcs_player_matchup_value_v2",
+  "amendment": "pre_outcome_amendment_01_reduced_cohort",
+  "status": "frozen_before_v2_outcome_construction",
+  "frozen_at_utc": "2026-08-03T21:18:19Z",
+  "base_git_commit": "3f8b4351f9268ffaef091eb779b429bcd41197b1",
+  "amendment_document": {
+    "path": "docs/RLCS_PLAYER_MATCHUP_VALUE_V2_AMENDMENT_01.md",
+    "sha256": "c0da156dcdb80b8a86d257e75aed9a208164f6a417546f6285267e809a086995"
+  },
+  "protocol_document": {
+    "path": "docs/RLCS_PLAYER_MATCHUP_VALUE_V2_PROTOCOL.md",
+    "sha256": "b64b274ff034b12eb7650516294c0db52c3fd1aef3dd5535a9143662b31a50b6"
+  },
+  "config": {
+    "path": "configs/rlcs_player_matchup_value_v2.yaml",
+    "sha256": "ec0c0cd96d3c3fe8c9e8b2f33696010707eae30ff2bacdd8f569a055a77860cc"
+  },
+  "pre_amendment_profile_audit": {
+    "path": "data/processed/rlcs_player_matchup_value_v2/profile_stability_audit.json",
+    "sha256_at_freeze": "a69d5f361b6ad5a837aba97f169513436372b12e894d462c3c459f7bd8340ed6",
+    "eligible_players": 48,
+    "eligible_player_ids_sha256": "c261cefb762b5513dda643109dad8adf0415a85496e75d14286caaa48a146e5f"
+  },
+  "outcome_artifacts_absent_at_freeze": [
+    "data/processed/rlcs_player_matchup_value_v2/train.parquet",
+    "data/processed/rlcs_player_matchup_value_v2/internal_development.parquet",
+    "data/processed/rlcs_player_matchup_value_v2/dataset_manifest.json"
+  ],
+  "split2_validation_loaded": false,
+  "split2_test_loaded": false
+}

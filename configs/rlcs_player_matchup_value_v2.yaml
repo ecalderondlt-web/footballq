@@ -1,0 +1,129 @@
+experiment: rlcs_player_matchup_value_v2
+protocol_status: amended_reduced_cohort_pilot_before_outcome_construction
+protocol_amendment: docs/RLCS_PLAYER_MATCHUP_VALUE_V2_AMENDMENT_01.md
+
+environment:
+  lockfile: uv.lock
+  uv_version: 0.11.28
+
+data:
+  inventory: data/raw/rlcs_2025/replay_inventory.parquet
+  v1_quality_report: data/processed/rlcs_identity_matchup_v1/quality_report.json
+  parser_cache: data/processed/rlcs_identity_matchup_v1/parser_cache
+  v1_manifest: data/processed/rlcs_identity_matchup_v1/dataset_manifest.json
+  output_dir: data/processed/rlcs_player_matchup_value_v2
+  split_manifest: data/processed/rlcs_player_matchup_value_v2/split_manifest.json
+  profile_games: data/processed/rlcs_player_matchup_value_v2/player_game_profiles.parquet
+  profile_snapshots: data/processed/rlcs_player_matchup_value_v2/player_profile_snapshots.parquet
+  profile_priors: data/processed/rlcs_player_matchup_value_v2/profile_priors.json
+  profile_audit: data/processed/rlcs_player_matchup_value_v2/profile_stability_audit.json
+  dataset_manifest: data/processed/rlcs_player_matchup_value_v2/dataset_manifest.json
+  context_seconds: 2.0
+  fps: 10
+  future_distinct_touches: 10
+  exclude_goal_reset_seconds: 2.0
+  profile_frame_sample_seconds: 1.0
+  train_reflection_probability: 0.5
+
+chronology:
+  split1_profile_support_fraction: 0.35
+  split1_training_fraction: 0.45
+  split1_internal_development_fraction: 0.20
+  split2_validation_regional: 1
+  split2_test_regionals: [2, 3]
+  allocation: largest_remainder_by_region
+  split_unit: official_series
+
+profiles:
+  dimension: 28
+  minimum_support_games: 15
+  original_minimum_eligible_players: 60
+  required_complete_eligible_players: 48
+  minimum_eligible_players_per_region: 20
+  retrieval_auc_minimum: 0.75
+  retrieval_auc_bootstrap_lower_minimum: 0.65
+  regional_retrieval_auc_minimum_exclusive: 0.50
+  median_core_spearman_minimum: 0.35
+  median_core_spearman_bootstrap_lower_minimum_exclusive: 0.20
+  player_bootstrap_resamples: 10000
+  player_bootstrap_seed: 20260803
+  player_bootstrap_method: stratified_percentile_by_region
+  empirical_bayes_minimum_prior_games: 1.0
+  empirical_bayes_maximum_prior_games: 25.0
+
+model:
+  input_features: 27
+  time_steps: 20
+  entities: 7
+  width: 192
+  layers: 3
+  attention_heads: 6
+  feed_forward_width: 768
+  dropout: 0.10
+  profile_dimension: 28
+  profile_projection: 64
+  pair_geometry_dimension: 9
+  pair_output_dimension: 64
+  team_form_dimension: 6
+  scalar_context_dimension: 4
+  outcome_classes: 3
+
+training:
+  device: auto
+  precision: bf16
+  batch_size: 256
+  optimizer: adamw
+  learning_rate: 0.0003
+  betas: [0.9, 0.95]
+  weight_decay: 0.05
+  gradient_clip_norm: 1.0
+  warmup_steps: 500
+  minimum_learning_rate: 0.00003
+  maximum_steps: 8000
+  validation_interval_steps: 500
+  early_stop_patience_validations: 4
+  seeds: [17, 23, 41]
+  conditions: [state, team_form, actor_profile, additive_profiles, full_matchup]
+  num_workers: 0
+  run_root: runs/rlcs_player_matchup_value_v2
+
+controls:
+  names:
+    - actor_strength_matched_shuffle
+    - matched_series_opponent_shuffle
+    - opponent_profile_geometry_permutation
+    - population_mean_profiles
+  seeds: 20
+
+evaluation:
+  primary_metric: three_class_log_loss
+  secondary_metrics: [multiclass_brier, ece, score_average_precision, concede_average_precision]
+  ece_bins: 15
+  bootstrap_resamples: 10000
+  sign_flip_permutations: 10000
+  validation_stage: split2_regional1_validation
+  test_stage: split2_regionals2_3_test
+  minimum_training_score_rows: 5000
+  minimum_training_concede_rows: 5000
+  gates:
+    full_vs_team_form_relative_log_loss_reduction: 0.02
+    required_passing_seeds: 2
+    series_bootstrap_lower: 0.0
+    full_vs_additive_relative_log_loss_reduction: 0.005
+    full_vs_actor_relative_log_loss_reduction: 0.005
+    full_vs_each_shuffle_relative_log_loss_reduction: 0.01
+    maximum_ece_degradation_vs_state: 0.01
+    require_positive_eu_and_na: true
+
+game_aggregation:
+  elapsed_seconds: [60, 120]
+  primary_elapsed_seconds: 120
+  minimum_relative_winner_log_loss_reduction: 0.02
+  series_bootstrap_lower: 0.0
+  exclude_scoring_touch: true
+
+v1_diagnostic:
+  validation_summary: runs/rlcs_identity_matchup_v1/validation_summary.json
+  output: runs/rlcs_identity_matchup_v1/v1_outcome_head_audit.json
+  calibration_bins: 10
+  test_split_must_remain_locked: true
