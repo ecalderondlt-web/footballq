@@ -28,6 +28,7 @@ evidence of tactical understanding or improved outcome prediction.
 | Transfer diagnostics | StatsBomb | Does the history term survive alternate team/tournament cohorts? | Profile weight selected as zero |
 | Player-history V1 | FOOTPASS | Does prior history improve action-location and turnover proxies? | Gate failed |
 | Compact player residual V2 | FOOTPASS | Does a shrunk residual beat geometry, role, and shuffles? | Gate failed |
+| Identity-matchup V1 | RLCS 2025 telemetry | Does actor and opponent identity improve next-touch prediction beyond complete geometry? | Validation gate failed; test sealed |
 
 ## 1. PFF Frozen Player Diagnostics
 
@@ -299,16 +300,56 @@ matches, lost to a shuffled control, and was negative in all three internal
 development folds. The gate failed. Confirmation matches 22, 40, and 43 remain
 outcome-sealed.
 
+## 10. RLCS Identity-Matchup V1
+
+This branch-level mechanism test used native RLCS 2025 Rocket League replay
+telemetry, not reconstructed football broadcast video. It asked whether player
+and opponent identities improve prediction of the next toucher and next-touch
+zone after complete geometry, clock, and score are already known. It does not
+test transfer to football and is not evidence of football tactical
+understanding.
+
+The corpus gates passed with `1,595` hashed replays, `1,445` strict-QC and
+identity-resolved replays, `117,704` clean touch decisions, and zero unresolved
+identity replays. The train-only 5,000-sample overfit gate reached joint NLL
+`0.066389`, and all 12 matched condition/seed runs completed locally without
+loading the test split.
+
+Validation-selected factorized joint NLL was:
+
+| Seed | Anonymous | Actor-only | Roster-only | Full | Full vs anonymous |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 17 | `2.712673` | `2.725091` | `2.733312` | `2.730788` | `-0.668%` |
+| 23 | `2.706329` | `2.721318` | `2.726149` | `2.726284` | `-0.737%` |
+| 41 | `2.727498` | `2.736550` | `2.742594` | `2.739154` | `-0.427%` |
+
+The preregistered validation unlock required at least `+2%` full-versus-anonymous
+lift in two of three seeds. Zero seeds passed. No test unlock was created, and
+the critical all-known test outcomes, identity shuffles, bootstraps, and sign
+flips remain unobserved. V1 therefore provides a controlled validation null for
+this identity-embedding architecture and next-touch objective; it does not
+prove that identity-conditioned matchup signal is absent under every model or
+target.
+
+Reproducible sources:
+
+- `docs/RLCS_IDENTITY_MATCHUP_V1.md`
+- `configs/rlcs_identity_matchup_v1.yaml`
+- `splits/rlcs_2025_chronological_v1.json`
+- `provenance/rlcs_identity_aliases_v1.csv`
+- `provenance/rlcs_identity_matchup_v1_validation.json`
+
 ## Overall Conclusion
 
 The experiments separate two claims that must not be conflated:
 
 1. Wyscout pass histories contain a real, reproducible cross-team player
    fingerprint.
-2. None of the tested PFF, Wyscout, StatsBomb, or FOOTPASS profile mechanisms
-   has yet shown robust incremental prediction of tactical or critical outcomes
+2. None of the tested PFF, Wyscout, StatsBomb, FOOTPASS, or RLCS mechanisms has
+   yet shown robust incremental prediction of tactical or critical outcomes
    beyond strong current-context, role, geometry, team, or rolling-involvement
-   controls.
+   controls. The RLCS result is a validation-only null in another sport and
+   must not be presented as a football result.
 
 The project therefore has evidence that stable player-specific signal exists,
 but not yet that the current model uses it to improve tactical prediction. The

@@ -19,6 +19,12 @@ finish split/provenance controls, retrain the geometry-only non-overlap
 representation, run falsification and incremental probe controls, then use
 blinded visualization only as diagnostic evidence.
 
+The identity-conditioned research redirect is isolated on the Rocket League experiment branch.
+Its claim boundary, local viability result, stop gates, and executable commands are documented in
+`docs/RLCS_IDENTITY_MATCHUP_V1.md`. It is a mechanism test in RLCS telemetry, not evidence that the
+current football models understand tactics. V1 completed all 12 validation-only runs, failed its
+2-of-3 seed identity-lift gate, and therefore left the Rocket League test split sealed.
+
 ## Install
 
 ```powershell

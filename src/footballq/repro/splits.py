@@ -14,6 +14,7 @@ ALLOWED_SPLIT_DATASETS = {
     "idsse",
     "metrica",
     "pff_fc",
+    "rlcs",
     "skillcorner",
     "statsbomb",
     "synthetic",

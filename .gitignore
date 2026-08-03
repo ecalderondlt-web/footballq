@@ -1,4 +1,7 @@
 .venv/
+.env
+.env.*
+!.env.example
 .codex_deps/
 .footpass_deps/
 footpass_deps_py314/

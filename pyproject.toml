@@ -20,7 +20,7 @@ dependencies = [
   "pydantic>=2.6",
   "pyyaml>=6.0",
   "rich>=13.7",
-  "torch>=2.2",
+  "torch==2.11.0",
   "tqdm>=4.66",
   "typer>=0.12",
 ]
@@ -29,6 +29,14 @@ dependencies = [
 dev = [
   "pytest>=8",
   "ruff>=0.5",
+]
+rlcs = [
+  "analyzerl-parser==1.0.5",
+  "orjson>=3.10",
+  "requests>=2.32",
+  "scikit-learn>=1.6",
+  "scipy>=1.15",
+  "tenacity>=9.1",
 ]
 
 [project.scripts]
@@ -47,4 +55,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+
+[tool.uv]
+required-version = "==0.11.28"
 

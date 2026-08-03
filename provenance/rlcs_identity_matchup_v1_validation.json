@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "experiment": "rlcs_identity_matchup_v1",
+  "recorded_at_utc": "2026-08-02T22:49:29+00:00",
+  "status": "validation_gate_failed_test_sealed",
+  "claim_boundary": "Validation-only mechanism test in RLCS telemetry; not evidence of football tactical understanding.",
+  "artifacts": {
+    "config_sha256": "58f090e2476e60c884e4ac092cc0bd38b43ca21ba672d40b93845d66a43ef63c",
+    "dataset_manifest_sha256": "6bd2af5e40842ed1ce96ad4466e4ac155e8b6bd953c8c96402af9af6bbdb9760",
+    "split_manifest_sha256": "5daecf1107c7708010ffff18c42b65bb776fccd6b620d9b8bcd7f69e532f7489",
+    "local_validation_summary": "runs/rlcs_identity_matchup_v1/validation_summary.json",
+    "local_validation_summary_sha256": "7c7d98e61fa6f5b63ff3e04e4df172bf3c4ab50ccf6f3c0f1ace14b6cb958169"
+  },
+  "validation_gate": {
+    "metric": "full_vs_anonymous_relative_factorized_joint_nll_reduction",
+    "threshold": 0.02,
+    "required_passing_seeds": 2,
+    "passing_seeds": 0,
+    "passed": false,
+    "test_unlock_created": false,
+    "test_evaluation_run": false
+  },
+  "runs": [
+    {
+      "condition": "anonymous",
+      "seed": 17,
+      "best_step": 5500,
+      "validation_factorized_joint_nll": 2.7126729364989703,
+      "checkpoint_sha256": "44a2fb72b39bdbcbb5abe357d29c3ff7f3fb0128f94e38aa0a87377eb2b87add",
+      "run_manifest_sha256": "2d809376cbd810d8de37d573d018efcd471dac83b8efd9c550a1e34943866d1d"
+    },
+    {
+      "condition": "actor_only",
+      "seed": 17,
+      "best_step": 5500,
+      "validation_factorized_joint_nll": 2.7250914909847332,
+      "checkpoint_sha256": "4092c1f70f05c86f5e272cadab199dcf9510ed4043634256cf5ebb181b90931a",
+      "run_manifest_sha256": "b8e2a0b18e956f0ea755e894ef6da001dcc7eb0068aa0073bb15af280716281a"
+    },
+    {
+      "condition": "roster_only",
+      "seed": 17,
+      "best_step": 4500,
+      "validation_factorized_joint_nll": 2.733312240173026,
+      "checkpoint_sha256": "f201a5342a123ea6dae6c8b26d91fc514037290d367b7f8fb79f757ef910ab13",
+      "run_manifest_sha256": "8eed4015bbaa40afeac197a746677062f1e6779d88f3de011b88f21a9c1c197f"
+    },
+    {
+      "condition": "full",
+      "seed": 17,
+      "best_step": 5500,
+      "validation_factorized_joint_nll": 2.730787930987928,
+      "checkpoint_sha256": "2cdf881a019bff744c722a04f4423ad498cd84e93b9fc5de7aaa73813b9f7028",
+      "run_manifest_sha256": "86f008e5aac96431d7b856e0cd77a21ba2ff87504d49ddaaab5f2b57cf88944c"
+    },
+    {
+      "condition": "anonymous",
+      "seed": 23,
+      "best_step": 6500,
+      "validation_factorized_joint_nll": 2.706329437842643,
+      "checkpoint_sha256": "ab9e75d546aeb1ac835464719718f1d6f7fd5c142d48b11abfcae670be339736",
+      "run_manifest_sha256": "8361cc01eb7aca616fb5fb80bf6c7ad0179740895570fef2a6b5dcadf8a26d56"
+    },
+    {
+      "condition": "actor_only",
+      "seed": 23,
+      "best_step": 6000,
+      "validation_factorized_joint_nll": 2.7213184165338307,
+      "checkpoint_sha256": "23487fe5873bfb1ac9bc52120858a3aafb0c6f97081e8def20db033a62b437ac",
+      "run_manifest_sha256": "88619fb7223ee08be9c0f075152f261131f0c7aafc5a1066879d31ae195d67c0"
+    },
+    {
+      "condition": "roster_only",
+      "seed": 23,
+      "best_step": 6000,
+      "validation_factorized_joint_nll": 2.726149068367962,
+      "checkpoint_sha256": "d0c40f73b494a1678349ca16ad3dc5912cec58cc272ee1c314b12e826545fd41",
+      "run_manifest_sha256": "d8a9c5006afa5690adcaf41707cc6cc13645b52e68cf7dbdb632603d74553fad"
+    },
+    {
+      "condition": "full",
+      "seed": 23,
+      "best_step": 6500,
+      "validation_factorized_joint_nll": 2.726283944456928,
+      "checkpoint_sha256": "ba30793d2d2ce3fdf771e0cee733955ae3e99cdf443508b767d7515c6acb2806",
+      "run_manifest_sha256": "1fb77d56e2dfa44b541ab0729995eb4bc9181ba6fad855b0aa7c43928adec6a0"
+    },
+    {
+      "condition": "anonymous",
+      "seed": 41,
+      "best_step": 5500,
+      "validation_factorized_joint_nll": 2.7274979100817625,
+      "checkpoint_sha256": "c970321e212c365e9c059867a33f67e62a7c3b69913a7ca40971cfe652d1060d",
+      "run_manifest_sha256": "192f6feaabe49b25526f825d6183292955108b660a63f0a3fef43c8de1dff8ff"
+    },
+    {
+      "condition": "actor_only",
+      "seed": 41,
+      "best_step": 5000,
+      "validation_factorized_joint_nll": 2.7365499710947017,
+      "checkpoint_sha256": "c79eeb8780c57a3a3571d6e08a0a135d2e16f3346a5ea82b4265479d32f7ef78",
+      "run_manifest_sha256": "91bedb5b06b9cfcec334f5f326f09f744d063cadcebfc96c1a02b4fa64c05096"
+    },
+    {
+      "condition": "roster_only",
+      "seed": 41,
+      "best_step": 5000,
+      "validation_factorized_joint_nll": 2.7425943266834594,
+      "checkpoint_sha256": "89ecb96371bf6d6e55b1d776814e8a6b20be38a0de83088bf6c9e222b5e89af1",
+      "run_manifest_sha256": "605921622220a2a80d32af2d9a1580a5cd5e5de2c840a6156095aeb12410361e"
+    },
+    {
+      "condition": "full",
+      "seed": 41,
+      "best_step": 5000,
+      "validation_factorized_joint_nll": 2.7391535364297797,
+      "checkpoint_sha256": "0b7479023739ed828642e54740dcf21762aa3b447febc46bed41554f480d8634",
+      "run_manifest_sha256": "f4a4b8d275aeb3d22c59591b7291dc7024260d2b01b095fb483fe4474270ade8"
+    }
+  ],
+  "full_vs_anonymous_relative_lift_by_seed": {
+    "17": -0.0066779132291330204,
+    "23": -0.00737327331080276,
+    "41": -0.004273376820907554
+  }
+}
