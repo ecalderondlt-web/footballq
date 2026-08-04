@@ -1,0 +1,182 @@
+{
+  "version": 2,
+  "experiment": "rlcs_player_matchup_value_v2",
+  "status": "closed_negative_after_internal_development",
+  "frozen_at_utc": "2026-08-04T00:09:55Z",
+  "source_commit_sha": "80e4bd241e67ea9063bd08752ad23129556a6d19",
+  "decision": {
+    "reason": "two_of_three_seed_gate_mathematically_impossible",
+    "required_passing_seeds": 2,
+    "completed_matched_seeds": [17, 23],
+    "passing_completed_seeds": 0,
+    "remaining_configured_seeds": [41],
+    "maximum_possible_passing_seeds": 1,
+    "architecture_frozen": false
+  },
+  "protocol": {
+    "config_path": "configs/rlcs_player_matchup_value_v2.yaml",
+    "config_sha256": "ec0c0cd96d3c3fe8c9e8b2f33696010707eae30ff2bacdd8f569a055a77860cc",
+    "amendment_path": "docs/RLCS_PLAYER_MATCHUP_VALUE_V2_AMENDMENT_01.md",
+    "amendment_sha256": "c0da156dcdb80b8a86d257e75aed9a208164f6a417546f6285267e809a086995",
+    "protocol_path": "docs/RLCS_PLAYER_MATCHUP_VALUE_V2_PROTOCOL.md",
+    "protocol_sha256": "b64b274ff034b12eb7650516294c0db52c3fd1aef3dd5535a9143662b31a50b6"
+  },
+  "profile_gate": {
+    "audit_path": "data/processed/rlcs_player_matchup_value_v2/profile_stability_audit.json",
+    "audit_sha256": "64cd06c01855a856890f0bf9489128b8e9888630f49ac054b7aaece5cb3f4c67",
+    "eligible_player_ids_sha256": "c261cefb762b5513dda643109dad8adf0415a85496e75d14286caaa48a146e5f",
+    "eligible_players": 48,
+    "eligible_players_by_region": {
+      "EU": 24,
+      "NA": 24
+    },
+    "minimum_prior_games": 18,
+    "same_player_retrieval_auc": 0.92578125,
+    "retrieval_auc_95pct_lower": 0.8706597222222222,
+    "median_core_trait_spearman": 0.6362353452019105,
+    "median_spearman_95pct_lower": 0.5216948032078991,
+    "all_gates_pass": true
+  },
+  "dataset": {
+    "manifest_path": "data/processed/rlcs_player_matchup_value_v2/dataset_manifest.json",
+    "manifest_sha256": "4ce4f5d39f483340f16067252aab2557348722f8bf65e1b52d3486b6f43eb25a",
+    "opened_stages": [
+      "train",
+      "internal_development"
+    ],
+    "class_counts": {
+      "train": {
+        "rows": 59086,
+        "no_goal": 46815,
+        "score": 7118,
+        "concede": 5153
+      },
+      "internal_development": {
+        "rows": 28028,
+        "no_goal": 22247,
+        "score": 3335,
+        "concede": 2446
+      }
+    }
+  },
+  "seed_results": {
+    "17": {
+      "team_form_log_loss": 0.6376650313324539,
+      "full_matchup_log_loss": 0.6483684113467484,
+      "relative_log_loss_reduction": -0.016785270460776085,
+      "required_relative_log_loss_reduction": 0.02,
+      "passes": false
+    },
+    "23": {
+      "team_form_log_loss": 0.6398731662240914,
+      "full_matchup_log_loss": 0.6437749411312161,
+      "relative_log_loss_reduction": -0.006097731727287786,
+      "required_relative_log_loss_reduction": 0.02,
+      "passes": false
+    }
+  },
+  "completed_runs": [
+    {
+      "seed": 17,
+      "condition": "state",
+      "best_step": 500,
+      "internal_development_log_loss": 0.637813261388585,
+      "run_manifest_sha256": "190e4234454c83ae7a0f64c606926ee4faeff0f156aa9bbb252b144152ac6aa4",
+      "checkpoint_sha256": "2c9c2dd46d5f9ba043bd4a72120f5efcccd05c2feff263bb98543fa7bb3f6996"
+    },
+    {
+      "seed": 17,
+      "condition": "team_form",
+      "best_step": 500,
+      "internal_development_log_loss": 0.6376650313324539,
+      "run_manifest_sha256": "9ae759d1f09071c9cc33a9b52a17712a6be61b5c425ab636d28cf0e56a791b00",
+      "checkpoint_sha256": "88f1d6f6f65d6bed3b1f4ec132506c03a6183758a1417bfa067c18c1570b9c2b"
+    },
+    {
+      "seed": 17,
+      "condition": "actor_profile",
+      "best_step": 500,
+      "internal_development_log_loss": 0.6395882676426158,
+      "run_manifest_sha256": "81bd28b36145adfce8a93ffec046e6fae74354dd9d43e6eed16eb6b6c2f9dfc0",
+      "checkpoint_sha256": "9abe9209fb4c950ef9c51057d981c90b2695a00bb95fa2ea7f03d31e06a1b864"
+    },
+    {
+      "seed": 17,
+      "condition": "additive_profiles",
+      "best_step": 500,
+      "internal_development_log_loss": 0.6440495035181514,
+      "run_manifest_sha256": "80f4c170509e7ad805850a1275d722fb7099aadf2a47b6ceac91253f4ff8e8f4",
+      "checkpoint_sha256": "c98a17c85592b18a65dc7720a314129476f0438450a187b0a3c984d29231bd46"
+    },
+    {
+      "seed": 17,
+      "condition": "full_matchup",
+      "best_step": 500,
+      "internal_development_log_loss": 0.6483684113467484,
+      "run_manifest_sha256": "04454bd7cbc5e9fd42f3b1ea674ed42a6481362983f3be0354657dfcaa679a63",
+      "checkpoint_sha256": "0dde92be38aeee38edd145207697b4b9059d8a801a8f513305aa92d21d2df095"
+    },
+    {
+      "seed": 23,
+      "condition": "state",
+      "best_step": 1000,
+      "internal_development_log_loss": 0.6377042493767019,
+      "run_manifest_sha256": "60d7f5c37946b0b17e7112765639129e69f25f01c1902c2a247ff3aa878b8c4e",
+      "checkpoint_sha256": "75d190105f9b824e7e56f05634698db019227e093ca1170bf6623a6f6236e2a8"
+    },
+    {
+      "seed": 23,
+      "condition": "team_form",
+      "best_step": 500,
+      "internal_development_log_loss": 0.6398731662240914,
+      "run_manifest_sha256": "6a1bdd85a2fc13ef641fcea79dbd7a1400628c55a81085d419006ad93807583d",
+      "checkpoint_sha256": "cf6b87cba8658ea9923adda381b7d06e528bee217eeff911713dbd2d871f05ed"
+    },
+    {
+      "seed": 23,
+      "condition": "actor_profile",
+      "best_step": 500,
+      "internal_development_log_loss": 0.6408598779883892,
+      "run_manifest_sha256": "ddaf65fe256a6bd4be50d5e987e7023d73ebd4665d74a25e47ec47ad4c0bcc4a",
+      "checkpoint_sha256": "ebbffdf476d0ea8885101cee8a82a64267e3d6981375592537371a3541b96d2f"
+    },
+    {
+      "seed": 23,
+      "condition": "additive_profiles",
+      "best_step": 500,
+      "internal_development_log_loss": 0.6416554071493004,
+      "run_manifest_sha256": "c026d430ee79cc47dc6294d3dfc1129ba58231a35771737f37096161027b47b8",
+      "checkpoint_sha256": "1ec58a75e6b8ccd8424bc3b353b01a9d14ca7e610a66d2743ae67d7e7fd55901"
+    },
+    {
+      "seed": 23,
+      "condition": "full_matchup",
+      "best_step": 500,
+      "internal_development_log_loss": 0.6437749411312161,
+      "run_manifest_sha256": "ca6af172931e7c6ee8dc7b54756cf98ffaed592141bcc1203eb61ab98b0ceb16",
+      "checkpoint_sha256": "250ab425c2e50eca48713f198b0b50a786d8607d82a1d1c6de7cd494e3f1687a"
+    }
+  ],
+  "excluded_seed_41_artifact": {
+    "seed": 41,
+    "condition": "state",
+    "checkpoint_sha256": "9a5a3171d8ad4289495619c8cec7f00eb55eca6670fb07d343de6bc958b14894",
+    "run_manifest_present": false,
+    "reason": "training_was_terminated_after_the_primary_gate_became_mathematically_impossible",
+    "included_in_any_result": false
+  },
+  "source_stop_summary": {
+    "path": "runs/rlcs_player_matchup_value_v2/v2_stop_summary.json",
+    "sha256": "164f9feae3f659d0a896d3072163c828cbfad1ccd41040ab93b52ff20c73f5e6",
+    "completed_run_lineage_verified": true
+  },
+  "split_locks": {
+    "opened_stages": [
+      "train",
+      "internal_development"
+    ],
+    "split2_regional1_validation_loaded": false,
+    "split2_regionals2_3_test_loaded": false,
+    "test_unlock_created": false
+  }
+}

@@ -100,12 +100,15 @@ Tracked protocol and implementation evidence:
 
 - `docs/RLCS_PLAYER_MATCHUP_VALUE_V2_AMENDMENT_01.md`
 - `provenance/rlcs_player_matchup_value_v2_amendment_01.json`
+- `provenance/rlcs_player_matchup_value_v2_stop.json`
 - `configs/rlcs_player_matchup_value_v2.yaml`
 - `scripts/build_rlcs_value_dataset.py`
 - `scripts/train_rlcs_value.py`
 - `scripts/summarize_rlcs_value.py`
 
-Generated machine-readable evidence, intentionally ignored by Git:
+The tracked stop ledger freezes the ignored machine evidence needed to reproduce the decision,
+including all ten completed checkpoint and run-manifest hashes. The underlying generated evidence
+remains intentionally ignored by Git:
 
 - `data/processed/rlcs_player_matchup_value_v2/profile_stability_audit.json`
 - `data/processed/rlcs_player_matchup_value_v2/dataset_manifest.json`
