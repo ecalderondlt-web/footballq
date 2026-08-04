@@ -1,0 +1,162 @@
+experiment: rlcs_last_defender_policy_value_v3
+protocol_status: pre_outcome_frozen_final_rlcs_mechanism_test
+protocol: docs/RLCS_LAST_DEFENDER_POLICY_VALUE_V3_PROTOCOL.md
+preoutcome_freeze: provenance/rlcs_last_defender_policy_value_v3_preoutcome.json
+
+environment:
+  lockfile: uv.lock
+  uv_version: 0.11.28
+
+data:
+  inventory: data/raw/rlcs_2025/replay_inventory.parquet
+  quality_report: data/processed/rlcs_identity_matchup_v1/quality_report.json
+  parser_cache: data/processed/rlcs_identity_matchup_v1/parser_cache
+  v2_split_manifest: data/processed/rlcs_player_matchup_value_v2/split_manifest.json
+  profile_snapshots: data/processed/rlcs_player_matchup_value_v2/player_profile_snapshots.parquet
+  profile_priors: data/processed/rlcs_player_matchup_value_v2/profile_priors.json
+  profile_audit: data/processed/rlcs_player_matchup_value_v2/profile_stability_audit.json
+  output_dir: data/processed/rlcs_last_defender_policy_value_v3
+  threshold_output: data/processed/rlcs_last_defender_policy_value_v3/geometry_thresholds.json
+  opportunity_inventory: data/processed/rlcs_last_defender_policy_value_v3/opportunity_inventory.parquet
+  stage0_audit: data/processed/rlcs_last_defender_policy_value_v3/stage0_audit.json
+  context_seconds: 2.0
+  fps: 10
+  maximum_frame_lag_seconds: 0.15
+
+split_locks:
+  threshold_calibration_stages: [train]
+  opportunity_stages: [train, internal_development]
+  forbidden_stage0_stages: [profile_support, validation, test]
+  split2_validation_regional: 1
+  split2_test_regionals: [2, 3]
+  split_unit: official_series
+
+cohort:
+  required_complete_players: 48
+  minimum_prior_games_actor: 15
+  minimum_prior_games_defender: 15
+  eligible_ids_source: profile_audit
+  manual_selection_permitted: false
+
+geometry_calibration:
+  quantile_method: linear
+  minimum_finite_observations: 500
+  corridor_half_width:
+    quantile: 0.60
+    clip: [700.0, 1800.0]
+  last_defender_forward_distance:
+    quantile: 0.80
+    clip: [1200.0, 4200.0]
+  immediate_intervention_range:
+    quantile: 0.25
+    clip: [900.0, 2200.0]
+  teammate_overload_range:
+    quantile: 0.25
+    clip: [900.0, 2200.0]
+
+opportunity:
+  family: attacking_last_defender_duel
+  require_actor_closest_teammate_to_ball: true
+  require_actor_and_ball_attacking_half: true
+  require_exactly_one_corridor_defender: true
+  require_other_opponents_outside_intervention: true
+  require_teammates_outside_overload: true
+  require_complete_past_context: true
+  reject_goal_or_kickoff_in_context: true
+  reject_parser_stint_crossing: true
+  goal_center_actor_oriented: [0.0, 5120.0]
+  contact_deduplication_seconds: 0.20
+
+opportunity_gates:
+  minimum_opportunities: 1000
+  minimum_distinct_actors: 30
+  minimum_distinct_defenders: 30
+  minimum_eu_opportunities: 300
+  minimum_na_opportunities: 300
+  maximum_actor_share: 0.10
+  maximum_defender_share: 0.10
+
+matchup_exposure:
+  standardize_from: profile_support_priors
+  standardized_clip: [-5.0, 5.0]
+  threshold_fit_stage: train
+  threshold: median
+  favorable_inclusive: true
+  actor_traits:
+    carry_speed: [mean_speed]
+    boost_economy: [mean_boost, negative_low_boost_fraction]
+    take_on_control_frequency: [ground_dribble_per_touch, aerial_control_per_touch, flick_per_touch]
+  defender_traits:
+    goalside_recovery: [goalside_recovery_speed]
+    challenge_win: [challenge_win_fraction]
+    boost_economy: [mean_boost, negative_low_boost_fraction]
+    turnover_pressure_proxy: [retrieval_per_touch, nearest_to_ball_fraction, challenge_win_fraction, negative_turnover_per_touch]
+
+common_support:
+  propensity_model: l2_logistic_regression
+  propensity_c: 1.0
+  folds: 5
+  fold_method: stratified_group_kfold
+  fold_group: official_series
+  seed: 20260803
+  missing_value_policy: training_fold_median
+  scaling: training_fold_standard
+  exact_match: region
+  propensity_interval: [0.10, 0.90]
+  minimum_propensity_interval_fraction: 0.70
+  overlap_weight_ess_minimum: 400
+  logit_caliper_pooled_sd: 0.20
+  matching: deterministic_greedy_1_to_1_without_replacement
+  minimum_matched_sets: 300
+  maximum_absolute_smd: 0.10
+
+action_label_audit:
+  classes: [take_on, release, finish]
+  excluded_class: ambiguous
+  followup_seconds: 2.0
+  maximum_subsequent_contacts: 2
+  sample_size: 100
+  sampling: class_stratified_official_series
+  identity_blinded: true
+  seed: 20260803
+  minimum_agreement: 0.80
+
+stage1:
+  model: regularized_multinomial_logistic_regression
+  outer_folds: 5
+  inner_folds: 4
+  fold_group: official_series
+  c_grid: [0.01, 0.1, 1.0, 10.0]
+  primary_metric: three_class_log_loss
+  bootstrap_resamples: 10000
+  bootstrap_seed: 20260804
+  profile_permutations: 2000
+  permutation_seed: 20260805
+  gates:
+    matchup_vs_team_form_relative_log_loss_reduction: 0.01
+    matchup_vs_additive_relative_log_loss_reduction: 0.005
+    official_series_bootstrap_lower_exclusive: 0.0
+    profile_permutation_p_exclusive: 0.01
+    require_positive_eu_and_na: true
+
+stage2:
+  maximum_future_distinct_contacts: 5
+  stop_after_consecutive_opponent_contacts: 2
+  success_events: [shot, goal]
+  estimator: cross_fitted_doubly_robust
+  fold_group: official_series
+  bootstrap_resamples: 10000
+  bootstrap_seed: 20260806
+  profile_permutations: 2000
+  permutation_seed: 20260807
+  gates:
+    relative_success_log_loss_reduction: 0.01
+    official_series_bootstrap_lower_exclusive: 0.0
+    profile_permutation_p_exclusive: 0.01
+    require_positive_eu_and_na: true
+    require_leave_one_group_sign_stability: [actor, defender, team, series]
+
+hard_stop:
+  v3_failure_closes_rlcs: true
+  allow_fourth_target: false
+  allow_post_outcome_threshold_tuning: false

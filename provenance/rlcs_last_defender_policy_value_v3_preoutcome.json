@@ -1,0 +1,72 @@
+{
+  "version": 3,
+  "experiment": "rlcs_last_defender_policy_value_v3",
+  "status": "frozen_before_stage0",
+  "frozen_at_utc": "2026-08-04T00:36:02+00:00",
+  "branch": "rocket-league",
+  "base_commit_sha": "fab02110bbe659396b41cf9e5f56c5710a37dd14",
+  "v2_stop_ledger_path": "provenance/rlcs_player_matchup_value_v2_stop.json",
+  "v2_stop_ledger_sha256": "584ec3309e5312ac5957123582a325bd62149a4c51211048bcd2e0fc3a4c4a52",
+  "config_path": "configs/rlcs_last_defender_policy_value_v3.yaml",
+  "config_sha256": "06d8429562bda604073148547973f16eb145e64c42274ea490e74dd56dee4b11",
+  "protocol_path": "docs/RLCS_LAST_DEFENDER_POLICY_VALUE_V3_PROTOCOL.md",
+  "protocol_sha256": "fe4aaf528ff479ff4397f29b80562f56b00c78d8ba6c56f7d995805c92cc4d8b",
+  "implementation_path": "src/footballq/data/rlcs_last_defender_v3.py",
+  "implementation_sha256": "a20778c88f0c9b51a3e377ec70c8542e4a78281a3659362e052f4f4f8e2e00e8",
+  "runner_path": "scripts/audit_rlcs_last_defender_v3.py",
+  "runner_sha256": "20d7166b98a3746e1abcf976aa30f8bd1258e18d8b3d6a675981d5449dfbcf59",
+  "test_path": "tests/test_rlcs_last_defender_v3.py",
+  "test_sha256": "bd3f3f94c7c26799c13e53bf6500706cabca1120de4ae6f220396a3ce8d95481",
+  "source_sha256": {
+    "inventory": "acb2181648eccf1b40bdc48cd6076587d0b376695415d50f3b1691b99af3c303",
+    "quality_report": "1382a929e34898d51c0b67cdcd4f6c99d5e414de1fd57ee01753e8baeee03cf4",
+    "v2_split_manifest": "d5cb55048d690f77f340fa0a9b5689aae08ecd7f2f29ff80a630c13d12f09baf",
+    "profile_snapshots": "cefff89de72611498a49e61f1872bc817d71ac1978acaa5304b1caf5baf722bc",
+    "profile_priors": "c303b2e21afb1d2ccd63a7aee37aaff80b9832a4309b21b5e64b2e7c2957237e",
+    "profile_audit": "64cd06c01855a856890f0bf9489128b8e9888630f49ac054b7aaece5cb3f4c67"
+  },
+  "frozen_design": {
+    "opportunity_family": "attacking_last_defender_duel",
+    "threshold_fit_stage": "train",
+    "opportunity_stages": [
+      "train",
+      "internal_development"
+    ],
+    "eligible_players": 48,
+    "minimum_actor_prior_games": 15,
+    "minimum_defender_prior_games": 15,
+    "minimum_opportunities": 1000,
+    "minimum_distinct_actors": 30,
+    "minimum_distinct_defenders": 30,
+    "minimum_region_opportunities": {
+      "EU": 300,
+      "NA": 300
+    },
+    "maximum_actor_share": 0.1,
+    "maximum_defender_share": 0.1,
+    "minimum_matched_sets": 300,
+    "minimum_overlap_weight_ess": 400,
+    "minimum_propensity_interval_fraction": 0.7,
+    "maximum_absolute_smd": 0.1
+  },
+  "outcome_artifact_state": {
+    "stage0_output_directory_present": false,
+    "action_labels_loaded": false,
+    "success_labels_loaded": false,
+    "split2_validation_loaded": false,
+    "split2_test_loaded": false,
+    "downstream_training_authorized": false
+  },
+  "verification": {
+    "full_pytest_passed": true,
+    "pytest_tests_passed": 433,
+    "ruff_passed": true,
+    "local_logical_cores": 16,
+    "local_compute_viable": true
+  },
+  "hard_stop": {
+    "stage0_failure_closes_rlcs": true,
+    "allow_post_outcome_threshold_tuning": false,
+    "allow_fourth_target": false
+  }
+}
