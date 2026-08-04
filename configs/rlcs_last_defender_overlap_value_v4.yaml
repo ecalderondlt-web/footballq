@@ -1,0 +1,92 @@
+experiment: rlcs_last_defender_overlap_value_v4
+protocol_status: pre_outcome_frozen
+protocol: docs/RLCS_LAST_DEFENDER_OVERLAP_VALUE_V4_PROTOCOL.md
+preoutcome_freeze: provenance/rlcs_last_defender_overlap_value_v4_preoutcome.json
+
+environment:
+  lockfile: uv.lock
+  uv_version: 0.11.28
+
+data:
+  v3_stop_ledger: provenance/rlcs_last_defender_policy_value_v3_stop.json
+  v3_opportunity_inventory: data/processed/rlcs_last_defender_policy_value_v3/opportunity_inventory.parquet
+  replay_inventory: data/raw/rlcs_2025/replay_inventory.parquet
+  quality_report: data/processed/rlcs_identity_matchup_v1/quality_report.json
+  parser_cache: data/processed/rlcs_identity_matchup_v1/parser_cache
+  output_dir: data/processed/rlcs_last_defender_overlap_value_v4
+  weighted_inventory: data/processed/rlcs_last_defender_overlap_value_v4/weighted_inventory.parquet
+  support_audit: data/processed/rlcs_last_defender_overlap_value_v4/support_audit.json
+  outcome_unlock: data/processed/rlcs_last_defender_overlap_value_v4/outcome_unlock.json
+  outcome_receipt: data/processed/rlcs_last_defender_overlap_value_v4/outcome_receipt.json
+  outcome_dataset: data/processed/rlcs_last_defender_overlap_value_v4/outcome_dataset.parquet
+  outcome_result: data/processed/rlcs_last_defender_overlap_value_v4/outcome_result.json
+
+source_lock:
+  opportunity_inventory_sha256: 5b0d73951f04e842888eef38fbbb23c740166bfb407fc02f9300f2fc80d4f265
+  opportunity_rows: 5256
+  allowed_stages: [train, internal_development]
+  forbidden_columns:
+    - action_label
+    - success_label
+    - outcome_label
+    - future_contacts
+    - future_shot
+    - future_goal
+    - shot_within_horizon
+    - goal_within_horizon
+
+support:
+  propensity_folds: 5
+  propensity_seed: 20260803
+  propensity_c: 1.0
+  propensity_interval: [0.10, 0.90]
+  minimum_propensity_interval_fraction: 0.70
+  minimum_total_ess: 400
+  minimum_exposure_group_ess: 400
+  maximum_absolute_weighted_smd: 0.10
+  exact_strata: [series_id, actor_team_roster_sha256]
+  minimum_exact_pairs: 1000
+  maximum_absolute_exact_pair_smd: 0.10
+
+outcome:
+  maximum_future_distinct_contacts: 5
+  stop_after_consecutive_opponent_contacts: 2
+  success_events: [shot, goal]
+  boundary_events: [goal, kickoff]
+  minimum_uncensored_rows: 1000
+  minimum_successes: 100
+  minimum_failures: 100
+  minimum_region_successes: 30
+  minimum_region_failures: 100
+  minimum_complete_exact_pairs: 500
+  maximum_postlabel_weighted_smd: 0.10
+  maximum_complete_exact_pair_smd: 0.10
+
+model:
+  estimator: l2_logistic_regression
+  outer_folds: 5
+  inner_folds: 4
+  fold_group: official_series
+  seed: 20260808
+  c_grid: [0.01, 0.1, 1.0, 10.0]
+  primary_metric: overlap_weighted_binary_log_loss
+
+uncertainty:
+  bootstrap_resamples: 10000
+  bootstrap_seed: 20260809
+  profile_permutations: 1000
+  permutation_seed: 20260810
+
+gates:
+  full_vs_team_form_relative_log_loss_reduction: 0.01
+  full_vs_additive_relative_log_loss_reduction: 0.005
+  official_series_bootstrap_lower_exclusive: 0.0
+  profile_permutation_p_exclusive: 0.01
+  require_positive_eu_and_na: true
+  require_positive_exact_pair_sensitivity: true
+
+split_locks:
+  opened_stages: [train, internal_development]
+  split2_validation_regional: 1
+  split2_test_regionals: [2, 3]
+  split_unit: official_series

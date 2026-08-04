@@ -1,0 +1,93 @@
+{
+  "version": 4,
+  "experiment": "rlcs_last_defender_overlap_value_v4",
+  "status": "frozen_before_v4_support_and_outcomes",
+  "frozen_at_utc": "2026-08-04T16:45:58Z",
+  "branch": "rocket-league",
+  "base_commit_sha": "6854ff332b81abe6e2c0cbf94f28f89fe53198fb",
+  "v3_status": "remains_closed_under_original_greedy_matching_rule",
+  "v4_authorization": {
+    "authorized_by_user": true,
+    "authorization_scope": "separately_numbered_v4_using_outcome_blind_overlap_weighting_fix",
+    "retroactively_changes_v3": false,
+    "success_outcomes_seen_before_freeze": false
+  },
+  "config_path": "configs/rlcs_last_defender_overlap_value_v4.yaml",
+  "config_sha256": "f48831cc4f70c0b9be8814623eb913b7a483d5c87283da60bd799402f7f51917",
+  "protocol_path": "docs/RLCS_LAST_DEFENDER_OVERLAP_VALUE_V4_PROTOCOL.md",
+  "protocol_sha256": "07da9dfbcf9b2fbcc74fa18fa336e58cf3c08d44663a449604f6df9710608641",
+  "implementation_path": "src/footballq/analysis/rlcs_last_defender_v4.py",
+  "implementation_sha256": "320e0ffa855380907980cbe6e0a324d8de8313a8f38317c7ab67eea18233865e",
+  "runner_path": "scripts/run_rlcs_last_defender_v4.py",
+  "runner_sha256": "23a32a394d7ca1552f76eeed8712ea2722f2a72863034b4fca2b39e4b5fe43c9",
+  "test_path": "tests/test_rlcs_last_defender_v4.py",
+  "test_sha256": "8a1678a0c825b0da5a1698d6239f5d61f04a8b767ee8a14d7dd28ce903025434",
+  "lockfile_path": "uv.lock",
+  "lockfile_sha256": "68d2b367cf793317ba7cf066446820a28e2d283da1438a5ee1eac87414dc4f0f",
+  "source_sha256": {
+    "v3_stop_ledger": "c3c4469d99cf1559eeb65707a141e710c22d0bf36de4864dbf0822ee10ff61df",
+    "v3_opportunity_inventory": "5b0d73951f04e842888eef38fbbb23c740166bfb407fc02f9300f2fc80d4f265",
+    "replay_inventory": "acb2181648eccf1b40bdc48cd6076587d0b376695415d50f3b1691b99af3c303",
+    "quality_report": "1382a929e34898d51c0b67cdcd4f6c99d5e414de1fd57ee01753e8baeee03cf4"
+  },
+  "frozen_design": {
+    "source_rows": 5256,
+    "opened_stages": [
+      "train",
+      "internal_development"
+    ],
+    "primary_design": "overlap_weighted_out_of_fold_propensity",
+    "minimum_total_ess": 400,
+    "minimum_exposure_group_ess": 400,
+    "maximum_absolute_weighted_smd": 0.1,
+    "sensitivity_design": "optimal_pairs_exact_official_series_and_actor_team_roster",
+    "minimum_exact_pairs": 1000,
+    "maximum_absolute_exact_pair_smd": 0.1,
+    "success_horizon": "shot_or_goal_before_five_contacts_two_consecutive_opponent_contacts_or_boundary",
+    "minimum_complete_uncensored_exact_pairs": 500,
+    "maximum_postlabel_weighted_smd": 0.1,
+    "maximum_complete_exact_pair_smd": 0.1,
+    "outcome_model": "nested_series_cross_fitted_l2_logistic_regression",
+    "bootstrap_resamples": 10000,
+    "profile_permutations": 1000
+  },
+  "outcome_blind_design_diagnostics": {
+    "primary_overlap_weight_ess": 4620.5739158512515,
+    "primary_maximum_absolute_weighted_smd": 0.019311189171582952,
+    "primary_maximum_smd_feature": "score_diff_actor",
+    "exact_sensitivity_pairs": 1413,
+    "exact_sensitivity_maximum_absolute_smd": 0.0923016192889324,
+    "exact_sensitivity_maximum_smd_feature": "defender_forward_z",
+    "regional_descriptive_maximum_absolute_weighted_smd": {
+      "EU": 0.10374626110261187,
+      "NA": 0.1701583556018724
+    },
+    "regional_smd_is_a_gate": false,
+    "exact_sensitivity_direction_is_an_outcome_gate": true
+  },
+  "outcome_artifact_state": {
+    "v4_output_directory_present": false,
+    "support_audit_written": false,
+    "outcome_unlock_written": false,
+    "outcome_receipt_written": false,
+    "success_labels_loaded": false,
+    "action_labels_loaded": false,
+    "split2_validation_loaded": false,
+    "split2_test_loaded": false,
+    "outcome_training_started": false
+  },
+  "verification": {
+    "full_pytest_passed": true,
+    "pytest_tests_passed": 440,
+    "pytest_warnings": 3,
+    "repo_wide_ruff_passed": true,
+    "git_diff_check_passed": true,
+    "local_compute_viable": true
+  },
+  "claim_boundary": {
+    "positive_result_scope": "incremental_predictive_association_in_the_measured_overlap_population",
+    "causal_player_effect_claim_permitted": false,
+    "football_transfer_claim_permitted": false,
+    "v3_action_mediation_claim_permitted": false
+  }
+}
