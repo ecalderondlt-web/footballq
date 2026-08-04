@@ -1,0 +1,213 @@
+{
+  "version": 3,
+  "experiment": "rlcs_last_defender_policy_value_v3",
+  "status": "closed_final_rlcs_after_stage0_common_support_failure",
+  "frozen_at_utc": "2026-08-04T00:43:24+00:00",
+  "source_commit_sha": "60c73cac799cd90e1983a7f59323c60f7025205c",
+  "decision": {
+    "stage0_all_gates_pass": false,
+    "failed_gate": "maximum_absolute_smd_every_matching_state_feature",
+    "required_maximum_absolute_smd": 0.1,
+    "observed_maximum_absolute_smd": 0.2213332761312298,
+    "maximum_smd_feature": "team_form_actor_win_rate",
+    "additional_failed_feature": {
+      "name": "team_form_actor_goal_diff",
+      "absolute_smd": 0.20601898311344927
+    },
+    "downstream_training_authorized": false,
+    "next_authorized_step": "close_rlcs_no_fourth_target",
+    "reason": "profile_defined_matchup_exposure_remained_confounded_with_actor_team_form_after_frozen_matching"
+  },
+  "preoutcome_freeze": {
+    "path": "provenance/rlcs_last_defender_policy_value_v3_preoutcome.json",
+    "sha256": "978091d25aaf40a5f8d312c3243ed2f2b5b7818201045e09d09d0a83ed140031",
+    "config_sha256": "06d8429562bda604073148547973f16eb145e64c42274ea490e74dd56dee4b11",
+    "protocol_sha256": "fe4aaf528ff479ff4397f29b80562f56b00c78d8ba6c56f7d995805c92cc4d8b",
+    "implementation_sha256": "a20778c88f0c9b51a3e377ec70c8542e4a78281a3659362e052f4f4f8e2e00e8",
+    "runner_sha256": "20d7166b98a3746e1abcf976aa30f8bd1258e18d8b3d6a675981d5449dfbcf59",
+    "test_sha256": "bd3f3f94c7c26799c13e53bf6500706cabca1120de4ae6f220396a3ce8d95481"
+  },
+  "execution": {
+    "device": "local_current_device",
+    "workers": 4,
+    "logical_cores_available": 16,
+    "wall_time_seconds_approximate": 192.1,
+    "local_compute_viable": true,
+    "calibration_replays": 349,
+    "inventory_replays": 517,
+    "replay_failures": 0
+  },
+  "calibration": {
+    "fit_stage": "train",
+    "base_contacts": 27533,
+    "finite_observation_counts": {
+      "corridor_half_width": 26701,
+      "last_defender_forward_distance": 26701,
+      "immediate_intervention_range": 26701,
+      "teammate_overload_range": 27533
+    },
+    "raw_quantiles": {
+      "corridor_half_width": 363.3607746146276,
+      "last_defender_forward_distance": 2318.4182244617755,
+      "immediate_intervention_range": 743.3722607987263,
+      "teammate_overload_range": 1383.8724989796706
+    },
+    "clipped_thresholds": {
+      "corridor_half_width": 700.0,
+      "last_defender_forward_distance": 2318.4182244617755,
+      "immediate_intervention_range": 900.0,
+      "teammate_overload_range": 1383.8724989796706
+    }
+  },
+  "matchup_exposure": {
+    "fit_stage": "train",
+    "train_median_mismatch": 0.034977310110055566,
+    "favorable_rows": 2578,
+    "unfavorable_rows": 2678
+  },
+  "opportunity_volume": {
+    "counts": {
+      "opportunities": 5256,
+      "distinct_actors": 48,
+      "distinct_defenders": 48,
+      "official_series": 45,
+      "by_region": {
+        "EU": 2525,
+        "NA": 2731
+      }
+    },
+    "concentration": {
+      "maximum_actor_share": 0.04813546423135464,
+      "maximum_defender_share": 0.04299847792998478
+    },
+    "gates": {
+      "minimum_opportunities": true,
+      "minimum_distinct_actors": true,
+      "minimum_distinct_defenders": true,
+      "minimum_eu_opportunities": true,
+      "minimum_na_opportunities": true,
+      "maximum_actor_share": true,
+      "maximum_defender_share": true
+    },
+    "all_gates_pass": true
+  },
+  "common_support": {
+    "propensity": {
+      "method": "five_fold_stratified_group_l2_logistic",
+      "rows": 5256,
+      "series": 45,
+      "favorable_fraction": 0.4904870624048706,
+      "interval": [
+        0.1,
+        0.9
+      ],
+      "interval_fraction": 0.9942922374429224,
+      "minimum": 0.04495548815046715,
+      "median": 0.5037621268899592,
+      "maximum": 0.9420396114757492
+    },
+    "overlap_weight_effective_sample_size": 4620.5739158512515,
+    "matching": {
+      "matched_sets": 2010,
+      "matched_rows": 4020,
+      "by_region": {
+        "EU": 1009,
+        "NA": 1001
+      },
+      "maximum_absolute_smd": 0.2213332761312298,
+      "absolute_smd_by_feature": {
+        "ball_pos_x": 0.014029516023250138,
+        "ball_pos_y": 0.024023884112889644,
+        "ball_pos_z": 0.03926633712871637,
+        "ball_vel_x": 0.0005748612248036142,
+        "ball_vel_y": 0.025537734483445623,
+        "ball_vel_z": 0.005379801442013387,
+        "actor_pos_x": 0.011283970208939322,
+        "actor_pos_y": 0.02125260349409452,
+        "actor_pos_z": 0.04200720116552847,
+        "actor_vel_x": 0.0008491139935642476,
+        "actor_vel_y": 0.028002948134797957,
+        "actor_vel_z": 0.00531971961017112,
+        "actor_forward_x": 0.016946677593375634,
+        "actor_forward_y": 0.025495403394838745,
+        "actor_forward_z": 0.021039008041311834,
+        "actor_boost": 0.022967225382884333,
+        "defender_pos_x": 0.011284215505686137,
+        "defender_pos_y": 0.03322826986214518,
+        "defender_pos_z": 0.0662469626254222,
+        "defender_vel_x": 0.023976870880001323,
+        "defender_vel_y": 0.01896503332172178,
+        "defender_vel_z": 0.018034409500595743,
+        "defender_forward_x": 0.03259038632528136,
+        "defender_forward_y": 0.04835684261652135,
+        "defender_forward_z": 0.030119786278209222,
+        "defender_boost": 0.03168729395537238,
+        "actor_defender_distance": 0.0002457233383102767,
+        "actor_intercept_time": 0.035289996693784964,
+        "defender_intercept_time": 0.003221752578157305,
+        "ball_goal_distance": 0.021718966142080607,
+        "teammate_support_distance": 0.03257953466538165,
+        "second_defender_recovery_distance": 0.03594122309542161,
+        "score_diff_actor": 0.060702785655463595,
+        "seconds_remaining": 0.015382372438297327,
+        "overtime": 0.006631885319564931,
+        "team_form_actor_win_rate": 0.2213332761312298,
+        "team_form_opponent_win_rate": 0.0016846378615041873,
+        "team_form_actor_goal_diff": 0.20601898311344927,
+        "team_form_opponent_goal_diff": 0.0016447217799035016,
+        "team_form_actor_log_prior_games": 0.0519469642448826,
+        "team_form_opponent_log_prior_games": 0.03336936914399622
+      }
+    },
+    "gates": {
+      "minimum_matched_sets": true,
+      "minimum_overlap_weight_ess": true,
+      "minimum_propensity_interval_fraction": true,
+      "maximum_absolute_smd_every_feature": false
+    },
+    "all_gates_pass": false
+  },
+  "artifacts": {
+    "source_audit": {
+      "path": "data/processed/rlcs_last_defender_policy_value_v3/stage0_audit.json",
+      "sha256": "6396aa8271ca71fb2790495445fef9d03b738e0a42f81fbcaf70b6dd22396c25"
+    },
+    "geometry_thresholds": {
+      "path": "data/processed/rlcs_last_defender_policy_value_v3/geometry_thresholds.json",
+      "sha256": "5af1b0ef5f54d1385d7b89fedeb8a0e177c31ac2591e89dd7ec008e80b64f062"
+    },
+    "opportunity_inventory": {
+      "path": "data/processed/rlcs_last_defender_policy_value_v3/opportunity_inventory.parquet",
+      "sha256": "5b0d73951f04e842888eef38fbbb23c740166bfb407fc02f9300f2fc80d4f265",
+      "rows": 5256,
+      "columns": 71,
+      "forbidden_action_or_outcome_columns": []
+    }
+  },
+  "independent_verification": {
+    "inventory_hash_matches_source_audit": true,
+    "opportunity_counts_recomputed": true,
+    "matched_sets_recomputed": true,
+    "propensity_interval_fraction_recomputed": true,
+    "overlap_weight_ess_recomputed": true,
+    "all_feature_smds_recomputed": true,
+    "maximum_smd_matches_source_audit": true
+  },
+  "split_locks": {
+    "opened_stages": [
+      "train",
+      "internal_development"
+    ],
+    "action_labels_loaded": false,
+    "success_labels_loaded": false,
+    "split2_regional1_validation_loaded": false,
+    "split2_regionals2_3_test_loaded": false,
+    "downstream_training_started": false
+  },
+  "scientific_conclusion": {
+    "supported": "the_frozen_last_defender_detector_found_sufficient_volume_and_player_coverage",
+    "not_supported": "the_observational_cohort_provides_balanced_comparisons_for_identity_conditioned_matchup_effects",
+    "interpretation": "favorable_profile_matchups_are_entangled_with_actor_team_strength_even_among_geometrically_comparable_opportunities",
+    "final_rlcs_rule": "close_the_rlcs_substrate_and_do_not_create_a_fourth_target"
+  }
+}
