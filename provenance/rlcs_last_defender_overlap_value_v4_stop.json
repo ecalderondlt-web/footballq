@@ -1,0 +1,186 @@
+{
+  "version": 4,
+  "experiment": "rlcs_last_defender_overlap_value_v4",
+  "status": "closed_after_split1_overlap_weighted_outcome_gate_failure",
+  "frozen_at_utc": "2026-08-04T16:53:14Z",
+  "source_commit_sha": "841c94f3aff721d5432a1f999df8c2473cd876c6",
+  "decision": {
+    "support_all_gates_pass": true,
+    "outcome_volume_all_gates_pass": true,
+    "split1_model_all_gates_pass": false,
+    "failed_primary_gates": [
+      "full_vs_team_form_minimum_relative_log_loss_reduction",
+      "full_vs_additive_minimum_relative_log_loss_reduction"
+    ],
+    "split2_validation_authorized": false,
+    "next_authorized_step": "close_rlcs_and_change_data_or_identification_for_any_future_test"
+  },
+  "preoutcome_freeze": {
+    "path": "provenance/rlcs_last_defender_overlap_value_v4_preoutcome.json",
+    "sha256": "5205d119880e41999cfe115105fe17f308f51eb8c70c907f8b55e545d0aacc03",
+    "config_sha256": "f48831cc4f70c0b9be8814623eb913b7a483d5c87283da60bd799402f7f51917",
+    "protocol_sha256": "07da9dfbcf9b2fbcc74fa18fa336e58cf3c08d44663a449604f6df9710608641",
+    "implementation_sha256": "320e0ffa855380907980cbe6e0a324d8de8313a8f38317c7ab67eea18233865e",
+    "runner_sha256": "23a32a394d7ca1552f76eeed8712ea2722f2a72863034b4fca2b39e4b5fe43c9",
+    "test_sha256": "8a1678a0c825b0da5a1698d6239f5d61f04a8b767ee8a14d7dd28ce903025434"
+  },
+  "support": {
+    "source_rows": 5256,
+    "propensity_interval_fraction": 0.9942922374429224,
+    "overlap_weight_effective_sample_size": 4620.5739158512515,
+    "exposure_group_effective_sample_size": {
+      "unfavorable": 2355.1285945349855,
+      "favorable": 2267.023528395513
+    },
+    "maximum_absolute_weighted_smd": 0.019311189171582952,
+    "maximum_weighted_smd_feature": "score_diff_actor",
+    "actor_team_prior_win_rate_weighted_smd": 0.017434958749087893,
+    "actor_team_prior_goal_diff_weighted_smd": 0.003527238444398198,
+    "regional_descriptive_maximum_absolute_weighted_smd": {
+      "EU": 0.10374626110261187,
+      "NA": 0.1701583556018724
+    },
+    "exact_series_actor_roster_pairs": 1413,
+    "exact_series_actor_roster_maximum_absolute_smd": 0.0923016192889324,
+    "all_gates_pass": true
+  },
+  "outcome_volume": {
+    "source_rows": 5256,
+    "uncensored_rows": 5181,
+    "censored_rows": 75,
+    "successes": 2134,
+    "failures": 3047,
+    "by_region": {
+      "EU": {
+        "rows": 2493,
+        "successes": 1072,
+        "failures": 1421
+      },
+      "NA": {
+        "rows": 2688,
+        "successes": 1062,
+        "failures": 1626
+      }
+    },
+    "termination_counts": {
+      "consecutive_opponent_contacts": 2566,
+      "maximum_future_contacts": 2134,
+      "boundary": 481,
+      "censored_stint_end": 75
+    },
+    "postlabel_maximum_absolute_weighted_smd": 0.024816732207984294,
+    "complete_exact_pairs": 1380,
+    "complete_exact_pair_maximum_absolute_smd": 0.09221360940190239,
+    "all_gates_pass": true
+  },
+  "model": {
+    "rows": 5181,
+    "official_series": 45,
+    "outer_folds": 5,
+    "selected_c_by_condition_and_fold": {
+      "state": [0.1, 0.1, 0.1, 0.1, 0.1],
+      "team_form": [0.1, 0.1, 0.1, 0.1, 0.1],
+      "additive_profiles": [0.1, 0.1, 0.1, 0.1, 0.1],
+      "full_matchup": [0.1, 0.1, 0.1, 0.1, 0.1]
+    },
+    "overlap_weighted_out_of_fold_log_loss": {
+      "state": 0.6249783477243819,
+      "team_form": 0.6257335161734585,
+      "additive_profiles": 0.6281798637145414,
+      "full_matchup": 0.6291346100214703
+    },
+    "primary_comparisons": {
+      "full_vs_team_form_relative_reduction": -0.00543537106468336,
+      "full_vs_team_form_bootstrap_95": [
+        -0.009267020566224166,
+        -0.001665156529114825
+      ],
+      "full_vs_additive_relative_reduction": -0.0015198613678626136,
+      "full_vs_additive_bootstrap_95": [
+        -0.003887057021494604,
+        0.0005298795378210613
+      ],
+      "bootstrap_resamples": 10000
+    },
+    "regional_full_vs_team_form_relative_reduction": {
+      "EU": -0.008402723433221447,
+      "NA": -0.002474991031965753
+    },
+    "exact_complete_pair_sensitivity": {
+      "pairs": 1380,
+      "rows": 2760,
+      "full_vs_team_form_relative_reduction": -0.0026165385873914045,
+      "full_vs_additive_relative_reduction": -0.0003679332607367242
+    },
+    "profile_permutation": {
+      "status": "not_run_point_estimate_gates_already_failed",
+      "permutations": 0,
+      "p_value": null
+    },
+    "gates": {
+      "full_vs_team_form_minimum": false,
+      "full_vs_additive_minimum": false,
+      "team_form_bootstrap_lower_positive": false,
+      "additive_bootstrap_lower_positive": false,
+      "profile_permutation_p": false,
+      "positive_eu": false,
+      "positive_na": false,
+      "positive_exact_team_form": false,
+      "positive_exact_additive": false
+    },
+    "all_gates_pass": false
+  },
+  "artifacts": {
+    "weighted_inventory": {
+      "path": "data/processed/rlcs_last_defender_overlap_value_v4/weighted_inventory.parquet",
+      "sha256": "61d00332783e369236e229e1ddcd5b5c03bbbeab74761b3c78315914de7dd8ee"
+    },
+    "support_audit": {
+      "path": "data/processed/rlcs_last_defender_overlap_value_v4/support_audit.json",
+      "sha256": "472c42d250281435423cb346e9cdd9ef3cae84df5ebb710a10f0157f02862be9"
+    },
+    "outcome_unlock": {
+      "path": "data/processed/rlcs_last_defender_overlap_value_v4/outcome_unlock.json",
+      "sha256": "216c790a05f762a8422eff09d2e1e5799cfff811fdf1d6b779672a2520186724"
+    },
+    "outcome_receipt": {
+      "path": "data/processed/rlcs_last_defender_overlap_value_v4/outcome_receipt.json",
+      "sha256": "3b8e84ca07a75c9c12302c27f90e638cead9cbfa5b9c090fcf49073cdaf01066"
+    },
+    "outcome_dataset": {
+      "path": "data/processed/rlcs_last_defender_overlap_value_v4/outcome_dataset.parquet",
+      "sha256": "f5bc31d7e8d134cf7a72e665f38713355613d857fefbe219ca8abcc7c7aba83a"
+    },
+    "outcome_result": {
+      "path": "data/processed/rlcs_last_defender_overlap_value_v4/outcome_result.json",
+      "sha256": "c7847595b50fde097f02423409bd334816e7e47928953d0fcbec6bbfc8bbcebc"
+    }
+  },
+  "independent_verification": {
+    "artifact_hashes_match": true,
+    "outcome_receipt_precedes_result": true,
+    "row_and_class_counts_recomputed": true,
+    "condition_log_losses_recomputed_exactly": true,
+    "outer_series_fold_overlap": 0,
+    "complete_exact_pair_count_recomputed": true,
+    "complete_exact_pairs_have_both_roles": true
+  },
+  "split_locks": {
+    "opened_stages": [
+      "train",
+      "internal_development"
+    ],
+    "action_labels_loaded": false,
+    "success_labels_loaded": true,
+    "split2_regional1_validation_loaded": false,
+    "split2_regionals2_3_test_loaded": false,
+    "split2_validation_authorized": false
+  },
+  "scientific_conclusion": {
+    "supported": "the_overlap_weighting_fix_removed_the_measured_v3_team_form_imbalance",
+    "not_supported": "chronology_safe_actor_defender_profiles_improve_last_defender_success_prediction",
+    "interpretation": "after_measured_balance_profiles_and_matchup_interactions_worsened_out_of_fold_prediction_over_state_and_team_form",
+    "claim_boundary": "negative_observational_result_for_established_rlcs_professionals_in_the_measured_overlap_population",
+    "next_step": "do_not_create_another_rlcs_target_or_scale_the_model"
+  }
+}
